@@ -30,6 +30,11 @@ export type MoneyAuditSummary = {
   reversePendingPayments: number
   /** Card reversed at SEP but payment still PAID (cancel rolled back / resolve-reverse-pending) — re-run the cancel. */
   reversedStillPaid: number
+  /**
+   * Cancelled online booking (IPG/PAID, amount > 0) with no athlete REFUND_CREDIT and no
+   * proven card-reverse / desk / manual-bank owe marker — stranded closed-loop refund.
+   */
+  cancelledOnlineWithoutRefundCredit: number
   alert: boolean
 }
 
@@ -54,6 +59,7 @@ export async function runMoneyAudit(): Promise<MoneyAuditSummary> {
     failedMoneyJobs,
     reversePendingPayments,
     reversedStillPaid,
+    cancelledOnlineWithoutRefundCredit,
   ] = await Promise.all([
     prisma.$queryRaw<Array<{ c: bigint }>>`
       SELECT COUNT(*)::bigint AS c
@@ -140,6 +146,30 @@ export async function runMoneyAudit(): Promise<MoneyAuditSummary> {
         metadataJson: { contains: '"gatewayReversed":true' },
       },
     }),
+    prisma.$queryRaw<Array<{ c: bigint }>>`
+      SELECT COUNT(*)::bigint AS c
+      FROM "Payment" p
+      JOIN "Booking" b ON b.id = p."bookingId"
+      WHERE b.status = 'CANCELLED'
+        AND p.method IN ('IPG', 'PAID')
+        AND p.status IN ('PAID', 'REFUNDED')
+        AND p.amount > 0
+        AND COALESCE(p.purpose, 'booking') <> 'topup'
+        AND NOT EXISTS (
+          SELECT 1 FROM "WalletTransaction" t
+          WHERE t."paymentId" = p.id AND t.type = 'REFUND_CREDIT'
+        )
+        AND (
+          p."metadataJson" IS NULL
+          OR (
+            p."metadataJson" NOT LIKE '%"gatewayReversed":true%'
+            AND p."metadataJson" NOT LIKE '%"gatewayRefund":true%'
+            AND p."metadataJson" NOT LIKE '%"reversePending":true%'
+            AND p."metadataJson" NOT LIKE '%"manualBankRefund":"owed"%'
+            AND p."metadataJson" NOT LIKE '%"deskCashReturn":"owed"%'
+          )
+        )
+    `.then((rows) => Number(rows[0]?.c || 0)),
   ])
 
   // Drift: balance ≠ Σ signed txs − paid withdraws (WITHDRAW_PAID rows carry amount 0),
@@ -194,6 +224,7 @@ export async function runMoneyAudit(): Promise<MoneyAuditSummary> {
     failedMoneyJobs,
     reversePendingPayments,
     reversedStillPaid,
+    cancelledOnlineWithoutRefundCredit,
     alert: false,
   }
   summary.alert = (
@@ -212,6 +243,7 @@ export async function runMoneyAudit(): Promise<MoneyAuditSummary> {
     + summary.failedMoneyJobs
     + summary.reversePendingPayments
     + summary.reversedStillPaid
+    + summary.cancelledOnlineWithoutRefundCredit
   ) > 0
   return summary
 }

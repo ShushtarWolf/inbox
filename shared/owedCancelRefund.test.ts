@@ -59,6 +59,18 @@ describe('cancelWalletCreditAmount', () => {
     }).amount).toBe(1_000)
   })
 
+  it('series last session credits full residual even when sessionPrice is lower', () => {
+    expect(cancelWalletCreditAmount({
+      method: 'IPG',
+      paymentAmount: 0,
+      primaryAmount: 9_000,
+      sessionPrice: 1_500,
+      alreadyRefundedOnPrimary: 7_000,
+      remainingSessionsIncludingCancelled: 1,
+      treatAsSeries: true,
+    }).amount).toBe(2_000)
+  })
+
   it('series without sessionPrice fair-splits residual', () => {
     expect(cancelWalletCreditAmount({
       method: 'IPG',

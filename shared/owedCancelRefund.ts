@@ -104,6 +104,16 @@ export function cancelWalletCreditAmount(input: CancelWalletCreditInput): Cancel
         ) || 0,
       ),
     )
+    // Last active session: credit the full residual (not sessionPrice), matching live
+    // seriesCancelRefund residual path so leftover toman are not stranded.
+    const remaining = input.remainingSessionsIncludingCancelled != null
+      ? Math.max(1, Math.floor(Number(input.remainingSessionsIncludingCancelled) || 1))
+      : null
+    if (remaining === 1) {
+      const residual = Math.max(0, primary - already)
+      const amount = refundAmountFromBps(residual, bps)
+      return { amount, reason: amount > 0 ? 'series_session' : 'zero', series: true }
+    }
     const sessionPrice = input.sessionPrice != null
       ? Number(input.sessionPrice)
       : metaNumber(meta, 'sessionPrice')
@@ -111,7 +121,7 @@ export function cancelWalletCreditAmount(input: CancelWalletCreditInput): Cancel
       sessionPrice,
       primaryAmount: primary,
       alreadyRefunded: already,
-      remainingSessions: input.remainingSessionsIncludingCancelled,
+      remainingSessions: remaining ?? undefined,
     })
     const amount = refundAmountFromBps(raw, bps)
     return { amount, reason: amount > 0 ? 'series_session' : 'zero', series: true }

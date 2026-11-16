@@ -14,6 +14,7 @@ import {
   type DeskCashReturn,
   type RefundChannel,
 } from '#shared/cancelRefund.ts'
+import { cancelWalletCreditAmount } from '#shared/owedCancelRefund.ts'
 import {
   isSepReverseAlreadyDoneError,
   isSepReverseAmbiguousError,
@@ -196,9 +197,20 @@ export async function refundPaymentForCancellation(options: {
   }
 
   let walletCredited = false
+  // Live cancel decides amount fresh — strip prior explicit figures so a stale
+  // refundCreditAmount from an aborted write cannot under/over-credit.
+  const liveMeta = { ...existingMeta }
+  delete liveMeta.refundCreditAmount
+  delete liveMeta.refundedAmount
   const creditAmount = gatewayRefunded
     ? reverseWalletRestock
-    : refundAmountFromBps(payment.amount, refundBps)
+    : cancelWalletCreditAmount({
+      method: payment.method,
+      bookingPaymentMethod: payment.booking?.paymentMethod,
+      paymentAmount: payment.amount,
+      refundBps,
+      metadata: liveMeta,
+    }).amount
   nextMeta.refundBps = refundBps
   nextMeta.refundCreditAmount = creditAmount
   nextMeta.refundedAmount = creditAmount

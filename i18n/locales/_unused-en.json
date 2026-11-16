@@ -208,7 +208,7 @@
     "walletEmpty": "No transactions yet",
     "walletCredit": "Credit",
     "walletDebit": "Debit",
-    "walletTypeRefund": "Refund credit",
+    "walletTypeRefund": "Cancel refund",
     "walletTypePayment": "Booking payment",
     "walletTypeAdjustment": "Adjustment",
     "walletHistoryTitle": "History",
