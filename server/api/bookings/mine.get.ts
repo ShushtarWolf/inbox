@@ -1,5 +1,6 @@
 import { linkOrphanBookingsByPhone } from '../../utils/phoneAuth'
 import { parseSeriesPaymentMeta } from '#shared/athleteSeason.ts'
+import { athleteEffectiveBookingStatus } from '#shared/athleteHistoryStatus.ts'
 
 export default defineEventHandler(async (event) => {
   const user = await requireUser(event)
@@ -43,8 +44,10 @@ export default defineEventHandler(async (event) => {
   return {
     courtBookings: courtBookings.map((booking) => {
       const seasonBookingId = parseSeriesPaymentMeta(booking.payment?.metadataJson).seasonBookingId || null
+      const athleteStatus = athleteEffectiveBookingStatus(booking)
       return {
         ...booking,
+        athleteStatus,
         seasonBookingId,
         seasonSessionCount: seasonBookingId ? (seasonCounts.get(seasonBookingId) || 0) : null,
       }
