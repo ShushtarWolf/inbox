@@ -11,7 +11,7 @@ import {
   parsePaymentMetadata,
   resolveRefundChannel,
 } from '#shared/cancelRefund.ts'
-import { cancelWalletCreditAmount } from '#shared/owedCancelRefund.ts'
+import { cancelDeskCashReturnAmount, cancelWalletCreditAmount } from '#shared/owedCancelRefund.ts'
 import type { Prisma } from '@prisma/client'
 import { createError } from 'h3'
 import type { RefundResult } from './refunds'
@@ -173,7 +173,7 @@ export async function refundAfterSeriesSessionCancel(opts: {
   const liveMeta = { ...parsePaymentMetadata(primaryPayment.metadataJson) }
   delete liveMeta.refundCreditAmount
   delete liveMeta.refundedAmount
-  const amount = cancelWalletCreditAmount({
+  const owedInput = {
     method: primaryPayment.method,
     bookingPaymentMethod: primaryBookingPaymentMethod,
     paymentAmount: primaryPayment.amount,
@@ -181,10 +181,13 @@ export async function refundAfterSeriesSessionCancel(opts: {
     sessionPrice,
     alreadyRefundedOnPrimary: alreadyRefunded,
     remainingSessionsIncludingCancelled: remainingIncludingCancelled,
-    treatAsSeries: true,
+    treatAsSeries: true as const,
     refundBps,
     metadata: liveMeta,
-  }).amount
+  }
+  // Wallet credit stays 0 for desk cash; still report session share for cashReturnTotal / desk ack.
+  const amount = cancelWalletCreditAmount(owedInput).amount
+    || cancelDeskCashReturnAmount(owedInput).amount
 
   if (amount <= 0) {
     return { refunded: false, walletCredited: false, gatewayRefunded: false, amount: 0 }

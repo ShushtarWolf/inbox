@@ -68,14 +68,10 @@ function metaNumber(meta: Record<string, unknown>, key: string): number | null {
 }
 
 /**
- * Gross toman to credit the athlete wallet for this cancel (after refundBps).
- * Never returns a negative. Series never returns more than residual on primary.
+ * Share math for a cancel (series / standalone / explicit meta). Used by wallet credit
+ * and by desk cash-return reporting — callers decide whether money moves to a wallet.
  */
-export function cancelWalletCreditAmount(input: CancelWalletCreditInput): CancelWalletCreditResult {
-  if (resolveRefundChannel(input.method, input.bookingPaymentMethod) === 'desk_cash') {
-    return { amount: 0, reason: 'desk_cash', series: false }
-  }
-
+function computeCancelOwedAmount(input: CancelWalletCreditInput): CancelWalletCreditResult {
   const meta = asMeta(input.metadata)
   const seriesMeta = parseSeriesPaymentMeta(JSON.stringify(meta)) as SeriesPaymentMeta
   const series = input.treatAsSeries === true || isSeriesPaymentGroup(seriesMeta)
@@ -130,4 +126,28 @@ export function cancelWalletCreditAmount(input: CancelWalletCreditInput): Cancel
   const cap = Math.max(0, Math.floor(Number(input.paymentAmount) || 0))
   const amount = refundAmountFromBps(cap, bps)
   return { amount, reason: amount > 0 ? 'standalone' : 'zero', series: false }
+}
+
+/**
+ * Gross toman to credit the athlete wallet for this cancel (after refundBps).
+ * Never returns a negative. Series never returns more than residual on primary.
+ * Desk cash → 0 (till money never entered float).
+ */
+export function cancelWalletCreditAmount(input: CancelWalletCreditInput): CancelWalletCreditResult {
+  if (resolveRefundChannel(input.method, input.bookingPaymentMethod) === 'desk_cash') {
+    return { amount: 0, reason: 'desk_cash', series: false }
+  }
+  return computeCancelOwedAmount(input)
+}
+
+/**
+ * Desk till return owed to the guest on cancel (UI / cashReturnTotal).
+ * Same share math as wallet credit; never implies a wallet move.
+ */
+export function cancelDeskCashReturnAmount(input: CancelWalletCreditInput): CancelWalletCreditResult {
+  if (resolveRefundChannel(input.method, input.bookingPaymentMethod) !== 'desk_cash') {
+    return { amount: 0, reason: 'zero', series: false }
+  }
+  const owed = computeCancelOwedAmount(input)
+  return { amount: owed.amount, reason: 'desk_cash', series: owed.series }
 }
