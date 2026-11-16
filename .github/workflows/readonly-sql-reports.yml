@@ -13,6 +13,7 @@ on:
           - sms-delivery-gap
           - trace-wallet-cancel-lost-refund
           - list-suspect-court-time-bands
+          - behnaz-athlete-ledger
 
 concurrency:
   group: readonly-sql-reports
@@ -91,6 +92,14 @@ jobs:
               ;;
             sms-delivery-gap|trace-wallet-cancel-lost-refund|list-suspect-court-time-bands)
               add_if_on_main "$REPORT"
+              ;;
+            behnaz-athlete-ledger)
+              # Allow branch checkout (ops audit) without waiting for main.
+              if [ -f scripts/sql/behnaz-athlete-ledger.sql ]; then
+                FILES+=("scripts/sql/behnaz-athlete-ledger.sql")
+              else
+                add_if_on_main behnaz-athlete-ledger
+              fi
               ;;
             *)
               echo "::error::Unknown report: $REPORT"
