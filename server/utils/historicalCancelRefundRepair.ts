@@ -474,6 +474,39 @@ async function applyCredit(line: HistoricalCancelRefundLine, opts?: {
       })
     if (again.action !== 'credit' || !userId) return
 
+    const liveCredited = Math.max(0, credited._sum.amount || 0)
+    // Unique (paymentId, type, bookingId) allows only one REFUND_CREDIT per session.
+    // Live cancel may already have written it while inventory/trust still asked for credit.
+    if (liveCredited > 0) {
+      if (liveCredited < again.amount) {
+        throw new Error(
+          `partial_refund_credit payment=${payment.id} booking=${line.bookingId || ''} `
+          + `have=${liveCredited} want=${again.amount}`,
+        )
+      }
+      await tx.refundReconciliation.create({
+        data: {
+          idempotencyKey: key,
+          paymentId: payment.id,
+          userId,
+          amount: liveCredited,
+          clubClawback: 0,
+          commissionRecorded: 0,
+          reason: again.reason,
+          evidenceJson: JSON.stringify({
+            paymentStatus: payment.status,
+            bookingStatus: payment.booking?.status || null,
+            method: payment.method,
+            priorRefundCredit: liveCredited,
+            reconciledExistingWalletCredit: true,
+            metadata: parseMeta(payment.metadataJson),
+          }),
+        },
+      })
+      wrote = true
+      return
+    }
+
     const wallet = await tx.wallet.upsert({
       where: { userId },
       update: {},
