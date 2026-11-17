@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { fetchErrorMessage, isSlotConflictError } from './useFetchError.ts'
+import { extractHttpError, fetchErrorMessage, isSlotConflictError } from './useFetchError.ts'
 
 function t(key: string) {
   return `i18n:${key}`
@@ -62,6 +62,34 @@ describe('fetchErrorMessage desk reserve conflicts', () => {
       .toBe('i18n:booking.errors.courtMenOnly')
     expect(fetchErrorMessage(err('COURT_WOMEN_ONLY'), 'مشکلی پیش آمد', t))
       .toBe('i18n:booking.errors.courtWomenOnly')
+  })
+})
+
+describe('extractHttpError', () => {
+  it('reads status from top-level and nested fetch shapes', () => {
+    expect(extractHttpError({ statusCode: 403, statusMessage: 'Account disabled' })).toEqual({
+      statusCode: 403,
+      statusMessage: 'Account disabled',
+      retryAfterSec: undefined,
+    })
+    expect(extractHttpError({ data: { statusCode: 400, statusMessage: 'Invalid OTP' } })).toEqual({
+      statusCode: 400,
+      statusMessage: 'Invalid OTP',
+      retryAfterSec: undefined,
+    })
+    expect(extractHttpError({ response: { status: 404, _data: { statusMessage: 'Phone not registered' } } })).toEqual({
+      statusCode: 404,
+      statusMessage: 'Phone not registered',
+      retryAfterSec: undefined,
+    })
+  })
+})
+
+describe('fetchErrorMessage OTP auth', () => {
+  it('maps OTP verify failures to distinct auth keys', () => {
+    expect(fetchErrorMessage(err('OTP expired or missing'), 'عمومی', t)).toBe('i18n:auth.otpExpiredOrMissing')
+    expect(fetchErrorMessage(err('Too many attempts'), 'عمومی', t)).toBe('i18n:auth.otpTooManyAttempts')
+    expect(fetchErrorMessage(err('Use password sign-in for this account'), 'عمومی', t)).toBe('i18n:auth.usePasswordNotOtp')
   })
 })
 

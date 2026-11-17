@@ -1,6 +1,5 @@
 import { getClubWithdrawableBalance } from '../../utils/settlement'
-import { isSettlementCashoutEligible, resolveClubCommissionBps } from '#shared/settlement.ts'
-import { addDaysToIsoDate } from '#shared/localDate.ts'
+import { resolveClubCommissionBps } from '#shared/settlement.ts'
 import {
   attachClubWalletBalanceAfter,
   CLUB_WALLET_STATEMENT_TYPES,
@@ -45,21 +44,8 @@ export default defineEventHandler(async (event) => {
     lastRejected: shebaState.lastRejected,
   })
 
-  // Release schedule (Tehran day after class). Season partial unlock may differ from this map total.
-  const openForSchedule = await prisma.settlementLedgerEntry.findMany({
-    where: { clubId: club.id, clawedBackAt: null, classDate: { not: null } },
-    select: { ownerNet: true, classDate: true },
-  })
-  const releaseBuckets = new Map<string, number>()
-  for (const entry of openForSchedule) {
-    const classDate = (entry.classDate || '').trim()
-    if (!classDate || isSettlementCashoutEligible(classDate)) continue
-    const releaseDate = addDaysToIsoDate(classDate, 1)
-    releaseBuckets.set(releaseDate, (releaseBuckets.get(releaseDate) || 0) + entry.ownerNet)
-  }
-  const pendingReleases = [...releaseBuckets.entries()]
-    .sort((a, b) => a[0].localeCompare(b[0]))
-    .map(([releaseDate, amount]) => ({ releaseDate, amount }))
+  /** Release schedule shares pendingClassBalance math (season unlock, clawbacks, blocked IPG). */
+  const pendingReleases = walletBalances.pendingReleases
 
   const statementRowsRaw = walletRow
     ? await prisma.clubWalletTransaction.findMany({
