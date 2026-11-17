@@ -3,6 +3,7 @@ import {
   bookingSpendAmount,
   computeContactMetrics,
   daysSinceIsoDate,
+  isPastAttendedVisit,
   paymentStatusOf,
   resolveContactName,
 } from './contactSync'
@@ -18,7 +19,7 @@ describe('contactSync metrics', () => {
         guestFamily: 'رضایی',
         paymentStatus: 'PAID',
         payment: { status: 'PAID', amount: 500000 },
-        slot: { date: '2026-08-20', price: 400000 },
+        slot: { date: '2026-08-20', startTime: '10:00', price: 400000 },
       },
       {
         status: 'CANCELLED',
@@ -26,7 +27,7 @@ describe('contactSync metrics', () => {
         guestFamily: 'رضایی',
         paymentStatus: 'PAID',
         payment: { status: 'PAID', amount: 100000 },
-        slot: { date: '2026-08-10', price: 100000 },
+        slot: { date: '2026-08-10', startTime: '10:00', price: 100000 },
       },
       {
         status: 'CONFIRMED',
@@ -34,7 +35,7 @@ describe('contactSync metrics', () => {
         guestFamily: 'رضایی',
         paymentStatus: 'PAY_AT_CLUB',
         payment: { status: 'PAY_AT_CLUB', amount: 300000 },
-        slot: { date: '2026-08-01', price: 300000 },
+        slot: { date: '2026-08-01', startTime: '10:00', price: 300000 },
       },
     ], now)
 
@@ -44,19 +45,53 @@ describe('contactSync metrics', () => {
     expect(metrics.inactiveDays).toBe(daysSinceIsoDate('2026-08-20', now))
   })
 
+  it('ignores future and no-show slots for lastVisit', () => {
+    const now = new Date('2026-11-16T15:00:00+03:30')
+    const metrics = computeContactMetrics([
+      {
+        status: 'CONFIRMED',
+        slot: { date: '2026-12-20', startTime: '18:00', price: 0 },
+      },
+      {
+        status: 'CONFIRMED',
+        noShowAt: new Date('2026-11-10'),
+        slot: { date: '2026-11-10', startTime: '10:00', price: 0 },
+      },
+      {
+        status: 'CONFIRMED',
+        slot: { date: '2026-11-05', startTime: '09:00', price: 0 },
+      },
+    ], now)
+
+    expect(metrics.lastVisit).toBe('2026-11-05')
+    expect(metrics.totalVisits).toBe(3)
+  })
+
+  it('treats same-day past slot start as a visit', () => {
+    const now = new Date('2026-11-16T15:00:00+03:30')
+    expect(isPastAttendedVisit({
+      status: 'CONFIRMED',
+      slot: { date: '2026-11-16', startTime: '10:00', price: 0 },
+    }, now)).toBe(true)
+    expect(isPastAttendedVisit({
+      status: 'CONFIRMED',
+      slot: { date: '2026-11-16', startTime: '18:00', price: 0 },
+    }, now)).toBe(false)
+  })
+
   it('prefers the latest active booking name', () => {
     const name = resolveContactName([
       {
         status: 'CONFIRMED',
         guestName: 'مریم',
         guestFamily: 'کریمی',
-        slot: { date: '2026-08-20', price: 0 },
+        slot: { date: '2026-08-20', startTime: '10:00', price: 0 },
       },
       {
         status: 'CONFIRMED',
         guestName: 'علی',
         guestFamily: 'رضایی',
-        slot: { date: '2026-08-01', price: 0 },
+        slot: { date: '2026-08-01', startTime: '10:00', price: 0 },
       },
     ])
     expect(name).toBe('مریم کریمی')
@@ -69,14 +104,14 @@ describe('contactSync metrics', () => {
         guestName: 'avid',
         guestFamily: null,
         user: { name: 'الهه ربیعی', phone: '09364916923' },
-        slot: { date: '2026-08-23', price: 0 },
+        slot: { date: '2026-08-23', startTime: '10:00', price: 0 },
       },
       {
         status: 'CONFIRMED',
         guestName: 'الهه',
         guestFamily: 'ربیعی',
         user: { name: 'الهه ربیعی', phone: '09364916923' },
-        slot: { date: '2026-08-20', price: 0 },
+        slot: { date: '2026-08-20', startTime: '10:00', price: 0 },
       },
     ])
     expect(name).toBe('الهه ربیعی')
@@ -88,7 +123,7 @@ describe('contactSync metrics', () => {
       status: 'CONFIRMED',
       paymentStatus: 'PAY_AT_CLUB',
       payment: { status: 'PAID', amount: 250000 },
-      slot: { date: '2026-08-01', price: 100000 },
+      slot: { date: '2026-08-01', startTime: '10:00', price: 100000 },
     })).toBe(250000)
   })
 })

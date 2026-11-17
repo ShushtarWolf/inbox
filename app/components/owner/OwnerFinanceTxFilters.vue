@@ -30,6 +30,10 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
+const { formatNumber } = useFormatters()
+
+/** Phone-width finance tabs: collapsed by default so the tx list stays reachable. */
+const mobileFiltersOpen = ref(false)
 
 const sessionFilterOptions = computed(() => ([
   { value: 'all' as const, label: t('owner.financeTable.sessionFilterAll') },
@@ -83,6 +87,28 @@ const filterState = computed<OwnerFinanceTxFilterState>(() => ({
 
 const hasActiveFilters = computed(() => isOwnerFinanceTxFiltersActive(filterState.value, props.defaults))
 
+const activeFilterCount = computed(() => {
+  let n = 0
+  const d = props.defaults
+  const c = filterState.value
+  if (props.showSession && c.session !== d.session) n++
+  if (c.legend !== (d.legend ?? 'all')) n++
+  if (c.bookingKind !== (d.bookingKind ?? 'all')) n++
+  if (c.payment !== (d.payment ?? 'all')) n++
+  if ((c.guest ?? '').trim() !== (d.guest ?? '').trim()) n++
+  if ((c.discountCode ?? '').trim() !== (d.discountCode ?? '').trim()) n++
+  if ((c.reservedFrom ?? '') !== (d.reservedFrom ?? '') || (c.reservedTo ?? '') !== (d.reservedTo ?? '')) n++
+  if ((c.paidFrom ?? '') !== (d.paidFrom ?? '') || (c.paidTo ?? '') !== (d.paidTo ?? '')) n++
+  if (c.sortKey !== (d.sortKey ?? 'reservedAt') || c.sortDir !== (d.sortDir ?? 'desc')) n++
+  return n
+})
+
+const mobileFiltersToggleLabel = computed(() => {
+  const n = activeFilterCount.value
+  if (n === 0) return t('owner.financeTable.filtersToggle')
+  return t('owner.financeTable.filtersToggleActive', { n: formatNumber(n) })
+})
+
 function clearDates() {
   reservedFrom.value = ''
   reservedTo.value = ''
@@ -122,7 +148,29 @@ function sortLabel(key: FinanceTxSortKey) {
 </script>
 
 <template>
-  <div class="space-y-2">
+  <div class="owner-finance-tx-filters space-y-2">
+    <button
+      type="button"
+      class="canva-session-filter-btn flex w-full items-center justify-between gap-2 text-start max-[430px]:flex min-[431px]:hidden"
+      :aria-expanded="mobileFiltersOpen"
+      aria-controls="owner-finance-tx-filters-panel"
+      @click="mobileFiltersOpen = !mobileFiltersOpen"
+    >
+      <span class="font-bold">{{ mobileFiltersToggleLabel }}</span>
+      <AppIcon
+        name="expand_more"
+        size="sm"
+        class="shrink-0 transition-transform duration-200"
+        :class="mobileFiltersOpen ? 'rotate-180' : ''"
+        aria-hidden="true"
+      />
+    </button>
+
+    <div
+      id="owner-finance-tx-filters-panel"
+      class="space-y-2"
+      :class="mobileFiltersOpen ? '' : 'max-[430px]:hidden'"
+    >
     <AppFilterClearButton :show="hasActiveFilters" @click="clearAllFilters" />
 
     <div
@@ -276,5 +324,6 @@ function sortLabel(key: FinanceTxSortKey) {
         {{ sortDir === 'asc' ? '↑' : '↓' }}
       </button>
     </label>
+    </div>
   </div>
 </template>

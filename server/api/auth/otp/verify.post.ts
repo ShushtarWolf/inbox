@@ -21,6 +21,7 @@ import {
 import { createPendingOwnerApplication } from '../../../utils/ownerSignupApplication'
 import { notifyAdminClubApplication } from '../../../utils/adminNotify'
 import { ownerPostLoginRedirect, toSessionUser } from '../../../utils/auth'
+import { isUniqueConstraintError } from '../../../utils/prismaErrors'
 import { resolveUserDisplayName, userNameFieldsFromParts } from '../../../utils/userNameRecord'
 import type { Prisma, User } from '@prisma/client'
 
@@ -60,14 +61,22 @@ export default defineEventHandler(async (event) => {
         statusMessage: 'Use password sign-in for this account',
       })
     }
-    const updated = await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        ...(linkPhone ? { phone } : {}),
-        phoneVerifiedAt: new Date(),
-        lastLoginAt: new Date(),
-      },
-    })
+    let updated: User
+    try {
+      updated = await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          ...(linkPhone ? { phone } : {}),
+          phoneVerifiedAt: new Date(),
+          lastLoginAt: new Date(),
+        },
+      })
+    } catch (err) {
+      if (isUniqueConstraintError(err)) {
+        throw createError({ statusCode: 409, statusMessage: 'Phone already registered' })
+      }
+      throw err
+    }
     await linkOrphanBookingsByPhone(updated.id, phone)
     await setUserSession(event, { user: toSessionUser(updated) })
     return {

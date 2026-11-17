@@ -1,16 +1,25 @@
-import { clampDiscountPercent } from '#shared/discountCode.ts'
+import {
+  clampDiscountPercent,
+  parseDiscountEndsAtInput,
+  parseDiscountStartsAtInput,
+} from '#shared/discountCode.ts'
 
-function parseOptionalDate(raw: string | null | undefined, allowNull: boolean): Date | null | undefined {
+function parseOptionalDate(
+  raw: string | null | undefined,
+  kind: 'start' | 'end',
+  allowNull: boolean,
+): Date | null | undefined {
   if (raw === undefined) return undefined
   if (raw == null || String(raw).trim() === '') {
     if (!allowNull) throw createError({ statusCode: 400, statusMessage: 'Invalid date' })
     return null
   }
-  const d = new Date(raw)
-  if (Number.isNaN(d.getTime())) {
+  try {
+    return kind === 'end' ? parseDiscountEndsAtInput(raw) : parseDiscountStartsAtInput(raw)
+  }
+  catch {
     throw createError({ statusCode: 400, statusMessage: 'Invalid date' })
   }
-  return d
 }
 
 export default defineEventHandler(async (event) => {
@@ -73,10 +82,10 @@ export default defineEventHandler(async (event) => {
   }
 
   if (body.startsAt !== undefined) {
-    data.startsAt = parseOptionalDate(body.startsAt, true) ?? null
+    data.startsAt = parseOptionalDate(body.startsAt, 'start', true) ?? null
   }
   if (body.endsAt !== undefined) {
-    data.endsAt = parseOptionalDate(body.endsAt, true) ?? null
+    data.endsAt = parseOptionalDate(body.endsAt, 'end', true) ?? null
   }
 
   const startsAt = data.startsAt !== undefined ? data.startsAt : existing.startsAt

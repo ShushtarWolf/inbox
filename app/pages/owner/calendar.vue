@@ -3,6 +3,7 @@ import { isoToJalaali, jalaaliDaysInMonth, jalaaliToIso, PERSIAN_MONTHS } from '
 import { palette } from '#shared/palette.ts'
 import { isPaidPaymentStatus, isUnpaidPaymentStatus, resolvePaymentChannel } from '#shared/bookingPayment.ts'
 import { addDaysToIsoDate, isPastDate, isSlotStartInPast } from '#shared/localDate.ts'
+import { countFutureFreeOverviewSlots } from '#shared/ownerCalendarOverview.ts'
 import {
   countRecurringSessionsByDayInRange,
   ensureDayTimesForDays,
@@ -38,7 +39,11 @@ import {
 import { guestSearchHitToFormPair, type GuestSearchHit } from '#shared/guestSearch.ts'
 import { normalizeIranPhone } from '#shared/phone.ts'
 import { parseDeskPercent, resolveDeskCharge } from '#shared/deskCharge.ts'
-import { mergeGuestMobileFromDom, applyGuestMobileInput } from '#shared/ownerDeskGuestForm.ts'
+import {
+  applyGuestDeskInputsFromModel,
+  mergeGuestMobileFromDom,
+  applyGuestMobileInput,
+} from '#shared/ownerDeskGuestForm.ts'
 import { resolveSeasonGuestFields } from '#shared/seasonFormHydrate.ts'
 import { shouldExitBookedSelectForFreeSlot } from '#shared/ownerCalendarSelection.ts'
 import { deskPaymentAnchorSlot } from '#shared/deskPaymentAnchor.ts'
@@ -46,6 +51,7 @@ import { resolveDeskPaymentWrite } from '#shared/deskPaidGuard.ts'
 import { isDeskCashCancelRefund, resolveRefundChannel } from '#shared/cancelRefund.ts'
 import { bookingNote } from '#shared/packages.ts'
 import {
+  isOwnerDeskEquipmentPickerCategory,
   isSellEquipmentCategory,
   minAvailableEquipmentAcrossTimes,
   normalizeSlotTime,
@@ -527,14 +533,14 @@ const activeCourt = computed(() =>
 const overviewStats = computed(() => {
   const slots = (data.value?.slots || []) as OwnerCalendarSlot[]
   const bookable = slots.filter((slot) => slot.displayStatus !== 'CLOSED')
-  const free = bookable.filter((slot) => slot.displayStatus === 'FREE' && !isExternalOnlyOccupied(slot))
+  const freeCount = countFutureFreeOverviewSlots(bookable, date.value, isExternalOnlyOccupied)
   const reserved = bookable.filter((slot) =>
     slot.displayStatus === 'RESERVED'
     || slot.displayStatus === 'PENDING'
     || Boolean(activeBooking(slot))
     || isExternalOnlyOccupied(slot),
   )
-  const freePct = bookable.length ? Math.round((free.length / bookable.length) * 100) : 0
+  const freePct = bookable.length ? Math.round((freeCount / bookable.length) * 100) : 0
   const reservedPct = bookable.length ? Math.round((reserved.length / bookable.length) * 100) : 0
   const perCourt = courts.value.map((court) => {
     const courtSlots = bookable.filter((slot) => slot.courtId === court.id)
@@ -555,7 +561,7 @@ const overviewStats = computed(() => {
     reservedPct,
     bookingsToday: reserved.length,
     bookable: bookable.length,
-    free: free.length,
+    free: freeCount,
     perCourt,
   }
 })
@@ -1131,6 +1137,7 @@ const guestSearchPending = ref(false)
 let guestSearchTimer: ReturnType<typeof setTimeout> | null = null
 let guestSearchRequest = 0
 const guestSearchScheduledAt = ref(0)
+let guestInputSuppressUntil = 0
 
 function clearGuestSearch() {
   if (guestSearchTimer) {
@@ -1199,6 +1206,7 @@ function scheduleGuestSearch(raw: string) {
 const guestSearchSource = ref<'name' | 'mobile'>('name')
 
 function onGuestNameFieldInput() {
+  if (Date.now() < guestInputSuppressUntil) return
   guestSearchSource.value = 'name'
   scheduleGuestSearch(formatGuestDisplayName(form.guestName, form.guestFamily))
 }
@@ -1216,18 +1224,46 @@ function syncGuestFieldsFromDom() {
 }
 
 function onGuestMobileInput(event: Event) {
+  if (Date.now() < guestInputSuppressUntil) return
   const raw = (event.target as HTMLInputElement).value
   form.guestMobile = applyGuestMobileInput(raw)
   guestSearchSource.value = 'mobile'
   scheduleGuestSearch(form.guestMobile)
 }
 
+function syncGuestInputsFromModel() {
+  if (!import.meta.client) return
+  applyGuestDeskInputsFromModel(
+    {
+      guestName: form.guestName,
+      guestFamily: form.guestFamily,
+      guestMobile: form.guestMobile,
+    },
+    {
+      guestName: guestNameInput.value,
+      guestFamily: guestFamilyInput.value,
+      guestMobile: guestMobileInput.value,
+    },
+  )
+}
+
+function paintGuestInputsAfterSelect() {
+  syncGuestInputsFromModel()
+  nextTick(() => {
+    syncGuestInputsFromModel()
+    if (import.meta.client) requestAnimationFrame(() => syncGuestInputsFromModel())
+  })
+}
+
 function selectGuestSuggestion(guest: GuestSearchHit) {
+  guestSearchRequest += 1
+  guestInputSuppressUntil = Date.now() + 450
   const parts = guestSearchHitToFormPair(guest)
   form.guestName = parts.guestName
   form.guestFamily = parts.guestFamily
   if (guest.mobile) form.guestMobile = guest.mobile
   clearGuestSearch()
+  paintGuestInputsAfterSelect()
 }
 
 function closeGuestSearchSoon() {
@@ -3763,9 +3799,7 @@ function slotRowGuestName(slot: OwnerCalendarSlot) {
 const cancelReasons = ['CUSTOMER_REQUEST', 'NO_PAYMENT', 'SCHEDULE_CONFLICT'] as const
 
 const rentalEquipments = computed(() =>
-  (equipments.value || []).filter((item) =>
-    item.category === 'CLUB' || item.category === 'RENTAL' || item.category === 'SELL',
-  ),
+  (equipments.value || []).filter((item) => isOwnerDeskEquipmentPickerCategory(item.category)),
 )
 
 const equipmentPickerOptions = computed(() =>

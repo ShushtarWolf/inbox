@@ -13,7 +13,43 @@ vi.mock('./prisma', () => ({
   prisma: {},
 }))
 
-import { redeemDiscountCode } from './discountCodes'
+import type { DiscountCode } from '@prisma/client'
+import { assertDiscountUsable, redeemDiscountCode } from './discountCodes'
+
+describe('assertDiscountUsable', () => {
+  const base: DiscountCode = {
+    id: 'dc-1',
+    code: 'INBOXSADMIN',
+    percent: 20,
+    labelFa: null,
+    labelEn: null,
+    active: true,
+    clubId: 'club-1',
+    boundUserId: null,
+    startsAt: null,
+    endsAt: new Date('2026-10-22T20:29:59.999Z'),
+    maxRedemptions: 5,
+    redemptionCount: 0,
+    createdAt: new Date(),
+  }
+
+  it('rejects expired codes at checkout validation', () => {
+    expect(() => assertDiscountUsable(
+      base,
+      'club-1',
+      'user-1',
+      new Date('2026-11-16T12:00:00+03:30'),
+    )).toThrow('Discount code expired')
+  })
+
+  it('rejects cap-exhausted codes', () => {
+    expect(() => assertDiscountUsable(
+      { ...base, endsAt: null, redemptionCount: 5 },
+      'club-1',
+      'user-1',
+    )).toThrow('Discount code exhausted')
+  })
+})
 
 describe('redeemDiscountCode', () => {
   afterEach(() => {
