@@ -43,6 +43,7 @@ describe('money cancel matrix (phase 4)', () => {
   })
 
   it('discounted primary still caps at residual (no second discount invent)', () => {
+    // residual 1500 / 2 remaining → 750 mid-pack; last session still takes leftover.
     expect(cancelWalletCreditAmount({
       method: 'IPG',
       paymentAmount: 0,
@@ -51,7 +52,7 @@ describe('money cancel matrix (phase 4)', () => {
       alreadyRefundedOnPrimary: 6_000,
       remainingSessionsIncludingCancelled: 2,
       treatAsSeries: true,
-    }).amount).toBe(1_500)
+    }).amount).toBe(750)
   })
 
   it('desk cash → 0; failed/zero charge → 0', () => {
