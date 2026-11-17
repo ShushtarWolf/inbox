@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { FinanceBookingKindFilter, FinanceLegendFilter, FinancePaymentFilter, FinanceSessionFilter, FinanceTxSortDir, FinanceTxSortKey } from '#shared/financeTransactions.ts'
+import { isOwnerFinanceTxFiltersActive, type FinanceBookingKindFilter, type FinanceLegendFilter, type FinancePaymentFilter, type FinanceSessionFilter, type FinanceTxSortDir, type FinanceTxSortKey, type OwnerFinanceTxFilterState } from '#shared/financeTransactions.ts'
 
 const session = defineModel<FinanceSessionFilter>('session', { required: true })
 const bookingKind = defineModel<FinanceBookingKindFilter>('bookingKind', { required: true })
@@ -17,11 +17,17 @@ const sortDir = defineModel<FinanceTxSortDir>('sortDir', { required: true })
 const props = withDefaults(defineProps<{
   showSession?: boolean
   /** always: report cards. narrow: phone list, table headers sort on desktop. */
-  sortMode?: 'always' | 'narrow' | 'never'
+  sortMode?: 'never' | 'always' | 'narrow'
+  /** Page-specific filter defaults (session default differs on finance vs report). */
+  defaults: OwnerFinanceTxFilterState
 }>(), {
   showSession: true,
   sortMode: 'never',
 })
+
+const emit = defineEmits<{
+  cleared: []
+}>()
 
 const { t } = useI18n()
 const { formatNumber } = useFormatters()
@@ -64,16 +70,36 @@ const sortOptions: FinanceTxSortKey[] = ['reservation', 'reservedAt', 'paidAt', 
 
 const hasDateFilter = computed(() => Boolean(reservedFrom.value || reservedTo.value || paidFrom.value || paidTo.value))
 
+const filterState = computed<OwnerFinanceTxFilterState>(() => ({
+  session: session.value,
+  bookingKind: bookingKind.value,
+  payment: payment.value,
+  legend: legend.value,
+  guest: guest.value,
+  discountCode: discountCode.value,
+  reservedFrom: reservedFrom.value,
+  reservedTo: reservedTo.value,
+  paidFrom: paidFrom.value,
+  paidTo: paidTo.value,
+  sortKey: sortKey.value,
+  sortDir: sortDir.value,
+}))
+
+const hasActiveFilters = computed(() => isOwnerFinanceTxFiltersActive(filterState.value, props.defaults))
+
 const activeFilterCount = computed(() => {
   let n = 0
-  if (props.showSession && session.value !== 'all') n++
-  if (legend.value !== 'all') n++
-  if (bookingKind.value !== 'all') n++
-  if (payment.value !== 'all') n++
-  if (guest.value.trim()) n++
-  if (discountCode.value.trim()) n++
-  if (reservedFrom.value || reservedTo.value) n++
-  if (paidFrom.value || paidTo.value) n++
+  const d = props.defaults
+  const c = filterState.value
+  if (props.showSession && c.session !== d.session) n++
+  if (c.legend !== (d.legend ?? 'all')) n++
+  if (c.bookingKind !== (d.bookingKind ?? 'all')) n++
+  if (c.payment !== (d.payment ?? 'all')) n++
+  if ((c.guest ?? '').trim() !== (d.guest ?? '').trim()) n++
+  if ((c.discountCode ?? '').trim() !== (d.discountCode ?? '').trim()) n++
+  if ((c.reservedFrom ?? '') !== (d.reservedFrom ?? '') || (c.reservedTo ?? '') !== (d.reservedTo ?? '')) n++
+  if ((c.paidFrom ?? '') !== (d.paidFrom ?? '') || (c.paidTo ?? '') !== (d.paidTo ?? '')) n++
+  if (c.sortKey !== (d.sortKey ?? 'reservedAt') || c.sortDir !== (d.sortDir ?? 'desc')) n++
   return n
 })
 
@@ -88,6 +114,23 @@ function clearDates() {
   reservedTo.value = ''
   paidFrom.value = ''
   paidTo.value = ''
+}
+
+function clearAllFilters() {
+  const d = props.defaults
+  session.value = d.session
+  bookingKind.value = d.bookingKind ?? 'all'
+  payment.value = d.payment ?? 'all'
+  legend.value = d.legend ?? 'all'
+  guest.value = d.guest ?? ''
+  discountCode.value = d.discountCode ?? ''
+  reservedFrom.value = d.reservedFrom ?? ''
+  reservedTo.value = d.reservedTo ?? ''
+  paidFrom.value = d.paidFrom ?? ''
+  paidTo.value = d.paidTo ?? ''
+  sortKey.value = d.sortKey ?? 'reservedAt'
+  sortDir.value = d.sortDir ?? 'desc'
+  emit('cleared')
 }
 
 const visibleKindOptions = computed(() => (
@@ -128,6 +171,8 @@ function sortLabel(key: FinanceTxSortKey) {
       class="space-y-2"
       :class="mobileFiltersOpen ? '' : 'max-[430px]:hidden'"
     >
+    <AppFilterClearButton :show="hasActiveFilters" @click="clearAllFilters" />
+
     <div
       v-if="showSession"
       class="canva-session-filter-row"

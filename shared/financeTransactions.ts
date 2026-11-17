@@ -260,3 +260,15 @@ export function selectFinanceTransactions<T extends FinanceTxTimes>(rows: T[], q
     return a.reservedAt < b.reservedAt ? 1 : a.reservedAt > b.reservedAt ? -1 : 0
   })
 }
+
+/** Snapshot used by owner finance / report filter panels (incl. session chip). */
+export type OwnerFinanceTxFilterState = FinanceTxQuery & {
+  session: FinanceSessionFilter
+}
+
+export function isOwnerFinanceTxFiltersActive(
+  current: OwnerFinanceTxFilterState,
+  defaults: OwnerFinanceTxFilterState,
+): boolean {
+  return (Object.keys(defaults) as Array<keyof OwnerFinanceTxFilterState>).some((key) => current[key] !== defaults[key])
+}

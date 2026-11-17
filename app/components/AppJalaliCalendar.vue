@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { jalaliCalendarTodayDisabled } from '#shared/jalaliCalendarToday.ts'
 import { PERSIAN_MONTHS, isoToJalaali, jalaaliDaysInMonth, jalaaliToIso, jalaliCalendarView } from '#shared/jalali.ts'
 import { pickRangeDay } from '#shared/rangePick.ts'
 
@@ -8,6 +9,7 @@ const rangeEnd = defineModel<string>('rangeEnd', { default: '' })
 const props = withDefaults(defineProps<{
   mode?: 'single' | 'range'
   minDate?: string
+  maxDate?: string
   variant?: 'default' | 'owner'
   /** Selected-day fill. Default: charcoal for variant=owner (SoT .cal-card), green otherwise (SoT .cxcg booking). */
   selectedTone?: 'green' | 'charcoal'
@@ -19,6 +21,7 @@ const props = withDefaults(defineProps<{
 }>(), {
   mode: 'single',
   minDate: '',
+  maxDate: '',
   variant: 'default',
   dayMarks: () => ({}),
   squareCells: false,
@@ -92,8 +95,7 @@ function nextMonth() {
 const todayIso = computed(() => today())
 
 /** Only ISO YYYY-MM-DD counts — a bare `:min-date="today"` passes the function and would disable every day. */
-const effectiveMinDate = computed(() => {
-  const raw = props.minDate as unknown
+function resolveIsoDateProp(raw: unknown): string {
   if (typeof raw === 'function') {
     try {
       const result = (raw as () => string)()
@@ -104,31 +106,30 @@ const effectiveMinDate = computed(() => {
     }
   }
   return typeof raw === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(raw) ? raw : ''
-})
+}
 
-const isViewingTodayMonth = computed(() => {
-  const j = isoToJalaali(todayIso.value)
-  return viewYear.value === j.jy && viewMonth.value === j.jm
-})
+const effectiveMinDate = computed(() => resolveIsoDateProp(props.minDate as unknown))
+const effectiveMaxDate = computed(() => resolveIsoDateProp(props.maxDate))
 
-const isOnToday = computed(() => model.value === todayIso.value)
-
-/** Idle when tapping Today would not change view or (single) selection. */
-const todayActionIdle = computed(() => {
-  if (!isViewingTodayMonth.value) return false
-  if (props.mode === 'range') return true
-  return isOnToday.value
-})
+const todayFooterDisabled = computed(() => jalaliCalendarTodayDisabled({
+  todayIso: todayIso.value,
+  minDate: effectiveMinDate.value,
+  maxDate: effectiveMaxDate.value,
+}))
 
 function goToToday() {
-  if (todayActionIdle.value) return
+  if (todayFooterDisabled.value) return
   const j = isoToJalaali(todayIso.value)
   viewYear.value = j.jy
   viewMonth.value = j.jm
-  if (props.mode === 'single') {
+  if (props.mode === 'range') {
     model.value = todayIso.value
+    rangeEnd.value = todayIso.value
     emit('select')
+    return
   }
+  model.value = todayIso.value
+  emit('select')
 }
 
 function isTodayCell(cell: { iso: string | null }) {
@@ -180,6 +181,7 @@ function isSelected(cell: { iso: string | null }) {
 function isDisabled(cell: { iso: string | null }) {
   if (!cell.iso) return false
   if (effectiveMinDate.value && cell.iso < effectiveMinDate.value) return true
+  if (effectiveMaxDate.value && cell.iso > effectiveMaxDate.value) return true
   return Boolean(props.mode === 'range' && props.lockStart && model.value && cell.iso < model.value)
 }
 
@@ -285,8 +287,8 @@ function jumpToRangeStart() {
     <button
       type="button"
       class="jalali-calendar-today-footer mt-3 w-full"
-      :disabled="todayActionIdle"
-      :aria-disabled="todayActionIdle ? 'true' : undefined"
+      :disabled="todayFooterDisabled"
+      :aria-disabled="todayFooterDisabled ? 'true' : undefined"
       @click="goToToday"
     >
       {{ t('calendar.today') }}
