@@ -1053,6 +1053,8 @@
     "invalidOtp": "The verification code is incorrect.",
     "invalidPhone": "The phone number is invalid.",
     "phoneNotFound": "This number is not registered yet. Please register first.",
+    "phoneNotRegisteredLogin": "No account exists for this phone — please sign up first.",
+    "goToRegisterWithPhone": "Sign up with this number",
     "phoneTaken": "This number is already registered. Please sign in.",
     "resendOtp": "Resend code",
     "debugOtpHint": "SMS debug mode — code: {code}",
