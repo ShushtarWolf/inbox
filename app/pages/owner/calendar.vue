@@ -246,6 +246,12 @@ const payLinkSmsError = ref('')
 const sessionType = ref<'free' | 'coach'>('free')
 /** Grid filter: all reserved types, free-play only, or coach-tagged only. */
 const sessionFilter = ref<'all' | 'free' | 'coach'>('all')
+const sessionFilterDefault = 'all' as const
+const sessionFilterActive = computed(() => sessionFilter.value !== sessionFilterDefault)
+
+function clearCalendarSessionFilter() {
+  sessionFilter.value = sessionFilterDefault
+}
 /** After season/package preview → desk pay sheet before create. */
 const pendingRecurringPay = ref<'season' | 'package' | null>(null)
 
@@ -4343,17 +4349,20 @@ watch(pilotNoCoach, (off) => {
 
     <section v-else-if="calendarView === 'today'" class="space-y-3" :class="String(locale) === 'en' ? 'calendar-latin' : ''">
       <!-- Canva closed Today (9): legend · centered date + left FABs · multi-court GRID -->
-      <div v-if="!pilotNoCoach" class="canva-session-filter-row" role="group" :aria-label="t('owner.sessionTypeFilterHint')">
-        <button
-          v-for="opt in sessionFilterOptions"
-          :key="opt.value"
-          type="button"
-          class="canva-session-filter-btn"
-          :class="sessionFilter === opt.value ? 'canva-session-filter-btn-on' : ''"
-          @click="sessionFilter = opt.value"
-        >
-          {{ opt.label }}
-        </button>
+      <div v-if="!pilotNoCoach" class="space-y-2">
+        <div class="canva-session-filter-row" role="group" :aria-label="t('owner.sessionTypeFilterHint')">
+          <button
+            v-for="opt in sessionFilterOptions"
+            :key="opt.value"
+            type="button"
+            class="canva-session-filter-btn"
+            :class="sessionFilter === opt.value ? 'canva-session-filter-btn-on' : ''"
+            @click="sessionFilter = opt.value"
+          >
+            {{ opt.label }}
+          </button>
+        </div>
+        <AppFilterClearButton :show="sessionFilterActive" @click="clearCalendarSessionFilter" />
       </div>
       <div v-if="bookingTypeLegend.length" class="canva-legend-row">
         <div v-for="item in bookingTypeLegend" :key="item.key" class="canva-legend-item">

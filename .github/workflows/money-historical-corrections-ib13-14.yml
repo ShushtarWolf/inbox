@@ -1,0 +1,90 @@
+name: Historical money corrections IB-13/14 (prod)
+
+# Owner-approved (2026-11-17): stranded cancel refunds + detached orphan payments.
+# Default dry-run. Requires ADMIN_PROVISION_SECRET. Logs every proposed/applied row in Actions output.
+on:
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: Set true to APPLY on production (after dry-run review and local DB backup)
+        required: true
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
+      tracking:
+        description: Optional booking tracking code (IB-13 cancel refund highlight)
+        required: false
+        default: ''
+        type: string
+      forcePaymentId:
+        description: Comma-separated payment ids to force wallet credit (after review)
+        required: false
+        default: ''
+        type: string
+      reviewPaymentId:
+        description: Alias of forcePaymentId
+        required: false
+        default: ''
+        type: string
+
+concurrency:
+  group: money-historical-corrections-ib13-14
+  cancel-in-progress: false
+
+jobs:
+  corrections:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: IB-13/14 dry-run or APPLY on inboxs.ir
+        env:
+          ADMIN_PROVISION_SECRET: ${{ secrets.ADMIN_PROVISION_SECRET }}
+          APPLY_INPUT: ${{ inputs.apply }}
+          TRACKING: ${{ inputs.tracking }}
+          FORCE_PAYMENT_ID: ${{ inputs.forcePaymentId }}
+          REVIEW_PAYMENT_ID: ${{ inputs.reviewPaymentId }}
+        run: |
+          set -euo pipefail
+          if [ -z "${ADMIN_PROVISION_SECRET:-}" ]; then
+            echo "ADMIN_PROVISION_SECRET missing"
+            exit 1
+          fi
+          QS=""
+          if [ "$APPLY_INPUT" = "true" ]; then
+            QS="apply=1"
+            echo "::warning::APPLY=true — writing wallet credits (idempotent)"
+          else
+            echo "Dry-run only (no writes)"
+          fi
+          if [ -n "${TRACKING:-}" ]; then
+            QS="${QS:+$QS&}tracking=${TRACKING}"
+          fi
+          if [ -n "${FORCE_PAYMENT_ID:-}" ]; then
+            QS="${QS:+$QS&}forcePaymentId=${FORCE_PAYMENT_ID}"
+          fi
+          if [ -n "${REVIEW_PAYMENT_ID:-}" ]; then
+            QS="${QS:+$QS&}reviewPaymentId=${REVIEW_PAYMENT_ID}"
+          fi
+          URL="https://inboxs.ir/api/admin/money-audit/historical-money-corrections"
+          if [ -n "$QS" ]; then URL="${URL}?${QS}"; fi
+          curl -sfS -X POST "$URL" \
+            -H "x-admin-secret: ${ADMIN_PROVISION_SECRET}" \
+            -H "content-type: application/json" \
+            | tee /tmp/historical-money-corrections.json
+          python3 - <<'PY'
+          import json
+          d = json.load(open('/tmp/historical-money-corrections.json'))
+          print(f"mode={d.get('mode')} applied={d.get('applied')}")
+          cr = d.get('cancelRefunds') or {}
+          print(f"IB-13 cancelRefunds creditCount={cr.get('creditCount')} creditToman={cr.get('creditToman')} appliedCount={cr.get('appliedCount')}")
+          op = d.get('orphanPayments') or {}
+          print(f"IB-14 orphanPayments creditCount={op.get('creditCount')} creditToman={op.get('creditToman')}")
+          for row in (op.get('proposedCredits') or [])[:30]:
+              print(f"  orphan_proposed payment={row.get('paymentId')} amount={row.get('creditAmount')} reason={row.get('reason')}")
+          for row in (d.get('appliedChanges') or [])[:50]:
+              print(f"  APPLIED {row.get('kind')} payment={row.get('paymentId')} booking={row.get('bookingId')} amount={row.get('amount')} reason={row.get('reason')}")
+          for row in (d.get('errors') or [])[:20]:
+              print(f"  ERROR {row.get('scope')} payment={row.get('paymentId')} {row.get('message')}")
+          PY

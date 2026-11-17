@@ -3,7 +3,7 @@ import { hasOwnerPermission, parsePermissions } from '#shared/ownerPermissions.t
 import { isUnpaidPaymentStatus } from '#shared/bookingPayment.ts'
 import { financeSheetXml, saveFinanceSheet } from '#shared/financeSpreadsheet.ts'
 import { financeLedgerStatusKind, financeLedgerStatusToken } from '#shared/financeLedgerStatus.ts'
-import { financePaymentBucket, selectFinanceTransactions, type FinanceBookingKindFilter, type FinanceLegendFilter, type FinancePaymentFilter, type FinanceTxSortDir, type FinanceTxSortKey } from '#shared/financeTransactions.ts'
+import { financePaymentBucket, selectFinanceTransactions, type FinanceBookingKindFilter, type FinanceLegendFilter, type FinancePaymentFilter, type FinanceTxSortDir, type FinanceTxSortKey, type OwnerFinanceTxFilterState } from '#shared/financeTransactions.ts'
 
 definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN', ssr: false })
 
@@ -80,6 +80,20 @@ const paidFrom = ref('')
 const paidTo = ref('')
 const sortKey = ref<FinanceTxSortKey>('reservedAt')
 const sortDir = ref<FinanceTxSortDir>('desc')
+const financeTxFilterDefaults: OwnerFinanceTxFilterState = {
+  session: 'all',
+  bookingKind: 'all',
+  payment: 'all',
+  legend: 'all',
+  guest: '',
+  discountCode: '',
+  reservedFrom: '',
+  reservedTo: '',
+  paidFrom: '',
+  paidTo: '',
+  sortKey: 'reservedAt',
+  sortDir: 'desc',
+}
 const financeQuery = computed(() => {
   const q: Record<string, string | number> = { txLimit: 1000 }
   if (reservedFrom.value) q.txFrom = reservedFrom.value
@@ -342,6 +356,7 @@ function downloadReport() {
             v-model:paid-to="paidTo"
             v-model:sort-key="sortKey"
             v-model:sort-dir="sortDir"
+            :defaults="financeTxFilterDefaults"
             :show-session="!pilotNoCoach"
             sort-mode="always"
           />
