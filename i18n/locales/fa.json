@@ -2029,8 +2029,12 @@
     "otpServerUnavailable": "سرویس موقتاً در دسترس نیست (پایگاه‌داده یا پیامک). کمی بعد دوباره تلاش کنید.",
     "otpVerifyFailed": "تایید کد انجام نشد. دوباره تلاش کنید.",
     "invalidOtp": "کد تایید اشتباه وارد شده است.",
+    "otpExpiredOrMissing": "کد منقضی شده یا دیگر معتبر نیست. «ارسال دوباره کد» را بزنید.",
+    "otpTooManyAttempts": "تعداد تلاش‌ها زیاد شده. یک دقیقه صبر کنید یا کد جدید بگیرید.",
     "invalidPhone": "شماره همراه اشتباه وارد شده است.",
     "phoneNotFound": "این شماره هنوز ثبت نشده است. ابتدا ثبت‌نام کنید.",
+    "phoneNotRegisteredLogin": "با این شماره ثبت‌نام نکردی، اول ثبت‌نام کن",
+    "goToRegisterWithPhone": "ثبت‌نام با همین شماره",
     "phoneTaken": "این شماره قبلاً ثبت شده است. وارد شوید.",
     "resendOtp": "ارسال دوباره کد",
     "otpResendWait": "ارسال مجدد تا {seconds} ثانیه دیگر",
@@ -2605,6 +2609,7 @@
       "ltvTitle": "ارزش طول عمر مشتری",
       "funnelTitle": "قیف رزرو (۷ روز اخیر)",
       "funnelPlaceholder": "نمای قیف در نسخه‌های بعدی تکمیل می‌شود",
+      "funnelConfirmedTotalLabel": "تأیید‌شده / کل رزروها",
       "downloadReport": "دانلود گزارش"
     },
     "guestName": "نام مهمان",
@@ -2704,7 +2709,9 @@
       "dateFrom": "از",
       "dateTo": "تا",
       "clearDates": "پاک کردن تاریخ",
-      "sortBy": "مرتب‌سازی"
+      "sortBy": "مرتب‌سازی",
+      "filtersToggle": "فیلترها",
+      "filtersToggleActive": "فیلترها ({n})"
     },
     "equipmentsPage": {
       "empty": "هنوز موردی ندارید؛ با «+ افزودن» بسازید (مثلاً توپ یا راکت).",
