@@ -129,8 +129,10 @@ export function athleteListPrice(opts: {
 
 /**
  * How much to refund for one cancelled session while siblings remain.
- * Prefer stored sessionPrice; if missing, fair-split residual across remaining
- * sessions (including the one being cancelled). Never silent 0 when money remains.
+ * Prefer stored sessionPrice, but never above an equal share of residual when
+ * remainingSessions is known (desk/list sessionPrice can exceed paid-per-session
+ * after pack discounts — e.g. list 5000 × 6 vs paid 9000 → credit 1500, not 5000).
+ * Missing sessionPrice → fair-split residual. Never silent 0 when money remains.
  */
 export function sessionRefundAmount(opts: {
   sessionPrice?: number | null
@@ -142,12 +144,19 @@ export function sessionRefundAmount(opts: {
   const residual = Math.max(0, Math.floor(opts.primaryAmount) - Math.floor(opts.alreadyRefunded))
   if (residual <= 0) return 0
 
+  const sessions = Math.max(1, Math.floor(Number(opts.remainingSessions) || 1))
+  const fair = Math.floor(residual / sessions)
   const listed = typeof opts.sessionPrice === 'number' && opts.sessionPrice > 0
     ? Math.floor(opts.sessionPrice)
     : 0
-  if (listed > 0) return Math.min(listed, residual)
+  if (listed > 0) {
+    // Cap by fair share when we know how many sessions still claim the residual.
+    if (opts.remainingSessions != null && Number(opts.remainingSessions) > 0) {
+      return Math.min(listed, fair, residual)
+    }
+    return Math.min(listed, residual)
+  }
 
   // Missing sessionPrice: equal share of residual; last session path refunds leftover.
-  const sessions = Math.max(1, Math.floor(Number(opts.remainingSessions) || 1))
-  return Math.min(Math.floor(residual / sessions), residual)
+  return Math.min(fair, residual)
 }
