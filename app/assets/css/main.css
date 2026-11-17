@@ -1843,6 +1843,13 @@
     @apply flex h-3 w-full overflow-hidden bg-brand-gray-200;
     border-radius: var(--sz-canva-radius);
   }
+  .canva-finance-method-segment {
+    @apply block h-full shrink-0;
+    min-width: 0;
+  }
+  .canva-finance-method-segment[style*='width: 0%'] {
+    display: none;
+  }
   .canva-finance-legend-swatch {
     @apply inline-block h-2.5 w-2.5 shrink-0;
     border-radius: var(--sz-canva-radius);
@@ -5100,7 +5107,7 @@ main:has(.owner-staff-page) section:has(> .owner-staff-page) { background:transp
 .owner-finance-page .owner-fin-method-head { flex-direction:column; align-items:flex-start; gap:8px }
 .owner-finance-page .owner-fin-method-head h2 { font-size:13px }
 .owner-finance-page .owner-fin-method-legend { font-size:10px; font-weight:400 }
-.owner-finance-page .owner-fin-method-pct { display:none }
+.owner-finance-page .owner-fin-method-pct { display:flex; gap:8px; font-size:11px }
 .owner-finance-page .canva-finance-method-bar + .owner-fin-method-pct + p, .owner-finance-page .owner-fin-method-pct + p { font-size:10.5px; margin-top:8px }
 
 /* leftovers batch 3: settings field density, support guide rhythm (SoT .zrule p: 13px, 12px gap) */
