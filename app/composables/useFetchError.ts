@@ -100,6 +100,7 @@ export function fetchErrorMessage(error: unknown, fallback: string, translate?: 
     'Athlete wallet is closed-loop — bank withdraw is not available': 'athlete.walletClosedLoopHint',
     'Slot already started': 'booking.errors.slotAlreadyStarted',
     'Insufficient club wallet balance': 'owner.financePage.withdrawInsufficient',
+    'Owner withdraw amount exceeds withdrawable balance': 'owner.financePage.withdrawAmountOverBalance',
     'SHEBA is required before withdraw': 'athlete.withdrawNeedSheba',
     'SHEBA pending admin approval': 'athlete.shebaPendingApproval',
     'Invalid SHEBA': 'athlete.shebaInvalid',

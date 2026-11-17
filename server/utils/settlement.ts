@@ -1200,7 +1200,7 @@ export async function requestClubWithdraw(options: {
       throw createError({ statusCode: 409, statusMessage: 'Insufficient club wallet balance' })
     }
     if (balances.withdrawableBalance < amount) {
-      throw createError({ statusCode: 409, statusMessage: 'Insufficient withdrawable balance' })
+      throw createError({ statusCode: 409, statusMessage: 'Owner withdraw amount exceeds withdrawable balance' })
     }
 
     const request = await tx.withdrawRequest.create({
