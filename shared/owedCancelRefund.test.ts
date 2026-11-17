@@ -59,7 +59,22 @@ describe('cancelWalletCreditAmount', () => {
     })).toEqual({ amount: 1_500, reason: 'series_session', series: true })
   })
 
+  it('series one-of-N caps list sessionPrice by fair share of paid residual (desk discount)', () => {
+    // Behnaz-class: list 5000 × 6 but charged 9000 after desk discount → one session = 1500.
+    expect(cancelWalletCreditAmount({
+      method: 'IPG',
+      paymentAmount: 0,
+      primaryAmount: 9_000,
+      sessionPrice: 5_000,
+      alreadyRefundedOnPrimary: 0,
+      remainingSessionsIncludingCancelled: 6,
+      treatAsSeries: true,
+      refundBps: 10_000,
+    })).toEqual({ amount: 1_500, reason: 'series_session', series: true })
+  })
+
   it('series never exceeds residual after prior session refunds', () => {
+    // residual 1000 across 2 remaining → fair share 500 each (last session path keeps leftover).
     expect(cancelWalletCreditAmount({
       method: 'IPG',
       paymentAmount: 0,
@@ -68,7 +83,7 @@ describe('cancelWalletCreditAmount', () => {
       alreadyRefundedOnPrimary: 8_000,
       remainingSessionsIncludingCancelled: 2,
       treatAsSeries: true,
-    }).amount).toBe(1_000)
+    }).amount).toBe(500)
   })
 
   it('series last session credits full residual even when sessionPrice is lower', () => {

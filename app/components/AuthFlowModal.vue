@@ -73,6 +73,8 @@ useAsciiDigits(sessionPrice)
 useAsciiDigits(identifier, { digitsOnly: false })
 const pending = ref(false)
 const error = ref('')
+/** Login OTP: phone has no account — show register CTA (IB-43). */
+const loginNeedsRegister = ref(false)
 const debugCode = ref('')
 const maskedPhone = ref('')
 const selectedRole = ref<AuthFlowRole>('ATHLETE')
@@ -200,6 +202,7 @@ function resetForm() {
   pending.value = false
   selectedRole.value = 'ATHLETE'
   phoneLocked.value = false
+  loginNeedsRegister.value = false
 }
 
 /** Prefill identity from the logged-in session so "نقش جدید" merges onto the same account. */
@@ -257,9 +260,20 @@ function goLoginOtp() {
 
 function goLoginPassword() {
   error.value = ''
+  loginNeedsRegister.value = false
   purpose.value = 'login'
   channel.value = 'password'
   step.value = 'login'
+}
+
+function goRegisterFromLogin() {
+  error.value = ''
+  loginNeedsRegister.value = false
+  purpose.value = 'register'
+  role.value = 'ATHLETE'
+  selectedRole.value = 'ATHLETE'
+  channel.value = 'otp'
+  step.value = 'register'
 }
 
 function goRole() {
@@ -512,6 +526,7 @@ function phoneValidationError(): string {
 
 async function requestOtp() {
   error.value = ''
+  loginNeedsRegister.value = false
   if (!phoneLocked.value) {
     const phoneError = phoneValidationError()
     if (phoneError) {
@@ -589,6 +604,10 @@ async function requestOtp() {
     else if (status === 403 && /password/i.test(message)) {
       error.value = t('auth.usePasswordNotOtp')
       channel.value = 'password'
+    }
+    else if (status === 404 && /PHONE_NOT_REGISTERED/i.test(message)) {
+      loginNeedsRegister.value = true
+      error.value = t('auth.phoneNotRegisteredLogin')
     }
     else if (status === 404) error.value = t('auth.phoneNotFound')
     else if (status === 409) error.value = t('auth.phoneTaken')
@@ -1361,6 +1380,14 @@ onMounted(() => {
             />
           </AppFormField>
           <p v-if="error" role="alert" aria-live="assertive" class="venus-alert-error text-start">{{ error }}</p>
+          <button
+            v-if="loginNeedsRegister"
+            type="button"
+            class="canva-gate-btn-primary"
+            @click="goRegisterFromLogin"
+          >
+            {{ t('auth.goToRegisterWithPhone') }}
+          </button>
           <button type="submit" class="canva-gate-btn-primary" :disabled="pending">
             {{ pending ? t('common.loading') : t('auth.continueConfirm') }}
           </button>
