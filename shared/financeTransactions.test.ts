@@ -117,6 +117,18 @@ describe('selectFinanceTransactions', () => {
     expect(xml).not.toContain('علی & رضا')
   })
 
+  it('finance ledger export status uses booking cancel, not payment PAID', async () => {
+    const { financeLedgerStatusKind, financeLedgerStatusToken } = await import('./financeLedgerStatus.ts')
+    const tx = {
+      kind: 'court',
+      bookingStatus: 'CANCELLED',
+      paymentStatus: 'PAID',
+      paymentMethod: 'CASH',
+    }
+    expect(financeLedgerStatusToken(tx)).toBe('CANCELLED')
+    expect(financeLedgerStatusKind(tx)).toBe('booking')
+  })
+
   it('filters the same states as the calendar legend', () => {
     const listed = [
       {

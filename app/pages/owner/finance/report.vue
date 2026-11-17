@@ -2,6 +2,7 @@
 import { hasOwnerPermission, parsePermissions } from '#shared/ownerPermissions.ts'
 import { isUnpaidPaymentStatus } from '#shared/bookingPayment.ts'
 import { financeSheetXml, saveFinanceSheet } from '#shared/financeSpreadsheet.ts'
+import { financeLedgerStatusKind, financeLedgerStatusToken } from '#shared/financeLedgerStatus.ts'
 import { financePaymentBucket, selectFinanceTransactions, type FinanceBookingKindFilter, type FinanceLegendFilter, type FinancePaymentFilter, type FinanceTxSortDir, type FinanceTxSortKey, type OwnerFinanceTxFilterState } from '#shared/financeTransactions.ts'
 
 definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN', ssr: false })
@@ -132,6 +133,14 @@ function bookingStatusLabel(status: string) {
 
 function paymentStatusLabel(status: string) {
   return t(`booking.paymentStatus.${status}`)
+}
+
+function ledgerStatusLabel(tx: OwnerFinanceTransaction) {
+  const token = financeLedgerStatusToken(tx)
+  if (!token) return ''
+  return financeLedgerStatusKind(tx) === 'booking'
+    ? bookingStatusLabel(token)
+    : paymentStatusLabel(token)
 }
 
 function isTxUnpaid(tx: { unpaid?: boolean; paymentStatus?: string; bookingStatus?: string }) {
@@ -267,7 +276,7 @@ function downloadReport() {
     `${stampDate(tx.reservedAt)} ${stampTime(tx.reservedAt)}`.trim(),
     tx.paidAt ? `${stampDate(tx.paidAt)} ${stampTime(tx.paidAt)}`.trim() : '',
     tx.kind === 'slot' ? '' : methodLabel(tx),
-    tx.kind === 'slot' ? bookingStatusLabel(tx.bookingStatus) : paymentStatusLabel(tx.paymentStatus),
+    ledgerStatusLabel(tx),
     tx.amount,
     showSessionValue(tx) ? Number(tx.sessionValue || 0) : '',
     tx.complimentary && !tx.discountCode ? t('owner.financeTable.complimentary') : (tx.discountCode || ''),
@@ -385,8 +394,7 @@ function downloadReport() {
                   class="canva-slot-coach-chip mt-1"
                 >{{ t('owner.financeTable.sessionCoachTag') }}</span>
                 <p class="mt-1 text-[11px] text-brand-gray-500">
-                  <template v-if="tx.kind === 'slot'">{{ bookingStatusLabel(tx.bookingStatus) }}</template>
-                  <template v-else>{{ paymentStatusLabel(tx.paymentStatus) }} · {{ bookingStatusLabel(tx.bookingStatus) }}</template>
+                  {{ ledgerStatusLabel(tx) }}
                 </p>
               </div>
               <div class="shrink-0 text-start">
