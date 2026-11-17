@@ -1,3 +1,4 @@
+import { BOOKABLE_EQUIPMENT_CATEGORIES } from '#shared/equipmentAvailability.ts'
 import { parseJsonValue, reviewSummary } from '../../utils/catalog'
 import { parseFacilitiesJson } from '#shared/courtFacilities.ts'
 import { resolveClubSlugAlias } from '#shared/clubSlugAliases.ts'
@@ -19,7 +20,7 @@ export default defineEventHandler(async (event) => {
       media: { orderBy: { sortOrder: 'asc' } },
       reviews: { orderBy: { publishedAt: 'desc' }, take: 6, select: PUBLIC_REVIEW_SELECT },
       equipment: {
-        where: { category: { in: ['RENTAL', 'SELL'] } },
+        where: { category: { in: [...BOOKABLE_EQUIPMENT_CATEGORIES] } },
         orderBy: { nameFa: 'asc' },
         select: { id: true, nameFa: true, nameEn: true, category: true, price: true, quantity: true },
       },

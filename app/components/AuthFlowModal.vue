@@ -2,6 +2,7 @@
 import type { AuthFlowRole, AuthWelcomeVariant } from '~/composables/useAuthFlow'
 import { isAuthProtectedPath } from '#shared/returnTo.ts'
 import { startSmsOtpAutofill } from '~/composables/useSmsOtpAutofill'
+import { extractHttpError, fetchErrorMessage } from '~/composables/useFetchError'
 
 const { t } = useI18n()
 const { formatNumber } = useFormatters()
@@ -636,6 +637,23 @@ async function requestOtp() {
   }
 }
 
+function otpVerifyErrorText(err: unknown): string {
+  const { statusCode, statusMessage } = extractHttpError(err)
+  if (statusCode === 403 && /password/i.test(statusMessage)) return t('auth.usePasswordNotOtp')
+  if (statusCode === 403) return t('auth.accountDisabled')
+  if (statusCode === 404) return t('auth.phoneNotFound')
+  if (statusCode === 409 && /phone/i.test(statusMessage)) return t('auth.phoneTaken')
+  if (statusCode === 429) {
+    if (/Too many attempts/i.test(statusMessage)) return t('auth.otpTooManyAttempts')
+    return t('errors.rateLimited')
+  }
+  if (statusCode === 503 || statusCode === 500) return t('auth.otpServerUnavailable')
+  if (statusCode === 400 || statusCode === 502) {
+    return fetchErrorMessage({ data: { statusMessage } }, t('auth.otpVerifyFailed'), t)
+  }
+  return t('auth.otpVerifyFailed')
+}
+
 async function verifyOtp() {
   error.value = ''
   pending.value = true
@@ -643,7 +661,7 @@ async function verifyOtp() {
     const data = await $fetch<{ redirectTo?: string; role?: string }>('/api/auth/otp/verify', {
       method: 'POST',
       body: {
-        phone: maskedPhone.value || phone.value,
+        phone: phone.value.trim() || maskedPhone.value,
         code: code.value,
         purpose: purpose.value,
         returnTo: safeReturnTo.value,
@@ -655,18 +673,12 @@ async function verifyOtp() {
       data.redirectTo || fallbackAuthRedirect(data.role || role.value),
     )
   } catch (err: unknown) {
-    const status = (err as { statusCode?: number })?.statusCode
-    const message = String((err as { statusMessage?: string; data?: { statusMessage?: string } })?.statusMessage
-      || (err as { data?: { statusMessage?: string } })?.data?.statusMessage
-      || '')
-    if (status === 403 && /password/i.test(message)) {
-      error.value = t('auth.usePasswordNotOtp')
+    const { statusCode, statusMessage } = extractHttpError(err)
+    error.value = otpVerifyErrorText(err)
+    if (statusCode === 403 && /password/i.test(statusMessage)) {
       channel.value = 'password'
       step.value = 'login'
     }
-    else if (status === 400) error.value = t('auth.invalidOtp')
-    else if (status === 429) error.value = t('errors.rateLimited')
-    else error.value = t('auth.otpVerifyFailed')
   } finally {
     pending.value = false
   }
