@@ -56,5 +56,16 @@ Refuses GlitchTip / wrong-DB artifacts. Requires Payment + WalletTransaction/Boo
 4. **Apply** (only after review) —  
    `… -f apply=true` and optional `-f reviewPaymentId='payId'` or `payId:bookingId` for review-bucket rows.
 5. **Re-dry-run** — `creditCount` must be `0`. Over-credits are listed only; use a reviewed `ADJUSTMENT` later, never silent debit.
+   Series over-credits (fair-share shortfall vs ledger): dry-run  
+   `POST /api/admin/money-audit/correct-series-over-credit?paymentId=…` then `apply=1` after review.
+
+## Leftover review queue (by policy)
+
+Historical repair dry-run may still show `review` / `bank_outcome_unknown` after auto credits are zero. That is **expected** when IPG cancel rows have no proven wallet path and no proven card reverse (token/`sepStatus:1` failures, empty meta, superseded holds, etc.).
+
+- Do **not** auto-credit those rows.
+- Credit only via `reviewPaymentId` when closed-loop is proven (`wallet_closed_loop` / `reverseFailedAt` / wallet debit).
+- `cancelledOnlineWithoutRefundCredit` (money-audit cron) stays `0` for PAID/REFUNDED cancels without credit; the review bucket is a separate ops queue, not a cron-red guard by itself.
+- Snapshot (2026-11-16): dry-run `review≈57` (`bank_outcome_unknown≈54`, `no_verified_account≈3`); all classified keep-in-review / never-charged — no force list.
 
 Details: [HISTORICAL_REFUND_REPAIR.md](./HISTORICAL_REFUND_REPAIR.md), [PAYMENTS.md](./PAYMENTS.md).

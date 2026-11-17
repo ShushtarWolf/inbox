@@ -1,4 +1,5 @@
 import { guestSearchHitToFormPair, type GuestSearchHit } from '#shared/guestSearch.ts'
+import { applyGuestDeskInputsFromModel } from '#shared/ownerDeskGuestForm.ts'
 
 export type { GuestSearchHit }
 
@@ -23,6 +24,7 @@ export function useOwnerGuestSearch(fields: GuestSearchFields) {
 
   let guestSearchTimer: ReturnType<typeof setTimeout> | null = null
   let guestSearchRequest = 0
+  let guestInputSuppressUntil = 0
 
   function clearGuestSearch() {
     if (guestSearchTimer) {
@@ -70,39 +72,56 @@ export function useOwnerGuestSearch(fields: GuestSearchFields) {
   }
 
   function onGuestNameFieldInput() {
+    if (Date.now() < guestInputSuppressUntil) return
     guestSearchSource.value = 'name'
     scheduleGuestSearch(toValue(fields.guestName).trim(), 'name')
   }
 
   function onGuestFamilyFieldInput() {
+    if (Date.now() < guestInputSuppressUntil) return
     guestSearchSource.value = 'family'
     scheduleGuestSearch(toValue(fields.guestFamily).trim(), 'family')
   }
 
   function onGuestMobileInput() {
+    if (Date.now() < guestInputSuppressUntil) return
     guestSearchSource.value = 'mobile'
     scheduleGuestSearch(toValue(fields.guestMobile), 'mobile')
   }
 
   function syncGuestInputsFromModel() {
     if (!import.meta.client) return
+    applyGuestDeskInputsFromModel(
+      {
+        guestName: toValue(fields.guestName),
+        guestFamily: toValue(fields.guestFamily),
+        guestMobile: toValue(fields.guestMobile),
+      },
+      {
+        guestName: fields.guestNameInput?.value,
+        guestFamily: fields.guestFamilyInput?.value,
+        guestMobile: fields.guestMobileInput?.value,
+      },
+    )
+  }
+
+  function paintGuestInputsAfterSelect() {
+    syncGuestInputsFromModel()
     nextTick(() => {
-      const nameEl = fields.guestNameInput?.value
-      const familyEl = fields.guestFamilyInput?.value
-      const mobileEl = fields.guestMobileInput?.value
-      if (nameEl) nameEl.value = toValue(fields.guestName)
-      if (familyEl) familyEl.value = toValue(fields.guestFamily)
-      if (mobileEl) mobileEl.value = toValue(fields.guestMobile)
+      syncGuestInputsFromModel()
+      if (import.meta.client) requestAnimationFrame(() => syncGuestInputsFromModel())
     })
   }
 
   function selectGuestSuggestion(guest: GuestSearchHit) {
+    guestSearchRequest += 1
+    guestInputSuppressUntil = Date.now() + 450
     const parts = guestSearchHitToFormPair(guest)
     setField(fields.guestName, parts.guestName)
     setField(fields.guestFamily, parts.guestFamily)
     if (guest.mobile) setField(fields.guestMobile, guest.mobile)
     clearGuestSearch()
-    syncGuestInputsFromModel()
+    paintGuestInputsAfterSelect()
   }
 
   function closeGuestSearchSoon() {
