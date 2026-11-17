@@ -2,6 +2,7 @@
 import type { AuthFlowRole, AuthWelcomeVariant } from '~/composables/useAuthFlow'
 import { isAuthProtectedPath } from '#shared/returnTo.ts'
 import { startSmsOtpAutofill } from '~/composables/useSmsOtpAutofill'
+import { extractHttpError, fetchErrorMessage } from '~/composables/useFetchError'
 
 const { t } = useI18n()
 const { formatNumber } = useFormatters()
@@ -72,6 +73,8 @@ useAsciiDigits(sessionPrice)
 useAsciiDigits(identifier, { digitsOnly: false })
 const pending = ref(false)
 const error = ref('')
+/** Login OTP: phone has no account — show register CTA (IB-43). */
+const loginNeedsRegister = ref(false)
 const debugCode = ref('')
 const maskedPhone = ref('')
 const selectedRole = ref<AuthFlowRole>('ATHLETE')
@@ -199,6 +202,7 @@ function resetForm() {
   pending.value = false
   selectedRole.value = 'ATHLETE'
   phoneLocked.value = false
+  loginNeedsRegister.value = false
 }
 
 /** Prefill identity from the logged-in session so "نقش جدید" merges onto the same account. */
@@ -256,9 +260,20 @@ function goLoginOtp() {
 
 function goLoginPassword() {
   error.value = ''
+  loginNeedsRegister.value = false
   purpose.value = 'login'
   channel.value = 'password'
   step.value = 'login'
+}
+
+function goRegisterFromLogin() {
+  error.value = ''
+  loginNeedsRegister.value = false
+  purpose.value = 'register'
+  role.value = 'ATHLETE'
+  selectedRole.value = 'ATHLETE'
+  channel.value = 'otp'
+  step.value = 'register'
 }
 
 function goRole() {
@@ -511,6 +526,7 @@ function phoneValidationError(): string {
 
 async function requestOtp() {
   error.value = ''
+  loginNeedsRegister.value = false
   if (!phoneLocked.value) {
     const phoneError = phoneValidationError()
     if (phoneError) {
@@ -589,6 +605,10 @@ async function requestOtp() {
       error.value = t('auth.usePasswordNotOtp')
       channel.value = 'password'
     }
+    else if (status === 404 && /PHONE_NOT_REGISTERED/i.test(message)) {
+      loginNeedsRegister.value = true
+      error.value = t('auth.phoneNotRegisteredLogin')
+    }
     else if (status === 404) error.value = t('auth.phoneNotFound')
     else if (status === 409) error.value = t('auth.phoneTaken')
     else if (status === 400 && /gender/i.test(message)) error.value = t('auth.genderRequired')
@@ -617,6 +637,23 @@ async function requestOtp() {
   }
 }
 
+function otpVerifyErrorText(err: unknown): string {
+  const { statusCode, statusMessage } = extractHttpError(err)
+  if (statusCode === 403 && /password/i.test(statusMessage)) return t('auth.usePasswordNotOtp')
+  if (statusCode === 403) return t('auth.accountDisabled')
+  if (statusCode === 404) return t('auth.phoneNotFound')
+  if (statusCode === 409 && /phone/i.test(statusMessage)) return t('auth.phoneTaken')
+  if (statusCode === 429) {
+    if (/Too many attempts/i.test(statusMessage)) return t('auth.otpTooManyAttempts')
+    return t('errors.rateLimited')
+  }
+  if (statusCode === 503 || statusCode === 500) return t('auth.otpServerUnavailable')
+  if (statusCode === 400 || statusCode === 502) {
+    return fetchErrorMessage({ data: { statusMessage } }, t('auth.otpVerifyFailed'), t)
+  }
+  return t('auth.otpVerifyFailed')
+}
+
 async function verifyOtp() {
   error.value = ''
   pending.value = true
@@ -624,7 +661,7 @@ async function verifyOtp() {
     const data = await $fetch<{ redirectTo?: string; role?: string }>('/api/auth/otp/verify', {
       method: 'POST',
       body: {
-        phone: maskedPhone.value || phone.value,
+        phone: phone.value.trim() || maskedPhone.value,
         code: code.value,
         purpose: purpose.value,
         returnTo: safeReturnTo.value,
@@ -636,18 +673,12 @@ async function verifyOtp() {
       data.redirectTo || fallbackAuthRedirect(data.role || role.value),
     )
   } catch (err: unknown) {
-    const status = (err as { statusCode?: number })?.statusCode
-    const message = String((err as { statusMessage?: string; data?: { statusMessage?: string } })?.statusMessage
-      || (err as { data?: { statusMessage?: string } })?.data?.statusMessage
-      || '')
-    if (status === 403 && /password/i.test(message)) {
-      error.value = t('auth.usePasswordNotOtp')
+    const { statusCode, statusMessage } = extractHttpError(err)
+    error.value = otpVerifyErrorText(err)
+    if (statusCode === 403 && /password/i.test(statusMessage)) {
       channel.value = 'password'
       step.value = 'login'
     }
-    else if (status === 400) error.value = t('auth.invalidOtp')
-    else if (status === 429) error.value = t('errors.rateLimited')
-    else error.value = t('auth.otpVerifyFailed')
   } finally {
     pending.value = false
   }
@@ -1349,6 +1380,14 @@ onMounted(() => {
             />
           </AppFormField>
           <p v-if="error" role="alert" aria-live="assertive" class="venus-alert-error text-start">{{ error }}</p>
+          <button
+            v-if="loginNeedsRegister"
+            type="button"
+            class="canva-gate-btn-primary"
+            @click="goRegisterFromLogin"
+          >
+            {{ t('auth.goToRegisterWithPhone') }}
+          </button>
           <button type="submit" class="canva-gate-btn-primary" :disabled="pending">
             {{ pending ? t('common.loading') : t('auth.continueConfirm') }}
           </button>

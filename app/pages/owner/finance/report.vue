@@ -315,10 +315,15 @@ function downloadReport() {
         <section>
           <h2 class="mb-2 text-start text-sm font-bold text-brand-navy">{{ t('owner.financePage.funnelTitle') }}</h2>
           <div class="canva-finance-funnel-empty">
-            <p>{{ t('owner.financePage.funnelPlaceholder') }}</p>
-            <p v-if="data?.funnel" class="mt-2 text-sm font-bold text-brand-navy">
-              {{ formatNumber(data.funnel.confirmed || 0) }} / {{ formatNumber(data.funnel.total || 0) }}
-            </p>
+            <p class="leading-relaxed">{{ t('owner.financePage.funnelPlaceholder') }}</p>
+            <div v-if="data?.funnel" class="canva-finance-funnel-empty-summary">
+              <p class="canva-finance-chip-label">{{ t('owner.financePage.funnelConfirmedTotalLabel') }}</p>
+              <p class="mt-1 text-sm font-bold tabular-nums text-brand-navy">
+                <bdi dir="ltr">
+                  {{ formatNumber(data.funnel.confirmed || 0) }} / {{ formatNumber(data.funnel.total || 0) }}
+                </bdi>
+              </p>
+            </div>
           </div>
         </section>
 

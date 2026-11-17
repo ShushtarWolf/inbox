@@ -6,7 +6,7 @@ import { resolveLinkedGuestDisplayName } from '#shared/guestName.ts'
 import { isoToJalaali, jalaaliToIso, toPersianDigits } from '#shared/jalali.ts'
 import { localDateString, localTimeString } from '#shared/localDate.ts'
 import { summarizeCashBook, summarizeOnlineOpen } from '#shared/dualRailBooks.ts'
-import { isChargedPaidCheckout, paymentRail, summarizeCollectedRevenue, type RevenueRow } from '#shared/ownerRevenue.ts'
+import { computePaymentMethodBreakdown, isChargedPaidCheckout, summarizeCollectedRevenue, type RevenueRow } from '#shared/ownerRevenue.ts'
 import { isOwnerRecurringBooking } from '#shared/recurringReserve.ts'
 
 export default defineEventHandler(async (event) => {
@@ -245,8 +245,6 @@ export default defineEventHandler(async (event) => {
     })
   )._sum.ownerNet || 0
   const revenue = totalSummary.total
-  // Method-share bar stays this Jalali month (counts, not money).
-  const monthCourt = courtRevenueRows.filter((row) => row.date >= monthStart && row.date <= today)
 
   const totalReservationCount = bookings.length + coachSessions.length
   const noShowCount = bookings.filter((booking) => booking.noShowAt).length + coachSessions.filter((session) => session.noShowAt).length
@@ -256,31 +254,8 @@ export default defineEventHandler(async (event) => {
   const churnRisk = contacts.filter((contact) => contact.inactiveDays >= 14).length
   const ltv = contacts.length ? Math.round(contacts.reduce((sum, contact) => sum + contact.lifetimeValue, 0) / contacts.length) : 0
 
-  // Status-first buckets (court bookings, this month). Wallet (method PAID) is online — never till cash.
-  // PAID amount-0 siblings are covered checkouts — skip them so online % is not inflated.
-  const paymentTotals = { PAID_CASH: 0, PAID_IPG: 0, UNPAID: 0 }
-  for (const row of monthCourt) {
-    if (row.revenue.bookingStatus === 'CANCELLED') continue
-    const status = row.revenue.status || ''
-    if (isUnpaidPaymentStatus(status)) {
-      paymentTotals.UNPAID += 1
-      continue
-    }
-    if (!isChargedPaidCheckout(row.revenue.amount, status)) continue
-    const rail = paymentRail(row.revenue.method)
-    if (rail === 'online') paymentTotals.PAID_IPG += 1
-    else if (rail === 'cash') paymentTotals.PAID_CASH += 1
-  }
-  const paymentCount = paymentTotals.PAID_CASH + paymentTotals.PAID_IPG + paymentTotals.UNPAID
-  const paymentBreakdown = {
-    PAID_CASH: paymentCount ? Math.round((paymentTotals.PAID_CASH / paymentCount) * 100) : 0,
-    PAID_IPG: paymentCount ? Math.round((paymentTotals.PAID_IPG / paymentCount) * 100) : 0,
-    UNPAID: paymentCount ? Math.round((paymentTotals.UNPAID / paymentCount) * 100) : 0,
-    // Legacy keys kept for older clients / smoke scripts.
-    IPG: paymentCount ? Math.round((paymentTotals.PAID_IPG / paymentCount) * 100) : 0,
-    CASH: paymentCount ? Math.round((paymentTotals.PAID_CASH / paymentCount) * 100) : 0,
-    NOT_PAID: paymentCount ? Math.round((paymentTotals.UNPAID / paymentCount) * 100) : 0,
-  }
+  // Method-share bar: all court checkouts (counts, not money) — same scope as lifetime collected above.
+  const paymentBreakdown = computePaymentMethodBreakdown(courtRevenueRows.map((row) => row.revenue))
 
   const funnel = {
     views: totalReservationCount + waitlistEntries.length,

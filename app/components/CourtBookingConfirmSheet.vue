@@ -916,6 +916,41 @@ async function submit(preferWallet = false) {
                 </div>
               </div>
             </div>
+
+            <p v-if="visibleEquipment.some((item) => item.category === 'SERVICE')" class="text-start text-xs font-bold text-brand-gray-600">
+              {{ t('booking.equipmentService') }}
+            </p>
+            <div
+              v-for="item in visibleEquipment.filter((row) => row.category === 'SERVICE')"
+              :key="item.id"
+              class="canva-confirm-book-equip"
+            >
+              <div class="flex items-center justify-between gap-3 text-start">
+                <span class="min-w-0 text-sm font-bold text-brand-navy">{{ localizedField(item, 'nameFa', 'nameEn') }}</span>
+                <div class="flex shrink-0 items-center gap-2">
+                  <div class="canva-qty-step" role="group" :aria-label="localizedField(item, 'nameFa', 'nameEn')">
+                    <button
+                      type="button"
+                      class="canva-qty-step-btn"
+                      :disabled="equipmentQty(item.id) <= 0 || payBusy"
+                      aria-label="−"
+                      @click="bumpEquipment(item.id, -1)"
+                    >−</button>
+                    <span class="min-w-[1.25rem] text-center tabular-nums">{{ formatNumber(equipmentQty(item.id)) }}</span>
+                    <button
+                      type="button"
+                      class="canva-qty-step-btn"
+                      :disabled="equipmentQty(item.id) >= equipmentStock(item) || payBusy || availabilityLoading"
+                      aria-label="+"
+                      @click="bumpEquipment(item.id, 1)"
+                    >+</button>
+                  </div>
+                  <span class="font-bold tabular-nums text-brand-navy" dir="ltr">
+                    {{ formatCurrency(item.price) }}
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
 
           <div class="canva-confirm-book-costs text-start">
