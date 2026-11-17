@@ -103,6 +103,21 @@ describe('series payment meta + pro-rata', () => {
     })).toBe(100_000)
   })
 
+  it('caps list sessionPrice by fair share when remainingSessions known (pack discount)', () => {
+    expect(sessionRefundAmount({
+      sessionPrice: 5_000,
+      primaryAmount: 9_000,
+      alreadyRefunded: 0,
+      remainingSessions: 6,
+    })).toBe(1_500)
+    expect(sessionRefundAmount({
+      sessionPrice: 5_000,
+      primaryAmount: 30_000,
+      alreadyRefunded: 0,
+      remainingSessions: 6,
+    })).toBe(5_000)
+  })
+
   it('fair-splits residual when sessionPrice is missing mid-series', () => {
     expect(sessionRefundAmount({
       sessionPrice: null,
