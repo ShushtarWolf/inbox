@@ -1,17 +1,23 @@
 import {
   clampDiscountPercent,
   normalizeDiscountCode,
+  parseDiscountEndsAtInput,
+  parseDiscountStartsAtInput,
 } from '#shared/discountCode.ts'
 
 const CODE_RE = /^[A-Z0-9]{3,32}$/
 
-function parseOptionalDate(raw: string | null | undefined): Date | null {
+function parseOptionalDate(
+  raw: string | null | undefined,
+  kind: 'start' | 'end',
+): Date | null {
   if (raw == null || String(raw).trim() === '') return null
-  const d = new Date(raw)
-  if (Number.isNaN(d.getTime())) {
+  try {
+    return kind === 'end' ? parseDiscountEndsAtInput(raw) : parseDiscountStartsAtInput(raw)
+  }
+  catch {
     throw createError({ statusCode: 400, statusMessage: 'Invalid date' })
   }
-  return d
 }
 
 function parseOptionalMaxRedemptions(raw: number | null | undefined): number | null {
@@ -49,8 +55,8 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Percent must be 1–100' })
   }
 
-  const startsAt = parseOptionalDate(body?.startsAt)
-  const endsAt = parseOptionalDate(body?.endsAt)
+  const startsAt = parseOptionalDate(body?.startsAt, 'start')
+  const endsAt = parseOptionalDate(body?.endsAt, 'end')
   if (startsAt && endsAt && endsAt < startsAt) {
     throw createError({ statusCode: 400, statusMessage: 'endsAt must be after startsAt' })
   }
