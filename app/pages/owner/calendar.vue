@@ -3,6 +3,7 @@ import { isoToJalaali, jalaaliDaysInMonth, jalaaliToIso, PERSIAN_MONTHS } from '
 import { palette } from '#shared/palette.ts'
 import { isPaidPaymentStatus, isUnpaidPaymentStatus, resolvePaymentChannel } from '#shared/bookingPayment.ts'
 import { addDaysToIsoDate, isPastDate, isSlotStartInPast } from '#shared/localDate.ts'
+import { countFutureFreeOverviewSlots } from '#shared/ownerCalendarOverview.ts'
 import {
   countRecurringSessionsByDayInRange,
   ensureDayTimesForDays,
@@ -526,14 +527,14 @@ const activeCourt = computed(() =>
 const overviewStats = computed(() => {
   const slots = (data.value?.slots || []) as OwnerCalendarSlot[]
   const bookable = slots.filter((slot) => slot.displayStatus !== 'CLOSED')
-  const free = bookable.filter((slot) => slot.displayStatus === 'FREE' && !isExternalOnlyOccupied(slot))
+  const freeCount = countFutureFreeOverviewSlots(bookable, date.value, isExternalOnlyOccupied)
   const reserved = bookable.filter((slot) =>
     slot.displayStatus === 'RESERVED'
     || slot.displayStatus === 'PENDING'
     || Boolean(activeBooking(slot))
     || isExternalOnlyOccupied(slot),
   )
-  const freePct = bookable.length ? Math.round((free.length / bookable.length) * 100) : 0
+  const freePct = bookable.length ? Math.round((freeCount / bookable.length) * 100) : 0
   const reservedPct = bookable.length ? Math.round((reserved.length / bookable.length) * 100) : 0
   const perCourt = courts.value.map((court) => {
     const courtSlots = bookable.filter((slot) => slot.courtId === court.id)
@@ -554,7 +555,7 @@ const overviewStats = computed(() => {
     reservedPct,
     bookingsToday: reserved.length,
     bookable: bookable.length,
-    free: free.length,
+    free: freeCount,
     perCourt,
   }
 })
