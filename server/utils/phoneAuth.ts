@@ -15,9 +15,28 @@ export async function findUserForPhoneOtp(phoneRaw: string): Promise<{
   const phone = normalizeIranPhone(phoneRaw)
   if (!phone) return null
 
-  const byPhone = await prisma.user.findUnique({ where: { phone } })
+  const variants = iranPhoneStorageVariants(phone)
+  const phoneUsers = variants.length
+    ? await prisma.user.findMany({
+        where: { phone: { in: variants } },
+        orderBy: { createdAt: 'asc' },
+      })
+    : []
+
+  if (phoneUsers.length > 1) {
+    console.error('[phoneAuth] multiple User rows match phone variants for OTP login', {
+      normalized: phone,
+      userIds: phoneUsers.map((u) => u.id),
+    })
+  }
+
+  const byPhone = phoneUsers.length === 1
+    ? phoneUsers[0]!
+    : phoneUsers.find((u) => u.phone === phone) ?? phoneUsers[0]
+
   if (byPhone) {
-    return { user: byPhone, linkPhone: false, phone }
+    const needsPhoneNormalize = byPhone.phone !== phone
+    return { user: byPhone, linkPhone: needsPhoneNormalize, phone }
   }
 
   // Club has no createdAt — order by id for deterministic oldest match.
