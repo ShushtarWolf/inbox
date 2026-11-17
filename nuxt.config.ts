@@ -14,6 +14,12 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-06-02',
   devtools: { enabled: false },
 
+  // Stale-tab client navigation after deploy: reload immediately on missing route chunks
+  // instead of landing on error.vue with a misleading HTTP 500 (IB-28).
+  experimental: {
+    emitRouteChunkError: 'automatic-immediate',
+  },
+
   alias: {
     '#shared': fileURLToPath(new URL('./shared', import.meta.url)),
   },

@@ -38,6 +38,8 @@ export type HistoricalCancelRefundReport = {
   creditCount: number
   creditToman: number
   appliedCount: number
+  /** Per-line APPLY failures (caught so the request returns JSON instead of HTTP 500). */
+  applyErrors: Array<{ paymentId: string, bookingId: string | null, message: string }>
   counts: Record<string, number>
   /** Phase-3 rollup: credit | skip | review | series_gap */
   buckets: Record<HistoricalRepairBucket, number>
@@ -272,6 +274,29 @@ export async function inventoryHistoricalCancelRefunds(tracking?: string): Promi
     }
   }
 
+  // Series live-cancel credits land on the primary payment id with sibling bookingId.
+  // Always refresh those sums — candidate/extras merge can miss a primary that was
+  // resolved only via coveredByBookingId metadata (not bookingId FK).
+  const seriesPrimaryPayIds = new Set<string>()
+  for (const row of candidates) {
+    const meta = parseSeriesPaymentMeta(row.metadataJson)
+    if (!isSeriesPaymentGroup(meta)) continue
+    const primaryBookingId = meta.coveredByBookingId || meta.groupPrimaryBookingId || row.bookingId
+    const primary = primaryBookingId ? paymentByBookingId.get(primaryBookingId) : null
+    if (primary) seriesPrimaryPayIds.add(primary.id)
+  }
+  if (seriesPrimaryPayIds.size) {
+    const primaryIds = [...seriesPrimaryPayIds]
+    const [pSums, pByBooking, pKeys] = await Promise.all([
+      creditSums(primaryIds),
+      creditSumsByBooking(primaryIds),
+      reconKeys(primaryIds, [...seriesBookingIdSet]),
+    ])
+    for (const [k, v] of pSums) sums.set(k, v)
+    for (const [k, v] of pByBooking) byBooking.set(k, v)
+    for (const k of pKeys) keys.add(k)
+  }
+
   let trackingBookingId: string | null = null
   if (tracking) {
     const bookings = await prisma.booking.findMany({ select: { id: true } })
@@ -447,55 +472,153 @@ async function applyCredit(line: HistoricalCancelRefundLine, opts?: {
     const seriesMeta = parseSeriesPaymentMeta(payment.metadataJson)
     const trust = opts?.force === true || opts?.trustDecision === true
       || line.decision.reason === 'series_session_shortfall'
-    // force / trust: ops-approved or inventory already used cancelWalletCreditAmount.
-    const again = trust && line.decision.action === 'credit'
-      ? line.decision
-      : decideHistoricalCancelRefund({
+    const liveCredited = Math.max(0, credited._sum.amount || 0)
+    // Always re-decide against *live* REFUND_CREDIT so partial session rows top up correctly.
+    // Series lines credit the primary payment while the cancelled session is line.bookingId —
+    // do not use the primary booking's status (often still CONFIRMED).
+    const cancelledBooking = line.bookingId
+      ? await tx.booking.findUnique({
+          where: { id: line.bookingId },
+          select: { status: true, paymentMethod: true },
+        })
+      : null
+    let again = decideHistoricalCancelRefund({
+      method: payment.method,
+      bookingPaymentMethod: cancelledBooking?.paymentMethod || payment.booking?.paymentMethod,
+      paymentStatus: payment.status,
+      bookingStatus: cancelledBooking?.status || payment.booking?.status,
+      amount: payment.amount,
+      userId,
+      debitedWalletUserId,
+      walletDebitAbs,
+      metadata: parseMeta(payment.metadataJson),
+      refundCreditSum: liveCredited,
+      alreadyReconciled: false,
+      treatAsSeries: trust || isSeriesPaymentGroup(seriesMeta) || undefined,
+      primaryAmount: payment.amount,
+      sessionPrice: seriesMeta.sessionPrice ?? null,
+      alreadyRefundedOnPrimary: Math.max(
+        0,
+        Math.floor(Number(parseMeta(payment.metadataJson).sessionRefundsTotal) || 0),
+      ),
+    })
+    // Primary IPG row often fails walletPathProven even though inventory already classified
+    // the cancelled session as series_session_shortfall — compute the live gap directly.
+    if (again.action !== 'credit' && trust && line.decision.action === 'credit') {
+      const owed = cancelWalletCreditAmount({
         method: payment.method,
-        bookingPaymentMethod: payment.booking?.paymentMethod,
-        paymentStatus: payment.status,
-        bookingStatus: payment.booking?.status,
-        amount: payment.amount,
-        userId,
-        debitedWalletUserId,
-        walletDebitAbs,
-        metadata: parseMeta(payment.metadataJson),
-        refundCreditSum: credited._sum.amount || 0,
-        alreadyReconciled: false,
-        treatAsSeries: isSeriesPaymentGroup(seriesMeta) || undefined,
+        bookingPaymentMethod: cancelledBooking?.paymentMethod || payment.booking?.paymentMethod,
+        paymentAmount: payment.amount,
         primaryAmount: payment.amount,
         sessionPrice: seriesMeta.sessionPrice ?? null,
         alreadyRefundedOnPrimary: Math.max(
           0,
           Math.floor(Number(parseMeta(payment.metadataJson).sessionRefundsTotal) || 0),
         ),
+        treatAsSeries: true,
+        metadata: parseMeta(payment.metadataJson),
       })
-    if (again.action !== 'credit' || !userId) return
+      const gap = Math.max(0, owed.amount - liveCredited)
+      if (gap > 0) {
+        again = { action: 'credit', amount: gap, reason: 'series_session_shortfall' }
+      }
+    }
+    if (again.action !== 'credit' || !userId) {
+      if (liveCredited > 0 && userId) {
+        const existingRecon = await tx.refundReconciliation.findUnique({ where: { idempotencyKey: key } })
+        if (!existingRecon) {
+          await tx.refundReconciliation.create({
+            data: {
+              idempotencyKey: key,
+              paymentId: payment.id,
+              userId,
+              amount: liveCredited,
+              clubClawback: 0,
+              commissionRecorded: 0,
+              reason: 'already_credited',
+              evidenceJson: JSON.stringify({
+                paymentStatus: payment.status,
+                bookingStatus: cancelledBooking?.status || payment.booking?.status || null,
+                method: payment.method,
+                priorRefundCredit: liveCredited,
+                reconciledExistingWalletCredit: true,
+                decide: again,
+                metadata: parseMeta(payment.metadataJson),
+              }),
+            },
+          })
+          wrote = true
+        }
+      }
+      return
+    }
 
-    const wallet = await tx.wallet.upsert({
-      where: { userId },
-      update: {},
-      create: { userId },
-    })
-    const claimed = await tx.wallet.updateMany({
-      where: { id: wallet.id },
-      data: {
-        balance: { increment: again.amount },
-        availableBalance: { increment: again.amount },
-      },
-    })
-    if (claimed.count !== 1) return
-    await tx.walletTransaction.create({
-      data: {
-        walletId: wallet.id,
-        amount: again.amount,
-        type: 'REFUND_CREDIT',
-        paymentId: payment.id,
-        // Prefer the cancelled booking id so series session credits are attributable.
-        bookingId: line.bookingId || payment.bookingId || key,
-        note: key,
-      },
-    })
+    const creditAmount = again.amount
+    const creditBookingId = line.bookingId || payment.bookingId || key
+    // Unique (paymentId, type, bookingId) allows only one REFUND_CREDIT per session.
+    // Live cancel may have written a partial share — top up that row instead of inserting.
+    if (liveCredited > 0) {
+      const existingTx = await tx.walletTransaction.findFirst({
+        where: {
+          paymentId: payment.id,
+          type: 'REFUND_CREDIT',
+          bookingId: line.bookingId || undefined,
+        },
+        orderBy: { createdAt: 'asc' },
+      })
+      if (!existingTx) {
+        throw new Error(
+          `partial_refund_credit_missing_row payment=${payment.id} booking=${line.bookingId || ''} `
+          + `have=${liveCredited} want_gap=${creditAmount}`,
+        )
+      }
+      const wallet = await tx.wallet.upsert({
+        where: { userId },
+        update: {},
+        create: { userId },
+      })
+      const claimed = await tx.wallet.updateMany({
+        where: { id: wallet.id },
+        data: {
+          balance: { increment: creditAmount },
+          availableBalance: { increment: creditAmount },
+        },
+      })
+      if (claimed.count !== 1) return
+      await tx.walletTransaction.update({
+        where: { id: existingTx.id },
+        data: {
+          amount: liveCredited + creditAmount,
+          note: key,
+        },
+      })
+    }
+    else {
+      const wallet = await tx.wallet.upsert({
+        where: { userId },
+        update: {},
+        create: { userId },
+      })
+      const claimed = await tx.wallet.updateMany({
+        where: { id: wallet.id },
+        data: {
+          balance: { increment: creditAmount },
+          availableBalance: { increment: creditAmount },
+        },
+      })
+      if (claimed.count !== 1) return
+      await tx.walletTransaction.create({
+        data: {
+          walletId: wallet.id,
+          amount: creditAmount,
+          type: 'REFUND_CREDIT',
+          paymentId: payment.id,
+          // Prefer the cancelled booking id so series session credits are attributable.
+          bookingId: creditBookingId,
+          note: key,
+        },
+      })
+    }
 
     let clubClawback = 0
     let commissionRecorded = 0
@@ -512,32 +635,46 @@ async function applyCredit(line: HistoricalCancelRefundLine, opts?: {
           })
       const alreadyClawed = Math.abs(prior._sum.amount || 0)
       const remaining = Math.max(0, ledger.ownerNet - alreadyClawed)
-      const proportional = Math.floor((ledger.ownerNet * again.amount) / ledger.gross)
+      const proportional = Math.floor((ledger.ownerNet * creditAmount) / ledger.gross)
       clubClawback = Math.min(remaining, Math.max(0, proportional))
-      commissionRecorded = Math.max(0, again.amount - clubClawback)
+      commissionRecorded = Math.max(0, creditAmount - clubClawback)
       if (clubClawback > 0 && ledger.clubId) {
         const clubWallet = await tx.clubWallet.findUnique({ where: { clubId: ledger.clubId } })
         if (clubWallet) {
-          const fromLocked = Math.min(clubWallet.lockedBalance, clubClawback)
-          const fromAvailable = clubClawback - fromLocked
-          await tx.clubWallet.update({
-            where: { id: clubWallet.id },
-            data: {
-              balance: { decrement: clubClawback },
-              lockedBalance: { decrement: fromLocked },
-              availableBalance: { decrement: fromAvailable },
-            },
-          })
-          await tx.clubWalletTransaction.create({
-            data: {
-              walletId: clubWallet.id,
-              amount: -clubClawback,
-              type: 'CLAWBACK',
-              paymentId: payment.id,
-              bookingId: key,
-              note: key,
-            },
-          })
+          // Cap to what the club wallet actually holds — never drive locked/available negative.
+          const maxClaw = Math.min(
+            clubClawback,
+            Math.max(0, clubWallet.balance),
+            Math.max(0, clubWallet.lockedBalance) + Math.max(0, clubWallet.availableBalance),
+          )
+          const fromLocked = Math.min(Math.max(0, clubWallet.lockedBalance), maxClaw)
+          const fromAvailable = Math.min(
+            Math.max(0, clubWallet.availableBalance),
+            Math.max(0, maxClaw - fromLocked),
+          )
+          const clawed = fromLocked + fromAvailable
+          clubClawback = clawed
+          commissionRecorded = Math.max(0, creditAmount - clubClawback)
+          if (clawed > 0) {
+            await tx.clubWallet.update({
+              where: { id: clubWallet.id },
+              data: {
+                balance: { decrement: clawed },
+                lockedBalance: { decrement: fromLocked },
+                availableBalance: { decrement: fromAvailable },
+              },
+            })
+            await tx.clubWalletTransaction.create({
+              data: {
+                walletId: clubWallet.id,
+                amount: -clawed,
+                type: 'CLAWBACK',
+                paymentId: payment.id,
+                bookingId: line.bookingId || null,
+                note: key,
+              },
+            })
+          }
         }
       }
       const fully = alreadyClawed + clubClawback >= ledger.ownerNet
@@ -554,7 +691,7 @@ async function applyCredit(line: HistoricalCancelRefundLine, opts?: {
         idempotencyKey: key,
         paymentId: payment.id,
         userId,
-        amount: again.amount,
+        amount: creditAmount,
         clubClawback,
         commissionRecorded,
         reason: again.reason,
@@ -562,7 +699,8 @@ async function applyCredit(line: HistoricalCancelRefundLine, opts?: {
           paymentStatus: payment.status,
           bookingStatus: payment.booking?.status || null,
           method: payment.method,
-          priorRefundCredit: credited._sum.amount || 0,
+          priorRefundCredit: liveCredited,
+          toppedUp: liveCredited > 0,
           metadata: parseMeta(payment.metadataJson),
         }),
       },
@@ -861,14 +999,30 @@ export async function runHistoricalCancelRefundRepair(opts?: {
     ? allCreditLines.filter((line) => forcedIds.has(line.paymentId))
     : allCreditLines
   let appliedCount = 0
+  const applyErrors: HistoricalCancelRefundReport['applyErrors'] = []
   if (apply) {
     for (const line of linesToApply) {
       const forced = forcedIds.has(line.paymentId)
-      if (await applyCredit(line, {
-        force: forced,
-        trustDecision: line.bucket === 'series_gap' || line.decision.reason === 'series_session_shortfall',
-      })) {
-        appliedCount += 1
+      try {
+        if (await applyCredit(line, {
+          force: forced,
+          trustDecision: line.bucket === 'series_gap' || line.decision.reason === 'series_session_shortfall',
+        })) {
+          appliedCount += 1
+        }
+      }
+      catch (err) {
+        const message = err instanceof Error ? err.message : String(err)
+        console.error(
+          '[historicalCancelRefundRepair] applyCredit failed',
+          { paymentId: line.paymentId, bookingId: line.bookingId, message },
+          err,
+        )
+        applyErrors.push({
+          paymentId: line.paymentId,
+          bookingId: line.bookingId,
+          message: message.slice(0, 500),
+        })
       }
     }
   }
@@ -906,6 +1060,7 @@ export async function runHistoricalCancelRefundRepair(opts?: {
     creditCount,
     creditToman,
     appliedCount,
+    applyErrors,
     counts: report.counts,
     buckets,
     credits: credits.slice(0, 50),

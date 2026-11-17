@@ -22,6 +22,7 @@ This change does not alter ledger math, schema, bank calls, or historical recons
 
 - Withdrawable (`heroWithdrawable` / settlement `withdrawableBalance`) is the large online figure. It is not cash in the till and not unpaid receivables.
 - «هنوز قابل برداشت نیست» is `pendingRelease`. «در حال واریز به حساب شما» is `inPayout`. «موجودی کل کیف باشگاه» is total balance and must not be added to those three.
+- The «کِی آزاد می‌شود؟» rows (`pendingReleases`) are bucketed from the same math as `pendingClassBalance` (season progressive unlock, partial clawbacks, blocked IPG) — their amounts sum to the sub-card figure.
 - Cash card uses `cashBook.inTill` and `cashBook.returnsOwed` only.
 - «طلب از مشتریان» is `stats.unpaidAmount`. Unpaid is not available to cash out.
 - Commission line still uses settlement `commissionBps` from the server. It is not a fixed sample percent.

@@ -66,7 +66,10 @@ function campaignStatusLabel(status: string) {
           </div>
           <div class="canva-panel crm-stat crm-stat-wide">
             <p class="text-xs text-brand-gray-500">{{ t('owner.playerDetail.lastVisit') }}</p>
-            <p class="crm-stat-v"><bdi dir="auto">{{ contact.lastVisit || '—' }}</bdi></p>
+            <p class="crm-stat-v">
+              <bdi v-if="contact.lastVisit" dir="ltr" class="tabular-nums">{{ formatIsoDate(contact.lastVisit) }}</bdi>
+              <template v-else>—</template>
+            </p>
           </div>
         </div>
 

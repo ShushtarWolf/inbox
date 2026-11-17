@@ -5,6 +5,7 @@ import {
   isDateBeyondBookingHorizon,
 } from '#shared/bookingHorizon.ts'
 import { computeBookingPrice, computeListedSlotPrice, parseCourtPricingJson } from '#shared/courtPricing.ts'
+import { isBookableEquipmentCategory } from '#shared/equipmentAvailability.ts'
 import { clubCatalogPriceRange } from '#shared/clubReadiness.ts'
 import { resolveClubSlugAlias } from '#shared/clubSlugAliases.ts'
 import {
@@ -647,7 +648,7 @@ const sportSeoLabel = computed(() => {
 const bookableEquipment = computed(() => {
   const list = club.value?.equipment || []
   return list.filter((item) => {
-    if (item.category !== 'RENTAL' && item.category !== 'SELL') return false
+    if (!isBookableEquipmentCategory(item.category)) return false
     return Math.max(0, Number(item.quantity ?? 1)) > 0
   })
 })

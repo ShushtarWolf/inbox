@@ -66,6 +66,18 @@ export function isSellEquipmentCategory(category?: string | null): boolean {
   return category === 'SELL'
 }
 
+/** Paid add-ons athletes and desk can attach to a booking (excludes free CLUB amenities). */
+export const BOOKABLE_EQUIPMENT_CATEGORIES = ['RENTAL', 'SELL', 'SERVICE'] as const
+
+export function isBookableEquipmentCategory(category?: string | null): boolean {
+  return category === 'RENTAL' || category === 'SELL' || category === 'SERVICE'
+}
+
+/** Owner calendar walk-in / reserve sheet — CLUB amenities plus paid add-ons. */
+export function isOwnerDeskEquipmentPickerCategory(category?: string | null): boolean {
+  return category === 'CLUB' || isBookableEquipmentCategory(category)
+}
+
 /**
  * Sum units already sold (non-cancelled) across any date/time.
  * Used for SELL stock — items do not return after a session.

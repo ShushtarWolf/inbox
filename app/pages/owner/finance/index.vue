@@ -509,6 +509,8 @@ const ipgPct = computed(() => {
   return sum ? Math.round((ipgPctRaw.value / sum) * 100) : 0
 })
 
+const hasPaidMethodShare = computed(() => cashPctRaw.value + ipgPctRaw.value > 0)
+
 const visibleTransactions = computed(() => selectFinanceTransactions(data.value?.transactions || [], {
   hideCoach: pilotNoCoach.value,
   session: sessionFilter.value,
@@ -763,14 +765,25 @@ function showUnpaidList() {
             </span>
           </div>
         </div>
-        <div class="canva-finance-method-bar mt-3">
-          <span class="h-full bg-brand-primary" :style="{ width: `${cashPct}%` }" />
-          <span class="h-full" :style="{ width: `${ipgPct}%`, background: '#e0a82e' }" />
-        </div>
-        <div class="owner-fin-method-pct mt-2 flex justify-between text-xs font-bold text-brand-navy">
-          <span>{{ formatNumber(cashPct) }}٪</span>
-          <span>{{ formatNumber(ipgPct) }}٪</span>
-        </div>
+        <template v-if="hasPaidMethodShare">
+          <div class="canva-finance-method-bar mt-3" role="img" :aria-label="t('owner.financePage.paymentMethodTitle')">
+            <span
+              class="canva-finance-method-segment bg-brand-primary"
+              :style="{ width: `${cashPct}%` }"
+              :title="`${t('owner.financePage.methodCash')} ${formatNumber(cashPct)}٪`"
+            />
+            <span
+              class="canva-finance-method-segment"
+              :style="{ width: `${ipgPct}%`, background: '#e0a82e' }"
+              :title="`${t('owner.financePage.methodCashless')} ${formatNumber(ipgPct)}٪`"
+            />
+          </div>
+          <div class="owner-fin-method-pct mt-2 flex justify-between text-xs font-bold text-brand-navy">
+            <span>{{ formatNumber(cashPct) }}٪ {{ t('owner.financePage.methodCash') }}</span>
+            <span>{{ formatNumber(ipgPct) }}٪ {{ t('owner.financePage.methodCashless') }}</span>
+          </div>
+        </template>
+        <p v-else class="mt-3 text-start text-xs text-brand-gray-500">{{ t('owner.financePage.paymentMethodEmpty') }}</p>
         <p v-if="unpaidPct > 0" class="mt-2 text-[11px] text-brand-gray-500">
           {{ t('owner.financePage.unpaidShareNote', { pct: formatNumber(unpaidPct) }) }}
         </p>
