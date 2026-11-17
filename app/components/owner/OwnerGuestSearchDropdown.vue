@@ -14,6 +14,18 @@ defineProps<{
 const emit = defineEmits<{
   select: [guest: GuestSearchHit]
 }>()
+
+let lastSelectKey = ''
+let lastSelectAt = 0
+
+function onSelect(guest: GuestSearchHit) {
+  const key = `${guest.mobile}-${guest.name}`
+  const now = Date.now()
+  if (key === lastSelectKey && now - lastSelectAt < 500) return
+  lastSelectKey = key
+  lastSelectAt = now
+  emit('select', guest)
+}
 </script>
 
 <template>
@@ -33,7 +45,8 @@ const emit = defineEmits<{
       class="flex w-full flex-col items-stretch gap-0.5 border-b border-brand-gray-100 px-3 py-2.5 text-start last:border-b-0 hover:bg-brand-primary-soft"
       role="option"
       :aria-selected="idx === 0"
-      @mousedown.prevent="emit('select', guest)"
+      @touchstart.prevent="onSelect(guest)"
+      @mousedown.prevent="onSelect(guest)"
     >
       <span class="w-full text-sm font-bold leading-snug text-brand-navy">{{ guest.name || '—' }}</span>
       <bdi v-if="guest.mobile" dir="ltr" class="w-full text-start text-xs tabular-nums text-brand-gray-600">{{ formatPhone(guest.mobile) }}</bdi>
