@@ -1921,8 +1921,11 @@
     border-radius: var(--sz-canva-radius);
   }
   .canva-finance-funnel-empty {
-    @apply flex min-h-[7rem] items-center justify-center border border-brand-gray-200 bg-white px-3 text-center text-xs text-brand-gray-500;
+    @apply flex min-h-[7rem] w-full flex-col items-stretch justify-center gap-3 border border-brand-gray-200 bg-white px-3 py-3 text-center text-xs text-brand-gray-500;
     border-radius: var(--sz-canva-radius);
+  }
+  .canva-finance-funnel-empty-summary {
+    @apply w-full border-t border-brand-gray-100 pt-3 text-start;
   }
   .canva-crm-stats {
     @apply grid grid-cols-3 gap-2;
