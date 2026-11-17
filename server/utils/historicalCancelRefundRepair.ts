@@ -430,7 +430,7 @@ export async function inventoryHistoricalCancelRefunds(tracking?: string): Promi
   }
 }
 
-async function applyCredit(line: HistoricalCancelRefundLine, opts?: {
+export async function applyHistoricalCancelCredit(line: HistoricalCancelRefundLine, opts?: {
   force?: boolean
   /** Trust the inventory decision (series/ledger synthesis already used owed helper). */
   trustDecision?: boolean
@@ -1004,7 +1004,7 @@ export async function runHistoricalCancelRefundRepair(opts?: {
     for (const line of linesToApply) {
       const forced = forcedIds.has(line.paymentId)
       try {
-        if (await applyCredit(line, {
+        if (await applyHistoricalCancelCredit(line, {
           force: forced,
           trustDecision: line.bucket === 'series_gap' || line.decision.reason === 'series_session_shortfall',
         })) {

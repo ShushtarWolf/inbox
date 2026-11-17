@@ -14,6 +14,7 @@ import { prisma } from './prisma'
 import { activeSlotBooking } from './reservations'
 import { hourFromTime } from './seasonSlots'
 import { ensureSlotsForDate, formatHour } from './slots'
+import { isClubDeskHoldBooking } from '#shared/deskHoldBooking.ts'
 import { deleteStaleCancelledBooking } from './staleBooking'
 import { cancelCourtBooking } from './cancellations'
 
@@ -256,13 +257,26 @@ async function unblockOneSlot(slotId: string, clubId: string) {
   }
 
   if (slot.booking) {
-    await cancelCourtBooking({
-      bookingId: slot.booking.id,
-      slotId: slot.id,
-      reason: 'owner-unblock',
-      paymentId: slot.booking.payment?.id,
-      userId: slot.booking.userId,
-    })
+    if (isClubDeskHoldBooking({
+      source: slot.booking.source,
+      payment: slot.booking.payment,
+      packageDraftId: slot.booking.packageDraftId,
+      coachId: slot.booking.coachId,
+    })) {
+      await prisma.$transaction(async (tx) => {
+        await tx.booking.delete({ where: { id: slot.booking!.id } })
+        await tx.slot.update({ where: { id: slot.id }, data: { displayStatus: 'FREE' } })
+      })
+    }
+    else {
+      await cancelCourtBooking({
+        bookingId: slot.booking.id,
+        slotId: slot.id,
+        reason: 'owner-unblock',
+        paymentId: slot.booking.payment?.id,
+        userId: slot.booking.userId,
+      })
+    }
   } else {
     await prisma.slot.update({
       where: { id: slot.id },

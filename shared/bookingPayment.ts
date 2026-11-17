@@ -132,9 +132,9 @@ export function settledSpendAmount(row: AthleteSpendRow): number {
 export function financeIncomeAmount(
   payment: { amount: number } | null | undefined,
   listPrice: number,
-  opts?: { deskHold?: boolean },
+  opts?: { deskHold?: boolean; clubDeskHold?: boolean },
 ): number {
-  if (opts?.deskHold) return 0
+  if (opts?.deskHold || opts?.clubDeskHold) return 0
   return payment ? payment.amount : listPrice
 }
 
