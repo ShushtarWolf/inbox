@@ -14,13 +14,17 @@ const PAYMENT_STATUSES: PaymentStatus[] = [
 export default defineEventHandler(async (event) => {
   requireAdminSecret(event)
   const query = getQuery(event)
-  const limit = Math.min(Number(query.limit) || 50, 100)
+  // userId lookups need headroom (athletes can exceed 100 rows); list search stays tighter.
+  const userId = typeof query.userId === 'string' ? query.userId.trim() : ''
+  const limitCap = userId ? 500 : 100
+  const limit = Math.min(Number(query.limit) || 50, limitCap)
   const status = typeof query.status === 'string' ? query.status : undefined
   const paymentStatus = typeof query.paymentStatus === 'string' ? query.paymentStatus : undefined
   const paymentChannel = typeof query.paymentChannel === 'string' ? query.paymentChannel : undefined
   const q = typeof query.q === 'string' ? query.q.trim() : ''
 
   const whereAnd: Prisma.BookingWhereInput[] = []
+  if (userId) whereAnd.push({ userId })
   if (status && BOOKING_STATUSES.includes(status as BookingStatus)) {
     whereAnd.push({ status: status as BookingStatus })
   }

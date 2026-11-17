@@ -1,19 +1,39 @@
-import { refundAmountFromBps } from './cancelPolicy.ts'
+import { cancelWalletCreditAmount } from './owedCancelRefund.ts'
 
 /**
  * Dry-run decision for a historical cancel that may be missing an athlete wallet credit.
  * Does not invent a bank outcome from missing metadata. Desk cash stays club-side.
  * A real wallet debit (PAYMENT_DEBIT / IPG_BOOKING_DEBIT) proves the closed-loop path even
  * when stale gateway reverse flags remain on the Payment row.
+ * Amount math is cancelWalletCreditAmount (same brain as live / force repair).
  */
 export const HISTORICAL_REFUND_NOTE_PREFIX = 'recon:historical-cancel:'
 
-export function historicalRefundIdempotencyKey(paymentId: string): string {
+/**
+ * Stable recon key. Standalone = per payment. Series session heal = payment + cancelled booking
+ * so several sibling cancels on one primary can each append once.
+ */
+export function historicalRefundIdempotencyKey(
+  paymentId: string,
+  bookingId?: string | null,
+): string {
+  if (bookingId) return `${HISTORICAL_REFUND_NOTE_PREFIX}${paymentId}:${bookingId}`
   return `${HISTORICAL_REFUND_NOTE_PREFIX}${paymentId}`
 }
 
+/** Phase-3 dry-run bucket for ops review. */
+export type HistoricalRepairBucket = 'credit' | 'skip' | 'review' | 'series_gap'
+
+export function historicalRepairBucket(
+  decision: HistoricalRefundDecision,
+): Exclude<HistoricalRepairBucket, 'series_gap'> {
+  if (decision.action === 'credit') return 'credit'
+  if (decision.action === 'skip') return 'skip'
+  return 'review'
+}
+
 export type HistoricalRefundDecision =
-  | { action: 'credit'; amount: number; reason: 'wallet_path_shortfall' | 'wallet_spend_shortfall' | 'split_wallet_rail_after_card_reverse' }
+  | { action: 'credit'; amount: number; reason: 'wallet_path_shortfall' | 'wallet_spend_shortfall' | 'split_wallet_rail_after_card_reverse' | 'series_session_shortfall' }
   | { action: 'skip'; reason: 'cash_club_responsibility' | 'already_credited' | 'already_reconciled' | 'not_cancelled' | 'card_already_reversed' }
   | { action: 'unresolved'; reason: 'bank_outcome_unknown' | 'bank_outcome_pending' | 'no_verified_account' | 'owed_amount_unknown' }
 
@@ -33,6 +53,12 @@ export type HistoricalRefundInput = {
   debitedWalletUserId?: string | null
   /** True when the stable reconciliation note/key already exists. */
   alreadyReconciled?: boolean
+  /** Series context — optional; when set, owed uses session share not full primary. */
+  primaryAmount?: number | null
+  sessionPrice?: number | null
+  alreadyRefundedOnPrimary?: number | null
+  remainingSessionsIncludingCancelled?: number | null
+  treatAsSeries?: boolean
 }
 
 function metaNumber(meta: Record<string, unknown>, key: string): number | null {
@@ -85,18 +111,31 @@ function walletPathProven(input: HistoricalRefundInput): boolean {
 
 function owedAmount(input: HistoricalRefundInput): number | null {
   const meta = input.metadata
-  const cap = Math.max(0, Math.floor(input.amount) || 0)
   const spent = debitAbs(input)
+  const cap = Math.max(0, Math.floor(input.amount) || 0)
+  const payBasis = spent > 0 ? spent : cap
   const explicit = metaNumber(meta, 'refundCreditAmount') ?? metaNumber(meta, 'refundedAmount')
-  if (explicit != null) return Math.min(explicit, spent > 0 ? spent : cap)
-  const bps = metaNumber(meta, 'refundBps')
-  if (bps != null) return Math.min(refundAmountFromBps(spent > 0 ? spent : cap, bps), spent > 0 ? spent : cap)
-  const series = metaNumber(meta, 'sessionRefundsTotal')
-  if (series != null && series > 0) return Math.min(series, spent > 0 ? spent : cap)
-  if (spent > 0) return spent
-  if (input.paymentStatus === 'REFUNDED' && walletPathProven(input)) return cap
-  if (input.bookingStatus === 'CANCELLED' && input.method === 'PAID' && input.paymentStatus === 'PAID') return cap
-  return null
+  const hasBasis = explicit != null
+    || payBasis > 0
+    || (input.paymentStatus === 'REFUNDED' && walletPathProven(input) && cap > 0)
+    || (input.bookingStatus === 'CANCELLED' && input.method === 'PAID' && input.paymentStatus === 'PAID' && cap > 0)
+    || input.treatAsSeries === true
+    || (typeof input.primaryAmount === 'number' && input.primaryAmount > 0)
+  if (!hasBasis) return null
+
+  const result = cancelWalletCreditAmount({
+    method: input.method,
+    bookingPaymentMethod: input.bookingPaymentMethod,
+    paymentAmount: payBasis > 0 ? payBasis : cap,
+    primaryAmount: input.primaryAmount,
+    sessionPrice: input.sessionPrice,
+    alreadyRefundedOnPrimary: input.alreadyRefundedOnPrimary ?? metaNumber(meta, 'sessionRefundsTotal'),
+    remainingSessionsIncludingCancelled: input.remainingSessionsIncludingCancelled,
+    treatAsSeries: input.treatAsSeries,
+    metadata: meta,
+  })
+  if (result.reason === 'desk_cash') return null
+  return result.amount
 }
 
 export function decideHistoricalCancelRefund(input: HistoricalRefundInput): HistoricalRefundDecision {
@@ -132,6 +171,9 @@ export function decideHistoricalCancelRefund(input: HistoricalRefundInput): Hist
   if (owed == null) return { action: 'unresolved', reason: 'owed_amount_unknown' }
   const gap = Math.max(0, owed - credited)
   if (gap <= 0) return { action: 'skip', reason: 'already_credited' }
+  if (input.treatAsSeries === true) {
+    return { action: 'credit', amount: gap, reason: 'series_session_shortfall' }
+  }
   return {
     action: 'credit',
     amount: gap,

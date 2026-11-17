@@ -20,7 +20,28 @@ export function todayDateString(timeZone = TEHRAN_TZ) {
  */
 export function tehranDayStartUtc(now = new Date()) {
   const day = localDateString(now, TEHRAN_TZ)
+  return tehranDayStartFromIso(day)
+}
+
+/** Start of calendar day YYYY-MM-DD in Asia/Tehran (+03:30). */
+export function tehranDayStartFromIso(iso: string) {
+  const day = iso.trim().slice(0, 10)
   return new Date(`${day}T00:00:00+03:30`)
+}
+
+/** End of calendar day YYYY-MM-DD in Asia/Tehran (+03:30). */
+export function tehranDayEndFromIso(iso: string) {
+  const day = iso.trim().slice(0, 10)
+  return new Date(`${day}T23:59:59.999+03:30`)
+}
+
+/** Tehran calendar day for a stored instant or ISO prefix. */
+export function calendarDayFromStoredDate(raw: Date | string) {
+  if (typeof raw === 'string') {
+    const match = raw.trim().match(/^(\d{4}-\d{2}-\d{2})/)
+    if (match) return match[1]!
+  }
+  return localDateString(new Date(raw), TEHRAN_TZ)
 }
 
 /** HH:mm in the given timezone (default: Asia/Tehran). */

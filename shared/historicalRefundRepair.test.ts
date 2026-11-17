@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { decideHistoricalCancelRefund, historicalRefundIdempotencyKey } from './historicalRefundRepair.ts'
+import {
+  decideHistoricalCancelRefund,
+  historicalRefundIdempotencyKey,
+  historicalRepairBucket,
+} from './historicalRefundRepair.ts'
 
 const base = {
   method: 'IPG' as const,
@@ -77,9 +81,27 @@ describe('decideHistoricalCancelRefund', () => {
     }).reason).toBe('card_already_reversed')
   })
 
+  it('credits series session share not full primary when treatAsSeries is set', () => {
+    expect(decideHistoricalCancelRefund({
+      ...base,
+      amount: 0,
+      primaryAmount: 9_000,
+      sessionPrice: 1_500,
+      alreadyRefundedOnPrimary: 0,
+      remainingSessionsIncludingCancelled: 6,
+      treatAsSeries: true,
+      metadata: { refundChannel: 'wallet_closed_loop', seasonBookingId: 's1' },
+    })).toEqual({
+      action: 'credit',
+      amount: 1_500,
+      reason: 'series_session_shortfall',
+    })
+  })
+
   it('skips when the stable reconciliation key already exists', () => {
     expect(decideHistoricalCancelRefund({ ...base, alreadyReconciled: true }).reason).toBe('already_reconciled')
     expect(historicalRefundIdempotencyKey('pay-1')).toBe('recon:historical-cancel:pay-1')
+    expect(historicalRefundIdempotencyKey('pay-1', 'book-2')).toBe('recon:historical-cancel:pay-1:book-2')
   })
 
   it('credits a wallet-spend cancel that never wrote a refund credit', () => {
@@ -127,5 +149,11 @@ describe('decideHistoricalCancelRefund', () => {
       amount: 5_000,
       reason: 'wallet_spend_shortfall',
     })
+  })
+
+  it('maps decisions onto Phase-3 buckets', () => {
+    expect(historicalRepairBucket({ action: 'credit', amount: 1, reason: 'wallet_path_shortfall' })).toBe('credit')
+    expect(historicalRepairBucket({ action: 'skip', reason: 'already_credited' })).toBe('skip')
+    expect(historicalRepairBucket({ action: 'unresolved', reason: 'bank_outcome_unknown' })).toBe('review')
   })
 })

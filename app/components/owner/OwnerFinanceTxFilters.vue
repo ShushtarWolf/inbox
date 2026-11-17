@@ -24,6 +24,10 @@ const props = withDefaults(defineProps<{
 })
 
 const { t } = useI18n()
+const { formatNumber } = useFormatters()
+
+/** Phone-width finance tabs: collapsed by default so the tx list stays reachable. */
+const mobileFiltersOpen = ref(false)
 
 const sessionFilterOptions = computed(() => ([
   { value: 'all' as const, label: t('owner.financeTable.sessionFilterAll') },
@@ -60,6 +64,25 @@ const sortOptions: FinanceTxSortKey[] = ['reservation', 'reservedAt', 'paidAt', 
 
 const hasDateFilter = computed(() => Boolean(reservedFrom.value || reservedTo.value || paidFrom.value || paidTo.value))
 
+const activeFilterCount = computed(() => {
+  let n = 0
+  if (props.showSession && session.value !== 'all') n++
+  if (legend.value !== 'all') n++
+  if (bookingKind.value !== 'all') n++
+  if (payment.value !== 'all') n++
+  if (guest.value.trim()) n++
+  if (discountCode.value.trim()) n++
+  if (reservedFrom.value || reservedTo.value) n++
+  if (paidFrom.value || paidTo.value) n++
+  return n
+})
+
+const mobileFiltersToggleLabel = computed(() => {
+  const n = activeFilterCount.value
+  if (n === 0) return t('owner.financeTable.filtersToggle')
+  return t('owner.financeTable.filtersToggleActive', { n: formatNumber(n) })
+})
+
 function clearDates() {
   reservedFrom.value = ''
   reservedTo.value = ''
@@ -82,7 +105,29 @@ function sortLabel(key: FinanceTxSortKey) {
 </script>
 
 <template>
-  <div class="space-y-2">
+  <div class="owner-finance-tx-filters space-y-2">
+    <button
+      type="button"
+      class="canva-session-filter-btn flex w-full items-center justify-between gap-2 text-start max-[430px]:flex min-[431px]:hidden"
+      :aria-expanded="mobileFiltersOpen"
+      aria-controls="owner-finance-tx-filters-panel"
+      @click="mobileFiltersOpen = !mobileFiltersOpen"
+    >
+      <span class="font-bold">{{ mobileFiltersToggleLabel }}</span>
+      <AppIcon
+        name="expand_more"
+        size="sm"
+        class="shrink-0 transition-transform duration-200"
+        :class="mobileFiltersOpen ? 'rotate-180' : ''"
+        aria-hidden="true"
+      />
+    </button>
+
+    <div
+      id="owner-finance-tx-filters-panel"
+      class="space-y-2"
+      :class="mobileFiltersOpen ? '' : 'max-[430px]:hidden'"
+    >
     <div
       v-if="showSession"
       class="canva-session-filter-row"
@@ -176,39 +221,34 @@ function sortLabel(key: FinanceTxSortKey) {
       <div class="text-start">
         <span class="mb-1 block text-xs font-bold text-brand-navy">{{ t('owner.financeTable.reservedAt') }}</span>
         <span class="flex gap-2">
-          <input
+          <AppIsoDateFilterInput
             v-model="reservedFrom"
-            type="date"
-            dir="ltr"
-            class="canva-finance-date tabular-nums"
+            input-class="canva-finance-date tabular-nums"
             :aria-label="`${t('owner.financeTable.reservedAt')} ${t('owner.financeTable.dateFrom')}`"
-          >
-          <input
+          />
+          <AppIsoDateFilterInput
             v-model="reservedTo"
-            type="date"
-            dir="ltr"
-            class="canva-finance-date tabular-nums"
+            class="min-w-0 flex-1"
+            input-class="canva-finance-date tabular-nums"
             :aria-label="`${t('owner.financeTable.reservedAt')} ${t('owner.financeTable.dateTo')}`"
-          >
+          />
         </span>
       </div>
       <div class="text-start">
         <span class="mb-1 block text-xs font-bold text-brand-navy">{{ t('owner.financeTable.paidAt') }}</span>
         <span class="flex gap-2">
-          <input
+          <AppIsoDateFilterInput
             v-model="paidFrom"
-            type="date"
-            dir="ltr"
-            class="canva-finance-date tabular-nums"
+            class="min-w-0 flex-1"
+            input-class="canva-finance-date tabular-nums"
             :aria-label="`${t('owner.financeTable.paidAt')} ${t('owner.financeTable.dateFrom')}`"
-          >
-          <input
+          />
+          <AppIsoDateFilterInput
             v-model="paidTo"
-            type="date"
-            dir="ltr"
-            class="canva-finance-date tabular-nums"
+            class="min-w-0 flex-1"
+            input-class="canva-finance-date tabular-nums"
             :aria-label="`${t('owner.financeTable.paidAt')} ${t('owner.financeTable.dateTo')}`"
-          >
+          />
         </span>
       </div>
     </div>
@@ -239,5 +279,6 @@ function sortLabel(key: FinanceTxSortKey) {
         {{ sortDir === 'asc' ? '↑' : '↓' }}
       </button>
     </label>
+    </div>
   </div>
 </template>

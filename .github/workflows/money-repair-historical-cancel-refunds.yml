@@ -19,7 +19,12 @@ on:
         default: ''
         type: string
       forcePaymentId:
-        description: Comma-separated payment ids to force closed-loop wallet credit (ops review)
+        description: Comma-separated payment ids (or paymentId:bookingId) to force closed-loop wallet credit (ops review)
+        required: false
+        default: ''
+        type: string
+      reviewPaymentId:
+        description: Alias of forcePaymentId — Phase-3 review-bucket approvals
         required: false
         default: ''
         type: string
@@ -39,6 +44,7 @@ jobs:
           APPLY_INPUT: ${{ inputs.apply }}
           TRACKING: ${{ inputs.tracking }}
           FORCE_PAYMENT_ID: ${{ inputs.forcePaymentId }}
+          REVIEW_PAYMENT_ID: ${{ inputs.reviewPaymentId }}
         run: |
           set -euo pipefail
           if [ -z "${ADMIN_PROVISION_SECRET:-}" ]; then
@@ -59,6 +65,10 @@ jobs:
             QS="${QS:+$QS&}forcePaymentId=${FORCE_PAYMENT_ID}"
             echo "Force payment ids set"
           fi
+          if [ -n "${REVIEW_PAYMENT_ID:-}" ]; then
+            QS="${QS:+$QS&}reviewPaymentId=${REVIEW_PAYMENT_ID}"
+            echo "Review payment ids set"
+          fi
           URL="https://inboxs.ir/api/admin/money-audit/repair-historical-cancel-refunds"
           if [ -n "$QS" ]; then URL="${URL}?${QS}"; fi
           curl -sfS -X POST "$URL" \
@@ -70,16 +80,23 @@ jobs:
           d=json.load(open('/tmp/money-repair.json'))
           r=d.get('repair') or {}
           print(f"applied={r.get('applied')} creditCount={r.get('creditCount')} creditToman={r.get('creditToman')} appliedCount={r.get('appliedCount')}")
+          print(f"buckets={r.get('buckets')}")
           print(f"counts={r.get('counts')}")
           for c in (r.get('credits') or [])[:20]:
             print(f"  credit {c.get('paymentId')} booking={c.get('bookingId')} amount={c.get('amount')} reason={c.get('reason')}")
           for s in (r.get('ledgerShortfalls') or [])[:20]:
             print(f"  shortfall {s.get('paymentId')} method={s.get('method')} status={s.get('paymentStatus')} debited={s.get('debited')} refunded={s.get('refunded')} net={s.get('net')} payer={s.get('payerUserId')}")
+          for s in (r.get('seriesGaps') or [])[:20]:
+            print(f"  series_gap {s.get('primaryPaymentId')} booking={s.get('bookingId')} gap={s.get('gap')} auto={s.get('autoCredit')}")
+          for s in (r.get('overCredits') or [])[:20]:
+            print(f"  over_credit {s.get('paymentId')} owed={s.get('owed')} credited={s.get('credited')} over={s.get('over')}")
           samples=r.get('samples') or {}
           for s in (samples.get('cardAlreadyReversed') or [])[:10]:
             print(f"  card_reversed {s.get('paymentId')} method={s.get('method')} amount={s.get('amount')} userId={s.get('userId')} meta={s.get('metaKeys')}")
           for s in (samples.get('noVerifiedAccount') or [])[:10]:
             print(f"  no_account {s.get('paymentId')} method={s.get('method')} amount={s.get('amount')} meta={s.get('metaKeys')}")
+          for s in (samples.get('review') or [])[:15]:
+            print(f"  review {s.get('paymentId')} reason={s.get('reason')} method={s.get('method')} amount={s.get('amount')} userId={s.get('userId')}")
           tm=r.get('trackingMatch')
           if tm:
             print(f"trackingMatch={tm}")

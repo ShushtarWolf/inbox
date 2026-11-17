@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   applyDiscountPercent,
   clampDiscountPercent,
+  deriveDiscountCodeDisplayStatus,
   evaluateDiscountCodeWindow,
   normalizeDiscountCode,
 } from './discountCode'
@@ -60,5 +61,40 @@ describe('evaluateDiscountCodeWindow', () => {
       clubId: 'club-a',
       now,
     })).toEqual({ ok: false, reason: 'wrong_user' })
+  })
+
+  it('accepts code through end of expiry day (Tehran)', () => {
+    expect(evaluateDiscountCodeWindow({
+      active: true,
+      endsAt: '2026-10-22',
+      now: new Date('2026-10-22T20:00:00+03:30'),
+    })).toEqual({ ok: true })
+  })
+
+  it('rejects after expiry day (Tehran)', () => {
+    expect(evaluateDiscountCodeWindow({
+      active: true,
+      endsAt: '2026-10-22',
+      now: new Date('2026-10-23T00:00:01+03:30'),
+    })).toEqual({ ok: false, reason: 'expired' })
+  })
+})
+
+describe('deriveDiscountCodeDisplayStatus', () => {
+  it('shows expired while active flag stays on', () => {
+    expect(deriveDiscountCodeDisplayStatus({
+      active: true,
+      endsAt: '2026-10-22',
+      redemptionCount: 0,
+      maxRedemptions: 5,
+    }, new Date('2026-11-16T12:00:00+03:30'))).toBe('expired')
+  })
+
+  it('shows exhausted when cap reached', () => {
+    expect(deriveDiscountCodeDisplayStatus({
+      active: true,
+      maxRedemptions: 5,
+      redemptionCount: 5,
+    })).toBe('exhausted')
   })
 })

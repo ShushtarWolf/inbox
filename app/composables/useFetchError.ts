@@ -1,5 +1,31 @@
 const FARSI_CHARS = /[\u0600-\u06FF]/
 
+type HttpErrorLike = {
+  statusCode?: number
+  status?: number
+  statusMessage?: string
+  data?: { statusCode?: number; statusMessage?: string; retryAfterSec?: number }
+  response?: { status?: number; _data?: { statusMessage?: string; statusCode?: number } }
+}
+
+/** Read HTTP status + server message from $fetch/ofetch errors (incl. Safari nesting). */
+export function extractHttpError(error: unknown): {
+  statusCode?: number
+  statusMessage: string
+  retryAfterSec?: number
+} {
+  const e = error as HttpErrorLike | null
+  const statusCode = e?.statusCode ?? e?.status ?? e?.data?.statusCode ?? e?.response?.status
+  const statusMessage = String(
+    e?.statusMessage
+    ?? e?.data?.statusMessage
+    ?? e?.response?._data?.statusMessage
+    ?? '',
+  )
+  const retryAfterSec = e?.data?.retryAfterSec
+  return { statusCode, statusMessage, retryAfterSec }
+}
+
 const SLOT_CONFLICT_MESSAGES = new Set([
   'Slot not available',
   'SLOT_IN_PAST',
@@ -74,6 +100,7 @@ export function fetchErrorMessage(error: unknown, fallback: string, translate?: 
     'Athlete wallet is closed-loop — bank withdraw is not available': 'athlete.walletClosedLoopHint',
     'Slot already started': 'booking.errors.slotAlreadyStarted',
     'Insufficient club wallet balance': 'owner.financePage.withdrawInsufficient',
+    'Owner withdraw amount exceeds withdrawable balance': 'owner.financePage.withdrawAmountOverBalance',
     'SHEBA is required before withdraw': 'athlete.withdrawNeedSheba',
     'SHEBA pending admin approval': 'athlete.shebaPendingApproval',
     'Invalid SHEBA': 'athlete.shebaInvalid',
@@ -107,6 +134,12 @@ export function fetchErrorMessage(error: unknown, fallback: string, translate?: 
     'Waitlist is not available': 'booking.errors.waitlistUnavailable',
     'Invalid credentials': 'auth.invalidCredentials',
     'Invalid OTP': 'auth.invalidOtp',
+    'Invalid input': 'auth.invalidOtp',
+    'OTP expired or missing': 'auth.otpExpiredOrMissing',
+    'OTP expired or already used': 'auth.otpExpiredOrMissing',
+    'Too many attempts': 'auth.otpTooManyAttempts',
+    'Phone not registered': 'auth.phoneNotFound',
+    'Use password sign-in for this account': 'auth.usePasswordNotOtp',
     'Invalid phone': 'auth.invalidPhone',
     'Phone already registered': 'auth.phoneTaken',
     'Invalid or expired token': 'auth.resetFailed',

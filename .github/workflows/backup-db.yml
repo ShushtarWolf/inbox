@@ -79,6 +79,9 @@ jobs:
           liara db backup download --name inbox-db --backup "$BACKUP_NAME" --output "$OUT" --api-token="$LIARA_TOKEN"
           ls -lh "$OUT"
           test -s "$OUT"
+          chmod +x scripts/sql/assert-inbox-postgres-dump.sh
+          # Refuse GlitchTip / non-inbox artifacts so agents never treat bad dumps as money truth.
+          ./scripts/sql/assert-inbox-postgres-dump.sh "$OUT"
 
       - uses: actions/upload-artifact@v4
         with:

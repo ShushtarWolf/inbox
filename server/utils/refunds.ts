@@ -14,6 +14,7 @@ import {
   type DeskCashReturn,
   type RefundChannel,
 } from '#shared/cancelRefund.ts'
+import { cancelDeskCashReturnAmount, cancelWalletCreditAmount } from '#shared/owedCancelRefund.ts'
 import {
   isSepReverseAlreadyDoneError,
   isSepReverseAmbiguousError,
@@ -196,9 +197,25 @@ export async function refundPaymentForCancellation(options: {
   }
 
   let walletCredited = false
+  // Live cancel decides amount fresh — strip prior explicit figures so a stale
+  // refundCreditAmount from an aborted write cannot under/over-credit.
+  const liveMeta = { ...existingMeta }
+  delete liveMeta.refundCreditAmount
+  delete liveMeta.refundedAmount
+  const owedInput = {
+    method: payment.method,
+    bookingPaymentMethod: payment.booking?.paymentMethod,
+    paymentAmount: payment.amount,
+    refundBps,
+    metadata: liveMeta,
+  }
   const creditAmount = gatewayRefunded
     ? reverseWalletRestock
-    : refundAmountFromBps(payment.amount, refundBps)
+    : cancelWalletCreditAmount(owedInput).amount
+  // Desk cash never credits the wallet, but still report the till-return share for UI / cashReturnTotal.
+  const reportAmount = channel === 'desk_cash'
+    ? cancelDeskCashReturnAmount(owedInput).amount
+    : creditAmount
   nextMeta.refundBps = refundBps
   nextMeta.refundCreditAmount = creditAmount
   nextMeta.refundedAmount = creditAmount
@@ -285,7 +302,7 @@ export async function refundPaymentForCancellation(options: {
     refunded: true,
     walletCredited,
     gatewayRefunded,
-    amount: creditAmount,
+    amount: reportAmount,
     refundChannel: channel,
     deskCashReturn: channel === 'desk_cash' ? 'owed' : null,
   }

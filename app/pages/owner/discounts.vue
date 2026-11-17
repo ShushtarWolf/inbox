@@ -1,5 +1,10 @@
 <script setup lang="ts">
-import { normalizeDiscountCode, clampDiscountPercent } from '#shared/discountCode.ts'
+import {
+  normalizeDiscountCode,
+  clampDiscountPercent,
+  deriveDiscountCodeDisplayStatus,
+  type DiscountCodeDisplayStatus,
+} from '#shared/discountCode.ts'
 
 definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN', ssr: false })
 
@@ -135,6 +140,34 @@ function usageLabel(row: DiscountRow) {
     max: formatNumber(row.maxRedemptions),
   })
 }
+
+const CODE_STATUS_I18N: Record<DiscountCodeDisplayStatus, string> = {
+  active: 'owner.discountsPage.active',
+  inactive: 'owner.discountsPage.inactive',
+  expired: 'owner.discountsPage.statusExpired',
+  exhausted: 'owner.discountsPage.statusExhausted',
+  not_started: 'owner.discountsPage.statusNotStarted',
+}
+
+function codeDisplayStatus(row: DiscountRow): DiscountCodeDisplayStatus {
+  return deriveDiscountCodeDisplayStatus(row)
+}
+
+function codeStatusLabel(row: DiscountRow) {
+  return t(CODE_STATUS_I18N[codeDisplayStatus(row)])
+}
+
+function codeStatusClass(row: DiscountRow) {
+  const status = codeDisplayStatus(row)
+  if (status === 'active') return 'text-emerald-700'
+  if (status === 'not_started') return 'text-amber-700'
+  return 'text-brand-gray-500'
+}
+
+const editingDisplayStatus = computed(() => {
+  if (!editing.value) return null
+  return codeStatusLabel(editing.value)
+})
 
 function openAdd() {
   editing.value = null
@@ -374,10 +407,12 @@ async function revokeMember(row: MemberRow) {
     />
     <OwnerActiveClubBar class="mb-3" />
 
-    <div class="mb-3 flex flex-wrap gap-2">
+    <div class="owner-discount-tabs canva-clubs-chip-row" role="tablist" :aria-label="t('owner.discounts')">
       <button
         type="button"
-        class="canva-chip text-xs"
+        role="tab"
+        :aria-selected="tab === 'programs'"
+        class="canva-clubs-chip"
         :class="tab === 'programs' ? 'canva-clubs-chip-active' : 'canva-clubs-chip-idle'"
         @click="tab = 'programs'"
       >
@@ -385,7 +420,9 @@ async function revokeMember(row: MemberRow) {
       </button>
       <button
         type="button"
-        class="canva-chip text-xs"
+        role="tab"
+        :aria-selected="tab === 'requests'"
+        class="canva-clubs-chip"
         :class="tab === 'requests' ? 'canva-clubs-chip-active' : 'canva-clubs-chip-idle'"
         @click="tab = 'requests'"
       >
@@ -394,7 +431,9 @@ async function revokeMember(row: MemberRow) {
       </button>
       <button
         type="button"
-        class="canva-chip text-xs"
+        role="tab"
+        :aria-selected="tab === 'members'"
+        class="canva-clubs-chip"
         :class="tab === 'members' ? 'canva-clubs-chip-active' : 'canva-clubs-chip-idle'"
         @click="tab = 'members'"
       >
@@ -402,7 +441,9 @@ async function revokeMember(row: MemberRow) {
       </button>
       <button
         type="button"
-        class="canva-chip text-xs"
+        role="tab"
+        :aria-selected="tab === 'codes'"
+        class="canva-clubs-chip"
         :class="tab === 'codes' ? 'canva-clubs-chip-active' : 'canva-clubs-chip-idle'"
         @click="tab = 'codes'"
       >
@@ -517,9 +558,9 @@ async function revokeMember(row: MemberRow) {
               </span>
               <span
                 class="shrink-0 text-xs font-bold"
-                :class="row.active ? 'text-emerald-700' : 'text-brand-gray-500'"
+                :class="codeStatusClass(row)"
               >
-                {{ row.active ? t('owner.discountsPage.active') : t('owner.discountsPage.inactive') }}
+                {{ codeStatusLabel(row) }}
               </span>
             </button>
           </li>
@@ -569,9 +610,13 @@ async function revokeMember(row: MemberRow) {
           <AppDateInput v-model="modalEndsAt" :show-formatted-hint="false" />
           <p class="mt-1 text-xs text-brand-gray-600">{{ t('owner.discountsPage.endsAtHint') }}</p>
         </AppFormField>
+        <p v-if="editing" class="text-xs text-brand-gray-600">
+          {{ t('owner.discountsPage.displayStatus') }}:
+          <span class="font-bold text-brand-navy">{{ editingDisplayStatus }}</span>
+        </p>
         <label v-if="editing" class="flex items-center gap-2 text-sm font-bold text-brand-navy">
           <input v-model="modalActive" type="checkbox" class="size-4 accent-brand-primary">
-          {{ t('owner.discountsPage.active') }}
+          {{ t('owner.discountsPage.activeToggle') }}
         </label>
         <p v-if="modalError" class="venus-alert-error">{{ modalError }}</p>
         <button

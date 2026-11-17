@@ -2,6 +2,7 @@ import type { Prisma } from '@prisma/client'
 import { countsTowardRevenue } from '#shared/bookingPayment.ts'
 import { resolveLinkedGuestDisplayName } from '#shared/guestName.ts'
 import { resolveUserDisplayName } from '#shared/userName.ts'
+import { isSlotStartInPast } from '#shared/localDate.ts'
 import { iranPhoneStorageVariants, normalizeIranPhone } from '#shared/phone.ts'
 
 type Db = Prisma.TransactionClient | typeof prisma
@@ -15,7 +16,15 @@ export type ContactBookingRow = {
   paymentStatus?: string | null
   payment?: { status?: string | null; amount?: number | null } | null
   user?: { name?: string | null; nameFamily?: string | null; phone?: string | null } | null
-  slot: { date: string; price: number }
+  slot: { date: string; startTime: string; price: number }
+}
+
+/** Non-cancelled booking whose slot start is not after now (Asia/Tehran) and was not marked no-show. */
+export function isPastAttendedVisit(booking: ContactBookingRow, now = new Date()) {
+  if (booking.status === 'CANCELLED') return false
+  if (booking.noShowAt) return false
+  const startTime = booking.slot.startTime || '00:00'
+  return isSlotStartInPast(booking.slot.date, startTime, now)
 }
 
 export function paymentStatusOf(booking: {
@@ -64,6 +73,8 @@ export function computeContactMetrics(bookings: ContactBookingRow[], now = new D
   const latestActive = active[0]
   const latestAny = bookings[0]
   const latestSlotDate = latestActive?.slot.date || latestAny?.slot.date || null
+  // Bookings are ordered newest slot first; first past attended row is the last visit.
+  const lastPastAttended = active.find((booking) => isPastAttendedVisit(booking, now))
 
   return {
     totalVisits: active.length,
@@ -71,7 +82,7 @@ export function computeContactMetrics(bookings: ContactBookingRow[], now = new D
     lifetimeValue: active.reduce((sum, booking) => sum + bookingSpendAmount(booking), 0),
     lastBookedAt: latestSlotDate ? new Date(`${latestSlotDate}T12:00:00`) : null,
     inactiveDays: latestSlotDate ? daysSinceIsoDate(latestSlotDate, now) : 0,
-    lastVisit: latestSlotDate,
+    lastVisit: lastPastAttended?.slot.date ?? null,
   }
 }
 
@@ -99,7 +110,7 @@ export async function syncClubContactByClubAndMobile(
     include: {
       payment: true,
       user: { select: { name: true, nameFamily: true, phone: true } },
-      slot: { select: { date: true, price: true } },
+      slot: { select: { date: true, startTime: true, price: true } },
     },
     orderBy: [{ slot: { date: 'desc' } }, { createdAt: 'desc' }],
   })

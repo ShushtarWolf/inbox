@@ -1,11 +1,9 @@
 import {
   isSeriesPaymentGroup,
   parseSeriesPaymentMeta,
-  sessionRefundAmount,
   type SeriesPaymentMeta,
 } from '#shared/athleteSeason.ts'
 import type { CancelMoneyOutcome } from '#shared/cancelPolicy.ts'
-import { refundAmountFromBps } from '#shared/cancelPolicy.ts'
 import { isPaymentRefundable } from '#shared/bookingPayment.ts'
 import {
   buildCancelRefundMetadata,
@@ -13,6 +11,7 @@ import {
   parsePaymentMetadata,
   resolveRefundChannel,
 } from '#shared/cancelRefund.ts'
+import { cancelDeskCashReturnAmount, cancelWalletCreditAmount } from '#shared/owedCancelRefund.ts'
 import type { Prisma } from '@prisma/client'
 import { createError } from 'h3'
 import type { RefundResult } from './refunds'
@@ -166,55 +165,51 @@ export async function refundAfterSeriesSessionCancel(opts: {
   }
 
   const remainingActive = await countActiveSeriesBookings(group.allBookingIds, opts.cancelledBookingId, reader)
-
-  if (remainingActive === 0) {
-    // Last session — refund residual on primary (may be full amount if nothing refunded yet).
-    const residual = Math.max(0, primaryPayment.amount - alreadyRefunded)
-    if (residual <= 0) {
-      return { refunded: false, walletCredited: false, gatewayRefunded: false, amount: 0 }
-    }
-    if (alreadyRefunded <= 0 && residual === primaryPayment.amount) {
-      return refundPaymentForCancellation({
-        paymentId: primaryPayment.id,
-        userId: opts.userId,
-        bookingId: opts.cancelledBookingId,
-        reason: opts.reason,
-        moneyOutcome: opts.moneyOutcome,
-        refundBps: opts.refundBps,
-        db: opts.db,
-        syncParent: !opts.db,
-      })
-    }
-    // Partial residual: wallet credit + pro-rata owner clawback in one txn.
-    const residualScaled = opts.moneyOutcome === 'partial_wallet_refund'
-      ? refundAmountFromBps(residual, opts.refundBps ?? 10_000)
-      : residual
-    return applySeriesSessionRefund({
-      userId: opts.userId,
-      paymentId: primaryPayment.id,
-      method: primaryPayment.method,
-      bookingPaymentMethod: primaryBookingPaymentMethod,
-      bookingId: opts.cancelledBookingId,
-      amount: residualScaled,
-      reason: opts.reason,
-      primaryMeta,
-      markRefunded: true,
-      db: opts.db,
-    })
-  }
-
-  const amountRaw = sessionRefundAmount({
-    sessionPrice,
+  // remainingActive excludes the cancelled row; include it for fair-split / last-session residual.
+  const remainingIncludingCancelled = remainingActive + 1
+  const refundBps = opts.moneyOutcome === 'partial_wallet_refund'
+    ? Math.max(0, Math.min(10_000, Math.floor(Number(opts.refundBps) || 0)))
+    : 10_000
+  const liveMeta = { ...parsePaymentMetadata(primaryPayment.metadataJson) }
+  delete liveMeta.refundCreditAmount
+  delete liveMeta.refundedAmount
+  const owedInput = {
+    method: primaryPayment.method,
+    bookingPaymentMethod: primaryBookingPaymentMethod,
+    paymentAmount: primaryPayment.amount,
     primaryAmount: primaryPayment.amount,
-    alreadyRefunded,
-    // remainingActive excludes cancelled; include it for fair-split denominator.
-    remainingSessions: remainingActive + 1,
-  })
-  const amount = opts.moneyOutcome === 'partial_wallet_refund'
-    ? refundAmountFromBps(amountRaw, opts.refundBps ?? 10_000)
-    : amountRaw
+    sessionPrice,
+    alreadyRefundedOnPrimary: alreadyRefunded,
+    remainingSessionsIncludingCancelled: remainingIncludingCancelled,
+    treatAsSeries: true as const,
+    refundBps,
+    metadata: liveMeta,
+  }
+  // Wallet credit stays 0 for desk cash; still report session share for cashReturnTotal / desk ack.
+  const amount = cancelWalletCreditAmount(owedInput).amount
+    || cancelDeskCashReturnAmount(owedInput).amount
+
   if (amount <= 0) {
     return { refunded: false, walletCredited: false, gatewayRefunded: false, amount: 0 }
+  }
+
+  // Last session with nothing yet refunded and full primary owed → ordinary full refund path
+  // (marks REFUNDED + full clawback) instead of a session partial.
+  if (
+    remainingActive === 0
+    && alreadyRefunded <= 0
+    && amount === primaryPayment.amount
+  ) {
+    return refundPaymentForCancellation({
+      paymentId: primaryPayment.id,
+      userId: opts.userId,
+      bookingId: opts.cancelledBookingId,
+      reason: opts.reason,
+      moneyOutcome: opts.moneyOutcome,
+      refundBps: opts.refundBps,
+      db: opts.db,
+      syncParent: !opts.db,
+    })
   }
 
   return applySeriesSessionRefund({
@@ -226,7 +221,7 @@ export async function refundAfterSeriesSessionCancel(opts: {
     amount,
     reason: opts.reason,
     primaryMeta,
-    markRefunded: false,
+    markRefunded: remainingActive === 0,
     db: opts.db,
   })
 }

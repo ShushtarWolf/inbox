@@ -10,6 +10,10 @@ describe('wallet-rail cancel refund helpers', () => {
   it('full wallet checkout ignores leftover gateway flags', () => {
     const stale = { gatewayReversed: true, gatewayRefund: true, reversePending: true }
     expect(ordinaryCancelRefundGuard(stale, { method: 'PAID' })).toEqual({ action: 'proceed' })
+    expect(ordinaryCancelRefundGuard(
+      { ...stale, walletCheckout: true },
+      { method: 'IPG' },
+    )).toEqual({ action: 'proceed' })
   })
 
   it('IPG rows still honor historical reverse and pending flags', () => {

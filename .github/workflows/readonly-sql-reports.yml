@@ -13,6 +13,7 @@ on:
           - sms-delivery-gap
           - trace-wallet-cancel-lost-refund
           - list-suspect-court-time-bands
+          - cancel-wallet-shortfalls
 
 concurrency:
   group: readonly-sql-reports
@@ -88,8 +89,9 @@ jobs:
               add_if_on_main sms-delivery-gap
               add_if_on_main trace-wallet-cancel-lost-refund
               add_if_on_main list-suspect-court-time-bands
+              add_if_on_main cancel-wallet-shortfalls
               ;;
-            sms-delivery-gap|trace-wallet-cancel-lost-refund|list-suspect-court-time-bands)
+            sms-delivery-gap|trace-wallet-cancel-lost-refund|list-suspect-court-time-bands|cancel-wallet-shortfalls)
               add_if_on_main "$REPORT"
               ;;
             *)

@@ -41,12 +41,26 @@ DB_PASS=$(pick '.root_password // .password // .rootPassword // .dbPassword')
 DB_PORT=$(pick '.internalPort // .privatePort // .port // 5432')
 DB_NAME_PG=$(pick '.databaseName // .dbName // .db_name // "postgres"')
 
+# Prefer publicly reachable URIs from GitHub runners. Private hostname inbox-db
+# only resolves inside Liara's network.
+is_private_only_host() {
+  local url="$1"
+  case "$url" in
+    *"@${DB_HOSTNAME}"*|*"@${DB_HOSTNAME}/"*|*"://${DB_HOSTNAME}"*|*"://${DB_HOSTNAME}:"*) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
 DATABASE_URL=""
 for field in \
   publicNetworkUri publicUri externalUri uri connectionUri privateNetworkUri privateUri
 do
   candidate=$(pick ".${field}")
   if [ -n "$candidate" ] && [ "$candidate" != "null" ]; then
+    if is_private_only_host "$candidate"; then
+      echo "Skipping Liara DB field ${field} (private host ${DB_HOSTNAME})"
+      continue
+    fi
     DATABASE_URL="$candidate"
     echo "Using Liara DB connection from API field ${field} (host redacted)"
     break

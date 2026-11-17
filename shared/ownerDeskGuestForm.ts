@@ -17,3 +17,23 @@ export function mergeGuestMobileFromDom(
   if (!fromDom) return applyGuestMobileInput(modelValue)
   return applyGuestMobileInput(fromDom)
 }
+
+export type GuestDeskInputValues = {
+  guestName: string
+  guestFamily: string
+  guestMobile: string
+}
+
+/** Push reactive guest fields into native inputs after autocomplete pick (Safari v-model race). */
+export function applyGuestDeskInputsFromModel(
+  values: GuestDeskInputValues,
+  elements: {
+    guestName?: Pick<HTMLInputElement, 'value'> | null
+    guestFamily?: Pick<HTMLInputElement, 'value'> | null
+    guestMobile?: Pick<HTMLInputElement, 'value'> | null
+  },
+) {
+  if (elements.guestName) elements.guestName.value = values.guestName
+  if (elements.guestFamily) elements.guestFamily.value = values.guestFamily
+  if (elements.guestMobile) elements.guestMobile.value = values.guestMobile
+}

@@ -58,6 +58,8 @@ export function ordinaryCancelRefundGuard(
   // leftovers from an earlier IPG attempt on the same Payment row — honoring them would skip
   // the wallet credit and strand the athlete's money.
   if (isWalletCheckoutMethod(opts?.method)) return { action: 'proceed' }
+  // Same when checkout claimed the row but method briefly lagged (walletCheckout marker).
+  if (meta.walletCheckout === true) return { action: 'proceed' }
   if (meta.gatewayReversed === true || meta.gatewayRefund === true) {
     return { action: 'already_reversed' }
   }

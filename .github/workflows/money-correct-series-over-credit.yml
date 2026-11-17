@@ -1,0 +1,69 @@
+name: Correct series over-credit (prod)
+
+# Phase F reviewed ADJUSTMENT. Dry-run by default.
+# Requires ADMIN_PROVISION_SECRET. Deploy endpoint before first run.
+on:
+  workflow_dispatch:
+    inputs:
+      paymentId:
+        description: Primary series payment id (e.g. Behnaz cmwhpsd2v…)
+        required: true
+        type: string
+      apply:
+        description: Set true to APPLY on production (after dry-run review)
+        required: true
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
+
+concurrency:
+  group: money-correct-series-over-credit
+  cancel-in-progress: false
+
+jobs:
+  correct:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Dry-run or APPLY series over-credit correction on inboxs.ir
+        env:
+          ADMIN_PROVISION_SECRET: ${{ secrets.ADMIN_PROVISION_SECRET }}
+          APPLY_INPUT: ${{ inputs.apply }}
+          PAYMENT_ID: ${{ inputs.paymentId }}
+        run: |
+          set -euo pipefail
+          if [ -z "${ADMIN_PROVISION_SECRET:-}" ]; then
+            echo "ADMIN_PROVISION_SECRET missing"
+            exit 1
+          fi
+          if [ -z "${PAYMENT_ID:-}" ]; then
+            echo "paymentId missing"
+            exit 1
+          fi
+          QS="paymentId=${PAYMENT_ID}"
+          if [ "$APPLY_INPUT" = "true" ]; then
+            QS="${QS}&apply=1"
+            echo "APPLY on production"
+          else
+            echo "Dry-run only"
+          fi
+          URL="https://inboxs.ir/api/admin/money-audit/correct-series-over-credit?${QS}"
+          HTTP=$(curl -sS -o /tmp/series-over.json -w '%{http_code}' -X POST "$URL" \
+            -H "x-admin-secret: ${ADMIN_PROVISION_SECRET}" \
+            -H "content-type: application/json" || true)
+          echo "http=$HTTP"
+          cat /tmp/series-over.json
+          echo
+          python3 - <<'PY'
+          import json
+          d=json.load(open('/tmp/series-over.json'))
+          c=d.get('correction') or {}
+          print(f"paymentId={c.get('paymentId')} over={c.get('over')} fair={c.get('fairOwed')} credited={c.get('creditedTotal')} applied={c.get('applied')} skipped={c.get('skipped')} reason={c.get('reason')}")
+          print(f"athlete={c.get('athleteUserId')} club={c.get('clubId')} balance={c.get('athleteBalance')}")
+          PY
+          if [ "$HTTP" != "200" ]; then
+            echo "non-200 from correct-series-over-credit"
+            exit 1
+          fi

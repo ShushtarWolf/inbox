@@ -3,6 +3,7 @@ import { hasOwnerPermission, parsePermissions } from '#shared/ownerPermissions.t
 import { financeSheetXml, saveFinanceSheet } from '#shared/financeSpreadsheet.ts'
 import { financePaymentBucket, financeRowTypeOf, isBlockedFinanceTx, selectFinanceTransactions, type FinanceBookingKindFilter, type FinanceLegendFilter, type FinancePaymentFilter, type FinanceRowType, type FinanceTxSortDir, type FinanceTxSortKey } from '#shared/financeTransactions.ts'
 import { ownerLedgerHasPastRate, ownerLedgerRowFee, ownerSettlementCommissionPct } from '#shared/ownerSettlementCommissionPct.ts'
+import { ownerWithdrawAmountIssue } from '#shared/ownerWithdrawAmount.ts'
 
 /** Canva finance — black income hero + method bar + txn sheet. */
 definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN', ssr: false })
@@ -251,6 +252,8 @@ const canTransactions = computed(() => isOwner.value || hasOwnerPermission(permi
 const canPayouts = computed(() => isOwner.value || hasOwnerPermission(permissions.value, 'finance:payouts'))
 /** Avoid false lock before /api/auth/me hydrates memberships. */
 const reportsGatePending = computed(() => Boolean(user.value) && !(user.value?.memberships?.length))
+/** Before auth/me resolves, do not show payout-notice or zero hero as if the owner lacked access. */
+const financeAuthPending = computed(() => !user.value || reportsGatePending.value)
 const showReports = computed(() => canReports.value || reportsGatePending.value)
 const showTransactions = computed(() => canTransactions.value || reportsGatePending.value)
 /** Withdraw / sheba form — payouts permission. Wallet summary loads with reports/view. */
@@ -351,6 +354,21 @@ async function saveSheba() {
   }
 }
 
+const withdrawableBalanceAmount = computed(() => Number(settlement.value?.withdrawableBalance ?? 0))
+
+const withdrawAmountInlineError = computed(() => {
+  const issue = ownerWithdrawAmountIssue(withdrawAmount.value, withdrawableBalanceAmount.value)
+  if (issue === 'invalid') return t('owner.financePage.withdrawInvalidAmount')
+  if (issue === 'over') return t('owner.financePage.withdrawAmountOverBalance')
+  return ''
+})
+
+const withdrawSubmitBlocked = computed(() => (
+  payoutBusy.value
+  || withdrawAmount.value == null
+  || Boolean(withdrawAmountInlineError.value)
+))
+
 async function submitWithdraw() {
   payoutBusy.value = true
   payoutError.value = ''
@@ -361,9 +379,13 @@ async function submitWithdraw() {
       return
     }
     const amount = Number(withdrawAmount.value ?? 0)
-    const withdrawable = Number(settlement.value?.withdrawableBalance ?? 0)
+    const withdrawable = withdrawableBalanceAmount.value
+    if (!Number.isFinite(amount) || amount <= 0) {
+      payoutError.value = t('owner.financePage.withdrawInvalidAmount')
+      return
+    }
     if (amount > withdrawable) {
-      payoutError.value = t('owner.financePage.withdrawInsufficient')
+      payoutError.value = t('owner.financePage.withdrawAmountOverBalance')
       return
     }
     await $fetch('/api/owner/withdraw', {
@@ -431,6 +453,7 @@ function methodBadgeClass(tx: OwnerFinanceTransaction) {
 
 function methodBadgeLabel(tx: OwnerFinanceTransaction) {
   if (isBlockedFinanceTx(tx)) return '—'
+  if (tx.bookingStatus === 'CANCELLED') return bookingStatusLabel('CANCELLED')
   const bucket = financePaymentBucket(tx)
   if (bucket === 'ipg') return t('owner.financePage.methodCashless')
   if (bucket === 'cash') return t('owner.financePage.methodCash')
@@ -486,6 +509,8 @@ const ipgPct = computed(() => {
   return sum ? Math.round((ipgPctRaw.value / sum) * 100) : 0
 })
 
+const hasPaidMethodShare = computed(() => cashPctRaw.value + ipgPctRaw.value > 0)
+
 const visibleTransactions = computed(() => selectFinanceTransactions(data.value?.transactions || [], {
   hideCoach: pilotNoCoach.value,
   session: sessionFilter.value,
@@ -539,7 +564,9 @@ function downloadExcel() {
     `${stampDate(tx.reservedAt)} ${stampTime(tx.reservedAt)}`.trim(),
     tx.paidAt ? `${stampDate(tx.paidAt)} ${stampTime(tx.paidAt)}`.trim() : '',
     isBlockedFinanceTx(tx) ? '' : methodBadgeLabel(tx),
-    isBlockedFinanceTx(tx) ? bookingStatusLabel(tx.bookingStatus || tx.displayStatus || 'BLOCKED') : paymentStatusLabel(tx.paymentStatus),
+    isBlockedFinanceTx(tx)
+      ? bookingStatusLabel(tx.bookingStatus || tx.displayStatus || 'BLOCKED')
+      : (tx.bookingStatus === 'CANCELLED' ? bookingStatusLabel('CANCELLED') : paymentStatusLabel(tx.paymentStatus)),
     tx.amount,
     showSessionValue(tx) ? Number(tx.sessionValue || 0) : '',
     tx.complimentary && !tx.discountCode ? t('owner.financeTable.complimentary') : (tx.discountCode || ''),
@@ -609,11 +636,13 @@ function showUnpaidList() {
       <button v-if="showPayoutsSection" type="button" role="tab" :aria-selected="ownerTab === 'payout'" @click="ownerTab = 'payout'">{{ t('owner.financePage.tabPayout') }}</button>
       <button v-if="showReports" type="button" role="tab" :aria-selected="ownerTab === 'reports'" @click="ownerTab = 'reports'">{{ t('owner.financePage.tabReports') }}</button>
     </div>
-    <p v-if="showFinancePage && !showPayoutsSection && !reportsGatePending" class="fin-note">{{ t('owner.financePage.payoutTabHidden') }}</p>
+    <p v-if="showFinancePage && !showPayoutsSection && !financeAuthPending" class="fin-note">{{ t('owner.financePage.payoutTabHidden') }}</p>
 
     <div v-if="showFinancePage && ownerTab === 'overview'" class="fin-grid2">
       <section class="fin-card fin-dark" :aria-labelledby="'owner-online-wallet'">
         <div id="owner-online-wallet" class="fin-lab">{{ t('owner.financePage.walletHeroTitle') }}</div>
+        <AppVenusSpinner v-if="financeAuthPending || settlementPending" size="sm" :label="t('common.loading')" />
+        <template v-else>
         <div class="fin-big tabular-nums">
           {{ formatNumber(heroWithdrawable) }}
           <small>{{ t('common.currency') }}</small>
@@ -656,10 +685,13 @@ function showUnpaidList() {
           </div>
           <p class="fin-note">{{ t('owner.financePage.walletNotCashNote') }}</p>
         </details>
+        </template>
       </section>
       <section class="fin-card" :aria-label="t('owner.financePage.bookCashTitle')">
         <h2>{{ t('owner.financePage.bookCashTitle') }}</h2>
         <p class="fin-note">{{ t('owner.financePage.bookCashHint') }}</p>
+        <AppVenusSpinner v-if="financeAuthPending || pending" size="sm" :label="t('common.loading')" />
+        <template v-else>
         <div class="fin-row">
           <span>{{ t('owner.financePage.bookCashInTill') }}</span>
           <b class="tabular-nums">{{ formatCurrency(cashBook?.inTill || 0) }}</b>
@@ -673,6 +705,7 @@ function showUnpaidList() {
             {{ t('owner.financePage.bookFilterCash') }}
           </button>
         </div>
+        </template>
       </section>
     </div>
 
@@ -732,14 +765,25 @@ function showUnpaidList() {
             </span>
           </div>
         </div>
-        <div class="canva-finance-method-bar mt-3">
-          <span class="h-full bg-brand-primary" :style="{ width: `${cashPct}%` }" />
-          <span class="h-full" :style="{ width: `${ipgPct}%`, background: '#e0a82e' }" />
-        </div>
-        <div class="owner-fin-method-pct mt-2 flex justify-between text-xs font-bold text-brand-navy">
-          <span>{{ formatNumber(cashPct) }}٪</span>
-          <span>{{ formatNumber(ipgPct) }}٪</span>
-        </div>
+        <template v-if="hasPaidMethodShare">
+          <div class="canva-finance-method-bar mt-3" role="img" :aria-label="t('owner.financePage.paymentMethodTitle')">
+            <span
+              class="canva-finance-method-segment bg-brand-primary"
+              :style="{ width: `${cashPct}%` }"
+              :title="`${t('owner.financePage.methodCash')} ${formatNumber(cashPct)}٪`"
+            />
+            <span
+              class="canva-finance-method-segment"
+              :style="{ width: `${ipgPct}%`, background: '#e0a82e' }"
+              :title="`${t('owner.financePage.methodCashless')} ${formatNumber(ipgPct)}٪`"
+            />
+          </div>
+          <div class="owner-fin-method-pct mt-2 flex justify-between text-xs font-bold text-brand-navy">
+            <span>{{ formatNumber(cashPct) }}٪ {{ t('owner.financePage.methodCash') }}</span>
+            <span>{{ formatNumber(ipgPct) }}٪ {{ t('owner.financePage.methodCashless') }}</span>
+          </div>
+        </template>
+        <p v-else class="mt-3 text-start text-xs text-brand-gray-500">{{ t('owner.financePage.paymentMethodEmpty') }}</p>
         <p v-if="unpaidPct > 0" class="mt-2 text-[11px] text-brand-gray-500">
           {{ t('owner.financePage.unpaidShareNote', { pct: formatNumber(unpaidPct) }) }}
         </p>
@@ -1011,11 +1055,12 @@ function showUnpaidList() {
             v-model="withdrawAmount"
             :min="1"
           />
+          <p v-if="withdrawAmountInlineError" class="mt-1 text-start text-xs text-brand-primary">{{ withdrawAmountInlineError }}</p>
         </label>
         <button
           type="button"
           class="canva-cta w-full"
-          :disabled="payoutBusy || !withdrawAmount || Number(withdrawAmount) > Number(settlement?.withdrawableBalance ?? 0)"
+          :disabled="withdrawSubmitBlocked"
           @click="submitWithdraw"
         >
           {{ t('owner.financePage.withdrawRequest') }}
