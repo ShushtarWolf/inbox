@@ -19,6 +19,23 @@ gh workflow run money-repair-historical-cancel-refunds.yml -f apply=true \
   -f reviewPaymentId='pay_xxx,pay_yyy:booking_zzz'
 ```
 
+## IB-13 / IB-14 (owner-approved 2026-11-17)
+
+Unified dry-run / apply: stranded cancel wallet credits (**IB-13**) plus detached orphan payments (**IB-14**). Idempotent; **never** credits desk CASH to the athlete wallet. Every applied row is echoed in the API response as `appliedChanges` and in server logs.
+
+```bash
+# Local (needs DATABASE_URL)
+npm run db:historical-money-corrections
+APPLY=yes npm run db:historical-money-corrections
+
+# Production (Actions — default dry-run)
+gh workflow run money-historical-corrections-ib13-14.yml -f apply=false
+gh workflow run money-historical-corrections-ib13-14.yml -f apply=true
+
+# Read-only SQL (replica)
+# BEGIN TRANSACTION READ ONLY; \\i scripts/sql/ib13-14-historical-corrections-dry-run.sql; ROLLBACK;
+```
+
 `APPLY=yes` / `apply=true` is **not** part of deploy. Run it only after a dry-run has been reviewed, and only against a database you intend to change. Re-run the dry-run afterward. `creditCount` should be 0.
 
 ## Phase-3 buckets

@@ -21,6 +21,21 @@ describe('cancelWalletCreditAmount', () => {
     }).amount).toBe(1_500)
   })
 
+  it('discounted standalone refund uses payment.amount not list meta (IB-07)', () => {
+    expect(cancelWalletCreditAmount({
+      method: 'IPG',
+      paymentAmount: 9_000,
+      refundBps: 10_000,
+      metadata: { subtotalBeforeDiscount: 12_000 },
+    }).amount).toBe(9_000)
+    expect(cancelWalletCreditAmount({
+      method: 'IPG',
+      paymentAmount: 9_000,
+      refundBps: 5_000,
+      metadata: { subtotalBeforeDiscount: 12_000 },
+    }).amount).toBe(4_500)
+  })
+
   it('standalone IPG → full amount at 100% bps', () => {
     expect(cancelWalletCreditAmount({
       method: 'IPG',

@@ -7,6 +7,7 @@ import { isoToJalaali, jalaaliToIso, toPersianDigits } from '#shared/jalali.ts'
 import { localDateString, localTimeString } from '#shared/localDate.ts'
 import { summarizeCashBook, summarizeOnlineOpen } from '#shared/dualRailBooks.ts'
 import { isChargedPaidCheckout, paymentRail, summarizeCollectedRevenue, type RevenueRow } from '#shared/ownerRevenue.ts'
+import { isClubDeskHoldBooking } from '#shared/deskHoldBooking.ts'
 import { isOwnerRecurringBooking } from '#shared/recurringReserve.ts'
 
 export default defineEventHandler(async (event) => {
@@ -111,11 +112,16 @@ export default defineEventHandler(async (event) => {
   }
 
   function amountOfBooking(booking: {
-    payment?: { amount: number } | null
+    source?: string | null
+    packageDraftId?: string | null
+    coachId?: string | null
+    payment?: { amount: number; id?: string } | null
     slot: { price: number; displayStatus?: string | null }
   }) {
+    const clubDeskHold = isClubDeskHoldBooking(booking)
     return financeIncomeAmount(booking.payment, booking.slot.price, {
       deskHold: booking.slot.displayStatus === 'BLOCKED',
+      clubDeskHold,
     })
   }
 
@@ -523,7 +529,7 @@ export default defineEventHandler(async (event) => {
   const cashRefunded = await prisma.payment.findMany({
     where: {
       method: 'CASH',
-      status: 'REFUNDED',
+      status: { in: ['REFUNDED', 'PAID'] },
       OR: [
         { booking: { slot: { court: { clubId: club.id } } } },
         {
@@ -550,9 +556,14 @@ export default defineEventHandler(async (event) => {
     .filter((p) => readDeskCashReturn(parsePaymentMetadata(p.metadataJson)) === 'owed')
     .map((p) => {
       const meta = parsePaymentMetadata(p.metadataJson)
+      const sessionRefundsTotal = Math.max(0, Math.floor(Number(meta.sessionRefundsTotal) || 0))
+      const refundCreditAmount = Math.max(0, Math.floor(Number(meta.refundCreditAmount) || 0))
+      const tillOwed = sessionRefundsTotal > 0
+        ? sessionRefundsTotal
+        : (refundCreditAmount > 0 ? refundCreditAmount : p.amount)
       return {
         paymentId: p.id,
-        amount: p.amount,
+        amount: tillOwed,
         guestName: [p.booking?.guestName, p.booking?.guestFamily].filter(Boolean).join(' ').trim(),
         guestMobile: p.booking?.guestMobile || null,
         date: p.booking?.slot.date
