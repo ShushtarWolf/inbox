@@ -47,7 +47,7 @@ describe('scanSeriesOverCreditInventory', () => {
       { id: 'b2', status: 'CANCELLED', cancelledAt: new Date('2026-01-02'), userId: 'u1' },
       { id: 'b3', status: 'CONFIRMED', cancelledAt: null, userId: 'u1' },
     ])
-    mocks.aggregateWallet.mockResolvedValue({ _sum: { amount: 5800 } })
+    mocks.aggregateWallet.mockResolvedValue({ _sum: { amount: 7000 } })
 
     const result = await scanSeriesOverCreditInventory({ limit: 50, onlyOver: true })
     expect(result.withCancels).toBe(1)
@@ -56,9 +56,9 @@ describe('scanSeriesOverCreditInventory', () => {
       paymentId: 'pay1',
       athleteUserId: 'u1',
       charged: 9000,
-      credited: 5800,
-      fairShare: 3000,
-      overCredit: 2800,
+      credited: 7000,
+      fairShare: 6000,
+      overCredit: 1000,
       alreadyAdjusted: false,
     })
   })
