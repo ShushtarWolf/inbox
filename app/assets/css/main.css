@@ -2566,16 +2566,34 @@
   }
 
   /*
+   * Sheet + software keyboard (iOS): one scroll surface, no overlay scroll chaining.
+   * Overlay padding lifts the sheet above the keyboard; do not also shrink the dialog
+   * with --app-vv-height (double accounting caused IB-45 layout jumps).
+   */
+  html[data-app-keyboard='open'] [data-app-modal-overlay]:has(.canva-sheet-dialog) {
+    overflow: hidden;
+    padding-top: 0.25rem;
+    padding-bottom: calc(var(--app-keyboard-inset, 0px) + 0.25rem);
+  }
+  html[data-app-keyboard='open'] .canva-sheet-dialog {
+    max-height: 100%;
+    margin-top: 0;
+  }
+  html[data-app-keyboard='open'] .canva-sheet-dialog .app-modal-body-sheet {
+    @apply flex-none overflow-visible;
+    min-height: 0;
+  }
+  html[data-app-keyboard='open'] .canva-owner-slot-modal .venus-modal-shell {
+    max-height: none;
+  }
+
+  /*
    * Owner slot sheet — compact single-scroll mode when vertical space is scarce:
    * iOS keyboard up (AppModal sets html[data-app-keyboard=open]; layout viewport
    * and media queries stay full-height there) or a genuinely short viewport.
    * Header, body and footer scroll together so the pinned header + footer no
    * longer squeeze the inputs to ~0px and the footer cannot cover fields.
    */
-  html[data-app-keyboard='open'] [data-app-modal-overlay]:has(.canva-owner-slot-modal) {
-    padding-top: 0.25rem;
-    padding-bottom: calc(var(--app-keyboard-inset, 0px) + 0.25rem);
-  }
   html[data-app-keyboard='open'] .canva-owner-slot-modal .venus-modal-panel {
     @apply block overflow-y-auto overscroll-contain;
   }
@@ -2585,6 +2603,20 @@
   html[data-app-keyboard='open'] .canva-owner-slot-modal .venus-modal-footer {
     position: static;
   }
+
+  /* Athlete checkout sheet — same single-scroll pattern as owner slot sheets. */
+  html[data-app-keyboard='open'] .canva-sheet-dialog .canva-confirm-book {
+    @apply block overflow-y-auto overscroll-contain;
+    max-height: none;
+    flex: none;
+  }
+  html[data-app-keyboard='open'] .canva-sheet-dialog .canva-confirm-book .canva-auth-body {
+    @apply flex-none overflow-visible;
+  }
+  html[data-app-keyboard='open'] .canva-sheet-dialog .canva-confirm-book .canva-auth-header {
+    position: static;
+  }
+
   @media (max-height: 640px) and (max-width: 1023px) {
     .canva-owner-slot-modal .venus-modal-panel {
       @apply block overflow-y-auto overscroll-contain;

@@ -39,4 +39,40 @@ test.describe('owner desk pay confirm', () => {
     const reserveRes = await reservePromise
     expect(reserveRes.ok()).toBeTruthy()
   })
+
+  test('desk percent focus does not scroll the modal overlay (iOS keyboard guard)', async ({ page }) => {
+    const freeCell = page.locator(
+      'button.canva-cal-grid-cell.slot-free, button.canva-cal-grid-cell.slot-past',
+    ).first()
+    await freeCell.click()
+    await expect(page.locator('.canva-selection-bar')).toBeVisible({ timeout: 10_000 })
+    await page.locator('.canva-selection-bar-btn-primary').click()
+    await expect(page.locator('[data-app-modal-overlay]')).toBeVisible({ timeout: 10_000 })
+    await page.locator('#owner-reserve-guest-name, #owner-guest-name').first().fill('تست')
+    await page.locator('#owner-reserve-guest-mobile, #owner-guest-mobile').first().fill('09121234567')
+    await page.locator('.canva-sheet-submit').filter({ hasText: /ثبت رزرو/ }).click()
+    await expect(page.locator('.canva-desk-pay-panel').getByRole('heading', { name: 'تایید رزرو میز' })).toBeVisible({ timeout: 10_000 })
+
+    const overlay = page.locator('[data-app-modal-overlay]')
+    const heading = page.locator('.canva-desk-pay-panel').getByRole('heading', { name: 'تایید رزرو میز' })
+    await page.evaluate(() => {
+      document.documentElement.setAttribute('data-app-keyboard', 'open')
+      document.documentElement.style.setProperty('--app-keyboard-inset', '280px')
+      document.documentElement.style.setProperty('--app-vv-height', '420px')
+    })
+    await page.locator('#owner-desk-percent').click()
+    await page.waitForTimeout(200)
+    const metrics = await page.evaluate(() => {
+      const overlayEl = document.querySelector('[data-app-modal-overlay]') as HTMLElement | null
+      return {
+        overlayScrollTop: overlayEl?.scrollTop ?? 0,
+        keyboardFlag: document.documentElement.getAttribute('data-app-keyboard'),
+      }
+    })
+    expect(metrics.overlayScrollTop).toBeLessThan(8)
+    await expect(heading).toBeVisible()
+    const box = await heading.boundingBox()
+    expect(box).toBeTruthy()
+    if (box) expect(box.y).toBeGreaterThan(-4)
+  })
 })
