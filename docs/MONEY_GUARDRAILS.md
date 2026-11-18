@@ -56,8 +56,10 @@ Refuses GlitchTip / wrong-DB artifacts. Requires Payment + WalletTransaction/Boo
 4. **Apply** (only after review) —  
    `… -f apply=true` and optional `-f reviewPaymentId='payId'` or `payId:bookingId` for review-bucket rows.
 5. **Re-dry-run** — `creditCount` must be `0`. Over-credits are listed only; use a reviewed `ADJUSTMENT` later, never silent debit.
-   Series over-credits (fair-share shortfall vs ledger): dry-run  
-   `POST /api/admin/money-audit/correct-series-over-credit?paymentId=…` then `apply=1` after review.
+   Series over-credits (fair-share shortfall vs ledger): inventory (read-only)  
+   `GET /api/admin/money-audit/series-over-credit-inventory` or  
+   `node --import tsx scripts/scan-series-over-credit-inventory.ts`; per-payment correction after review:  
+   `POST /api/admin/money-audit/correct-series-over-credit?paymentId=…` then `apply=1`.
 
 ## Leftover review queue (by policy)
 

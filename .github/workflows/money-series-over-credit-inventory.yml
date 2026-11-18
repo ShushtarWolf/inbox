@@ -1,0 +1,63 @@
+name: Series over-credit inventory (read-only)
+
+# Dry-run inventory only — never apply corrections from this workflow.
+on:
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: Max rows to return (default 200)
+        required: false
+        default: '200'
+      only_over:
+        description: Omit rows with zero over-credit
+        required: true
+        default: 'true'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+
+concurrency:
+  group: money-series-over-credit-inventory
+  cancel-in-progress: false
+
+jobs:
+  inventory:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Fetch series over-credit inventory from inboxs.ir (read-only)
+        env:
+          ADMIN_PROVISION_SECRET: ${{ secrets.ADMIN_PROVISION_SECRET }}
+          LIMIT: ${{ inputs.limit }}
+          ONLY_OVER: ${{ inputs.only_over }}
+        run: |
+          set -euo pipefail
+          if [ -z "${ADMIN_PROVISION_SECRET:-}" ]; then
+            echo "ADMIN_PROVISION_SECRET missing"
+            exit 1
+          fi
+          QS="limit=${LIMIT:-200}"
+          if [ "${ONLY_OVER:-true}" = "false" ]; then
+            QS="${QS}&onlyOver=0"
+          fi
+          URL="https://inboxs.ir/api/admin/money-audit/series-over-credit-inventory?${QS}"
+          HTTP=$(curl -sS -o /tmp/series-inventory.json -w '%{http_code}' "$URL" \
+            -H "x-admin-secret: ${ADMIN_PROVISION_SECRET}" || true)
+          echo "http=$HTTP"
+          cat /tmp/series-inventory.json
+          echo
+          python3 - <<'PY'
+          import json
+          d = json.load(open('/tmp/series-inventory.json'))
+          inv = d.get('inventory') or {}
+          print(
+            f"scanned={inv.get('scannedPrimaryPayments')} withCancels={inv.get('withCancels')} "
+            f"withOver={inv.get('withOverCredit')} totalOver={inv.get('totalOverCreditToman')} "
+            f"rows={len(inv.get('rows') or [])}"
+          )
+          PY
+          if [ "$HTTP" != "200" ]; then
+            echo "non-200 from series-over-credit-inventory"
+            exit 1
+          fi
