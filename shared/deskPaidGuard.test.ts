@@ -5,6 +5,8 @@ import {
   DESK_PAYMENT_METHOD_LOCKED,
   DESK_PAYMENT_VERIFY_PENDING,
   hasVerifiedIpgCapture,
+  isSeriesChargeSiblingRow,
+  shouldExpectSettlementLedgerEntry,
   athleteAttemptedDeskCashConfirm,
   resolveDeskPaymentWrite,
 } from './deskPaidGuard.ts'
@@ -46,6 +48,19 @@ describe('hasVerifiedIpgCapture', () => {
       method: 'IPG',
       metadataJson: JSON.stringify({ zeroAmountCheckout: true }),
     })).toBe(true)
+  })
+})
+
+describe('shouldExpectSettlementLedgerEntry', () => {
+  it('re-exports series sibling detection', () => {
+    expect(isSeriesChargeSiblingRow(JSON.stringify({ coveredByBookingId: 'p' }))).toBe(true)
+    expect(shouldExpectSettlementLedgerEntry({
+      status: 'PAID',
+      method: 'IPG',
+      amount: 0,
+      gatewayRef: '1',
+      metadataJson: JSON.stringify({ coveredByBookingId: 'p' }),
+    })).toBe(false)
   })
 })
 
