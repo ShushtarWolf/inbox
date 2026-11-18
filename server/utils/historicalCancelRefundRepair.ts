@@ -516,6 +516,7 @@ export async function applyHistoricalCancelCredit(line: HistoricalCancelRefundLi
           Math.floor(Number(parseMeta(payment.metadataJson).sessionRefundsTotal) || 0),
         ),
         treatAsSeries: true,
+        honorExplicitRefundMeta: false,
         metadata: parseMeta(payment.metadataJson),
       })
       const gap = Math.max(0, owed.amount - liveCredited)

@@ -140,6 +140,8 @@ export function sessionRefundAmount(opts: {
   alreadyRefunded: number
   /** Active sessions still claiming money, including the cancelled one. */
   remainingSessions?: number
+  /** Series/pack size — caps list price when remainingSessions is unknown (repair-safe). */
+  totalSessionsInGroup?: number
 }): number {
   const residual = Math.max(0, Math.floor(opts.primaryAmount) - Math.floor(opts.alreadyRefunded))
   if (residual <= 0) return 0
@@ -153,6 +155,11 @@ export function sessionRefundAmount(opts: {
     // Cap by fair share when we know how many sessions still claim the residual.
     if (opts.remainingSessions != null && Number(opts.remainingSessions) > 0) {
       return Math.min(listed, fair, residual)
+    }
+    const groupTotal = Math.floor(Number(opts.totalSessionsInGroup) || 0)
+    if (groupTotal > 0) {
+      const perSessionCap = Math.floor(opts.primaryAmount / groupTotal)
+      return Math.min(listed, residual, perSessionCap)
     }
     return Math.min(listed, residual)
   }

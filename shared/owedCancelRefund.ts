@@ -37,6 +37,11 @@ export type CancelWalletCreditInput = {
   treatAsSeries?: boolean
   refundBps?: number | null
   metadata?: Record<string, unknown> | string | null
+  /**
+   * Live cancel keeps true. Repair/ledger paths pass false to cap stale
+   * refundCreditAmount against fair-share replay.
+   */
+  honorExplicitRefundMeta?: boolean
 }
 
 export type CancelWalletCreditResult = {
@@ -80,7 +85,7 @@ function computeCancelOwedAmount(input: CancelWalletCreditInput): CancelWalletCr
     : (metaNumber(meta, 'refundBps') ?? 10_000)
 
   const explicit = metaNumber(meta, 'refundCreditAmount') ?? metaNumber(meta, 'refundedAmount')
-  if (explicit != null) {
+  if (explicit != null && input.honorExplicitRefundMeta !== false) {
     // Explicit amounts are already the decided credit (often post-bps). Do not double-scale.
     return { amount: Math.max(0, explicit), reason: 'explicit_meta', series }
   }
@@ -113,19 +118,50 @@ function computeCancelOwedAmount(input: CancelWalletCreditInput): CancelWalletCr
     const sessionPrice = input.sessionPrice != null
       ? Number(input.sessionPrice)
       : metaNumber(meta, 'sessionPrice')
+    const siblingCount = Array.isArray(seriesMeta.groupSiblingBookingIds)
+      ? seriesMeta.groupSiblingBookingIds.length
+      : 0
+    const totalSessionsInGroup = siblingCount > 0
+      ? siblingCount + 1
+      : (metaNumber(meta, 'seasonSessionCount') ?? undefined)
     const raw = sessionRefundAmount({
       sessionPrice,
       primaryAmount: primary,
       alreadyRefunded: already,
       remainingSessions: remaining ?? undefined,
+      totalSessionsInGroup,
     })
     const amount = refundAmountFromBps(raw, bps)
-    return { amount, reason: amount > 0 ? 'series_session' : 'zero', series: true }
+    const result: CancelWalletCreditResult = {
+      amount,
+      reason: amount > 0 ? 'series_session' : 'zero',
+      series: true,
+    }
+    if (explicit != null && input.honorExplicitRefundMeta === false) {
+      return {
+        ...result,
+        amount: Math.min(explicit, amount),
+        reason: amount < explicit ? result.reason : 'explicit_meta',
+      }
+    }
+    return result
   }
 
   const cap = Math.max(0, Math.floor(Number(input.paymentAmount) || 0))
   const amount = refundAmountFromBps(cap, bps)
-  return { amount, reason: amount > 0 ? 'standalone' : 'zero', series: false }
+  const standalone: CancelWalletCreditResult = {
+    amount,
+    reason: amount > 0 ? 'standalone' : 'zero',
+    series: false,
+  }
+  if (explicit != null && input.honorExplicitRefundMeta === false) {
+    return {
+      ...standalone,
+      amount: Math.min(explicit, amount),
+      reason: amount < explicit ? standalone.reason : 'explicit_meta',
+    }
+  }
+  return standalone
 }
 
 /**
