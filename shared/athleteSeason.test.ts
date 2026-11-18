@@ -103,6 +103,15 @@ describe('series payment meta + pro-rata', () => {
     })).toBe(100_000)
   })
 
+  it('caps list sessionPrice by group size when remainingSessions missing (series fail-safe)', () => {
+    expect(sessionRefundAmount({
+      sessionPrice: 5_000,
+      primaryAmount: 9_000,
+      alreadyRefunded: 0,
+      totalSessionsInGroup: 6,
+    })).toBe(1_500)
+  })
+
   it('caps list sessionPrice by fair share when remainingSessions known (pack discount)', () => {
     expect(sessionRefundAmount({
       sessionPrice: 5_000,

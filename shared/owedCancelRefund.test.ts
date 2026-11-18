@@ -61,6 +61,23 @@ describe('cancelWalletCreditAmount', () => {
     })).toEqual({ amount: 1_500, reason: 'explicit_meta', series: true })
   })
 
+  it('repair path caps stale explicit refundCreditAmount to fair series share', () => {
+    expect(cancelWalletCreditAmount({
+      method: 'IPG',
+      paymentAmount: 0,
+      primaryAmount: 9_000,
+      sessionPrice: 5_000,
+      remainingSessionsIncludingCancelled: 6,
+      treatAsSeries: true,
+      honorExplicitRefundMeta: false,
+      metadata: {
+        refundCreditAmount: 5_000,
+        groupPrimaryBookingId: 'b1',
+        groupSiblingBookingIds: ['b2', 'b3', 'b4', 'b5', 'b6'],
+      },
+    })).toEqual({ amount: 1_500, reason: 'series_session', series: true })
+  })
+
   it('series one-of-N uses sessionPrice capped by residual', () => {
     expect(cancelWalletCreditAmount({
       method: 'IPG',

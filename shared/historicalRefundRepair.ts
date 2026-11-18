@@ -133,6 +133,7 @@ function owedAmount(input: HistoricalRefundInput): number | null {
     remainingSessionsIncludingCancelled: input.remainingSessionsIncludingCancelled,
     treatAsSeries: input.treatAsSeries,
     metadata: meta,
+    honorExplicitRefundMeta: false,
   })
   if (result.reason === 'desk_cash') return null
   return result.amount
