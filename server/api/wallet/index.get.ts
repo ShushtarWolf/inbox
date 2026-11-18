@@ -1,5 +1,5 @@
 import { summarizeAthleteCashDesk } from '#shared/dualRailBooks.ts'
-import { refundChannelFromPaymentMetadata, refundChannelI18nKey } from '#shared/refundChannelLabel.ts'
+import { enrichWalletRefundCreditTx } from '../../utils/walletRefundCreditDisplay'
 import { totalUserWithdrawable } from '#shared/walletWithdrawRail.ts'
 import { ATHLETE_WITHDRAW_MIN_TOMAN } from '#shared/athleteCashOut.ts'
 import {
@@ -138,12 +138,39 @@ export default defineEventHandler(async (event) => {
       )
     : {}
 
-  const transactions = (wallet?.transactions || []).map((tx) => {
-    if (tx.type !== 'REFUND_CREDIT' || !tx.paymentId) return tx
-    const channel = refundChannelFromPaymentMetadata(refundMetaByPayment[tx.paymentId])
-    const refundChannelKey = refundChannelI18nKey(channel)
-    return refundChannelKey ? { ...tx, refundChannelKey } : tx
-  })
+  const refundBookingIds = [...new Set(
+    (wallet?.transactions || [])
+      .filter((tx) => tx.type === 'REFUND_CREDIT' && tx.bookingId)
+      .map((tx) => tx.bookingId as string),
+  )]
+  const refundBookingById = refundBookingIds.length
+    ? Object.fromEntries(
+        (await prisma.booking.findMany({
+          where: { id: { in: refundBookingIds } },
+          select: {
+            id: true,
+            slot: {
+              select: {
+                date: true,
+                startTime: true,
+                court: { select: { nameFa: true, club: { select: { nameFa: true } } } },
+              },
+            },
+          },
+        })).map((b) => [b.id, {
+          date: b.slot.date,
+          startTime: b.slot.startTime,
+          courtName: b.slot.court.nameFa,
+          clubName: b.slot.court.club.nameFa,
+        }]),
+      )
+    : {}
+
+  const transactions = (wallet?.transactions || []).map((tx) => enrichWalletRefundCreditTx(
+    tx,
+    refundMetaByPayment,
+    refundBookingById,
+  ))
 
   return {
     balance: balances.availableBalance,
