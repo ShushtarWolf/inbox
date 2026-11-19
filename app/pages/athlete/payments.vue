@@ -7,6 +7,7 @@ import {
   type AthletePaySortKey,
   type AthletePayStatusFilter,
 } from '#shared/athletePayments.ts'
+import { athletePaymentStatusForDisplay } from '#shared/athletePaymentDisplay.ts'
 import { isHoldExpiredPaymentFailure } from '#shared/onlinePaymentHold.ts'
 
 definePageMeta({ layout: 'dashboard-athlete', middleware: ['auth', 'role'], role: 'ATHLETE', ssr: false })
@@ -25,6 +26,7 @@ type PaymentRow = {
   title?: string | null
   club?: { nameFa?: string; nameEn?: string } | null
   status: string
+  bookingStatus?: string | null
   method: string
   date?: string | null
   startTime?: string | null
@@ -134,12 +136,14 @@ function sortLabel(key: AthletePaySortKey) {
   return t('athlete.paymentColDate')
 }
 
-function statusLabel(row: Pick<PaymentRow, 'status' | 'method' | 'deskCashReturn' | 'failReason' | 'cancellationReason'>) {
-  if (row.status === 'REFUNDED' && row.method === 'CASH') {
+function statusLabel(row: Pick<PaymentRow, 'status' | 'method' | 'deskCashReturn' | 'failReason' | 'cancellationReason' | 'bookingStatus'>) {
+  const displayStatus = athletePaymentStatusForDisplay(row)
+  if (displayStatus === 'REFUNDED' && row.method === 'CASH') {
     if (row.deskCashReturn === 'returned') return t('athlete.paymentStatusRefundedCashReturned')
     return t('athlete.paymentStatusRefundedCashOwed')
   }
-  if (row.status === 'REFUNDED' && row.method !== 'CASH') return t('athlete.paymentStatusRefundedWallet')
+  if (displayStatus === 'REFUNDED' && row.method !== 'CASH') return t('athlete.paymentStatusRefundedWallet')
+  if (displayStatus === 'CANCELLED') return t('booking.status.CANCELLED')
   if (isHoldExpiredPaymentFailure({
     status: row.status,
     failReason: row.failReason,
@@ -147,7 +151,7 @@ function statusLabel(row: Pick<PaymentRow, 'status' | 'method' | 'deskCashReturn
   })) {
     return t('booking.paymentStatus.HOLD_EXPIRED')
   }
-  return t(`booking.paymentStatus.${row.status}`)
+  return t(`booking.paymentStatus.${displayStatus}`)
 }
 
 function methodLabel(method: string) {

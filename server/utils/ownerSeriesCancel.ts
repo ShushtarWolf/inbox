@@ -4,7 +4,12 @@ import type { CancelMoneyOutcome } from '#shared/cancelPolicy.ts'
 import { cancelCourtBooking } from './cancellations'
 import type { Prisma } from '@prisma/client'
 import { prisma } from './prisma'
-import { bookingLooksLikeSeriesPayment, cancelSeriesSessionWithSlot } from './seriesCancelRefund'
+import {
+  bookingLooksLikeSeriesPayment,
+  cancelSeriesSessionWithSlot,
+  refundAfterSeriesSessionCancel,
+} from './seriesCancelRefund'
+import { isPaymentRefundable } from '#shared/bookingPayment.ts'
 
 const seriesBookingInclude = {
   payment: true,
@@ -197,9 +202,43 @@ export async function cancelOwnerSeriesBookings(opts: {
 export async function finalizeSeasonBookingIfNoActiveSessions(clubId: string, seasonBookingId: string) {
   const remaining = await loadOwnerSeriesBookingsBySeasonId(clubId, seasonBookingId)
   if (remaining.length > 0) return false
+  await sweepSeasonPrimaryResidualIfFullyCancelled({ clubId, seasonBookingId })
   const updated = await prisma.seasonBooking.updateMany({
     where: { id: seasonBookingId, clubId, cancelledAt: null },
     data: { cancelledAt: new Date() },
   })
   return updated.count > 0
+}
+
+/**
+ * When every court session for a season is cancelled but the grouped primary payment
+ * still shows PAID (common after owner-season-edit pro-rata cancels), credit the residual
+ * once and mark the payment REFUNDED.
+ */
+export async function sweepSeasonPrimaryResidualIfFullyCancelled(opts: {
+  clubId: string
+  seasonBookingId: string
+  reason?: string
+}) {
+  const active = await loadOwnerSeriesBookingsBySeasonId(opts.clubId, opts.seasonBookingId)
+  if (active.length > 0) return null
+
+  const needle = seasonBookingIdNeedle(opts.seasonBookingId)
+  const primaryPayment = await prisma.payment.findFirst({
+    where: {
+      amount: { gt: 0 },
+      metadataJson: { contains: needle },
+      booking: { slot: { court: { clubId: opts.clubId } } },
+    },
+    orderBy: { amount: 'desc' },
+    include: { booking: { select: { id: true, userId: true } } },
+  })
+  if (!primaryPayment?.booking?.id || !isPaymentRefundable(primaryPayment.status)) return null
+
+  return refundAfterSeriesSessionCancel({
+    cancelledBookingId: primaryPayment.booking.id,
+    userId: primaryPayment.booking.userId,
+    reason: opts.reason || 'series-primary-residual-sweep',
+    moneyOutcome: 'full_wallet_refund',
+  })
 }
