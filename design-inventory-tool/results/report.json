@@ -1,0 +1,54 @@
+{
+  "generatedAt": "2026-10-21T15:40:00.000Z",
+  "paths": {
+    "html": "/workspace/design-inventory.html",
+    "htmlLite": "/workspace/design-inventory-lite.html",
+    "desktopPngDir": "/workspace/design-inventory/desktop",
+    "mobilePngDir": "/workspace/design-inventory/mobile",
+    "manifest": "/workspace/design-inventory-tool/results/manifest.json",
+    "tooling": "/workspace/design-inventory-tool"
+  },
+  "htmlSizeMb": 76.74,
+  "htmlLiteSizeMb": 22.16,
+  "counts": {
+    "uniquePages": 104,
+    "pageShotsDesktop": 101,
+    "pageShotsMobile": 104,
+    "uniqueComponents": 77,
+    "componentShotsDesktop": 77,
+    "componentShotsMobile": 77,
+    "vueComponentFiles": 67,
+    "pngFilesDesktop": 179,
+    "pngFilesMobile": 182
+  },
+  "viewports": {
+    "desktop": "1440x900, deviceScaleFactor 1",
+    "mobile": "390x844, isMobile, hasTouch, deviceScaleFactor 2"
+  },
+  "notCaptured": [
+    {
+      "item": "Auth gate modal from public home header click (desktop 1440px)",
+      "reason": "Canva home login control is not stably visible/clickable at desktop width in headless capture; covered via modal-auth-gate using /login → AuthFlowModal on public returnTo."
+    },
+    {
+      "item": "Literal route templates like /admin/clubs/[id]",
+      "reason": "Dynamic segment placeholders excluded; captured resolved admin club detail instead."
+    },
+    {
+      "item": "/r/[token] guest receipt",
+      "reason": "No signed receipt token in demo seed; route requires HMAC receipt token not stored as a static DB row."
+    },
+    {
+      "item": "Some coach/competition flows when PILOT_NO_COACH or COMPETITIONS_ENABLED gates apply",
+      "reason": "Local .env had PILOT_NO_COACH=false for capture; competition pilot may still be off without COMPETITIONS_ENABLED."
+    },
+    {
+      "item": "Every interactive state (hover/focus/active) for all Vue components",
+      "reason": "Harness captures CSS-layer button/input/card/badge/table variants from app/assets/css/main.css; full Vue prop permutations would require app harness routes."
+    },
+    {
+      "item": "Toast notifications / ephemeral AppRouteProgress",
+      "reason": "Transient UI; not held open long enough for full-page screenshot without flaky timing."
+    }
+  ]
+}
