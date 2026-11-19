@@ -133,7 +133,7 @@ describe('MONEY_POLICY_PHASE1_TESTS', () => {
         refundChannel: 'wallet_closed_loop',
       },
     })
-    expect(decision).toEqual({ action: 'credit', amount: 1_500, reason: 'wallet_path_shortfall' })
+    expect(decision).toEqual({ action: 'credit', amount: 1_500, reason: 'series_session_shortfall' })
     expect(classifyHistoricalRefundBucket({
       decision,
       method: 'IPG',
