@@ -1,6 +1,7 @@
 name: Money audit cron
 
-# Daily dual-rail / wallet recon. Soft-fails SMS via ADMIN_ALERT_* on findings.
+# Daily dual-rail / wallet recon. SMS via ADMIN_ALERT_* on findings.
+# Fails the job when cancelled online bookings lack REFUND_CREDIT (Phase-4 guard).
 on:
   schedule:
     - cron: '15 5 * * *' # ~08:45 IRST
@@ -11,8 +12,35 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Run money audit on production
-        run: |
-          curl -sf -X POST "https://inboxs.ir/api/admin/money-audit/run" \
-            -H "x-admin-secret: ${ADMIN_PROVISION_SECRET}"
         env:
           ADMIN_PROVISION_SECRET: ${{ secrets.ADMIN_PROVISION_SECRET }}
+        run: |
+          set -euo pipefail
+          if [ -z "${ADMIN_PROVISION_SECRET:-}" ]; then
+            echo "ADMIN_PROVISION_SECRET missing"
+            exit 1
+          fi
+          curl -sfS -X POST "https://inboxs.ir/api/admin/money-audit/run" \
+            -H "x-admin-secret: ${ADMIN_PROVISION_SECRET}" \
+            -H "content-type: application/json" \
+            | tee /tmp/money-audit.json
+          python3 - <<'PY'
+          import json, sys
+          d = json.load(open('/tmp/money-audit.json'))
+          # Endpoint may return the summary directly or nested.
+          s = d.get('summary') or d
+          cancel = int(s.get('cancelledOnlineWithoutRefundCredit') or 0)
+          alert = bool(s.get('alert'))
+          print(
+            f"alert={alert} cancelledOnlineWithoutRefundCredit={cancel} "
+            f"userBalanceDrift={s.get('userBalanceDrift')} "
+            f"reversePending={s.get('reversePendingPayments')} "
+            f"reversedStillPaid={s.get('reversedStillPaid')}"
+          )
+          if cancel > 0:
+            print(
+              f"::error::cancelledOnlineWithoutRefundCredit={cancel} — "
+              "dry-run money-repair-historical-cancel-refunds, then reviewed apply"
+            )
+            sys.exit(1)
+          PY

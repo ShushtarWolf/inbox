@@ -53,6 +53,12 @@ const { data, pending, error, refresh } = await useAuthedFetch<{
     createdAt: string
     note?: string | null
     refundChannelKey?: string | null
+    refundBooking?: {
+      date: string
+      startTime: string
+      courtName?: string | null
+      clubName?: string | null
+    } | null
   }>
 }>('/api/wallet')
 
@@ -133,8 +139,20 @@ watch(customAmount, () => {
   selectedPreset.value = null
 })
 
-function txLabel(tx: { type?: string; amount: number; refundChannelKey?: string | null }) {
+function txLabel(tx: {
+  type?: string
+  amount: number
+  refundChannelKey?: string | null
+  refundBooking?: { date: string; startTime: string } | null
+}) {
   if (tx.type === 'REFUND_CREDIT') {
+    if (tx.refundBooking?.date && tx.refundBooking?.startTime) {
+      return t('athlete.walletCancelRefundDetail', {
+        date: formatDate(tx.refundBooking.date),
+        time: formatTimeLabel(tx.refundBooking.startTime),
+        amount: formatCurrency(Math.abs(tx.amount)),
+      })
+    }
     if (tx.refundChannelKey) return t(tx.refundChannelKey)
     return t('athlete.walletTypeRefund')
   }

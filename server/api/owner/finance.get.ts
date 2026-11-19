@@ -1,4 +1,9 @@
-import { parseSeriesPaymentMeta } from '#shared/athleteSeason.ts'
+import {
+  buildSeasonRegisteredSessionCountMaps,
+  parseSeriesPaymentMeta,
+  resolveSeasonSessionCountForDisplay,
+  seriesRegisteredSessionCount,
+} from '#shared/athleteSeason.ts'
 import { countsTowardRevenue, financeIncomeAmount, financeSessionValue, isUnpaidPaymentStatus } from '#shared/bookingPayment.ts'
 import { parsePaymentMetadata, readDeskCashReturn } from '#shared/cancelRefund.ts'
 import { resolveFinanceDiscount } from '#shared/financeDiscount.ts'
@@ -6,7 +11,8 @@ import { resolveLinkedGuestDisplayName } from '#shared/guestName.ts'
 import { isoToJalaali, jalaaliToIso, toPersianDigits } from '#shared/jalali.ts'
 import { localDateString, localTimeString } from '#shared/localDate.ts'
 import { summarizeCashBook, summarizeOnlineOpen } from '#shared/dualRailBooks.ts'
-import { isChargedPaidCheckout, paymentRail, summarizeCollectedRevenue, type RevenueRow } from '#shared/ownerRevenue.ts'
+import { computePaymentMethodBreakdown, isChargedPaidCheckout, summarizeCollectedRevenue, type RevenueRow } from '#shared/ownerRevenue.ts'
+import { isClubDeskHoldBooking } from '#shared/deskHoldBooking.ts'
 import { isOwnerRecurringBooking } from '#shared/recurringReserve.ts'
 
 export default defineEventHandler(async (event) => {
@@ -111,11 +117,16 @@ export default defineEventHandler(async (event) => {
   }
 
   function amountOfBooking(booking: {
-    payment?: { amount: number } | null
+    source?: string | null
+    packageDraftId?: string | null
+    coachId?: string | null
+    payment?: { amount: number; id?: string } | null
     slot: { price: number; displayStatus?: string | null }
   }) {
+    const clubDeskHold = isClubDeskHoldBooking(booking)
     return financeIncomeAmount(booking.payment, booking.slot.price, {
       deskHold: booking.slot.displayStatus === 'BLOCKED',
+      clubDeskHold,
     })
   }
 
@@ -175,7 +186,7 @@ export default defineEventHandler(async (event) => {
       select: {
         status: true,
         slot: { select: { date: true } },
-        payment: { select: { id: true, amount: true, method: true, status: true } },
+        payment: { select: { id: true, amount: true, method: true, status: true, metadataJson: true } },
       },
     }),
     prisma.coachSession.findMany({
@@ -186,7 +197,7 @@ export default defineEventHandler(async (event) => {
       select: {
         status: true,
         date: true,
-        payment: { select: { amount: true, method: true, status: true } },
+        payment: { select: { amount: true, method: true, status: true, metadataJson: true } },
       },
     }),
     // Kept-on-cancel money whose cancelled booking was removed by a re-book (staleBooking.ts).
@@ -208,6 +219,7 @@ export default defineEventHandler(async (event) => {
         method: row.payment!.method,
         status: row.payment!.status,
         bookingStatus: row.status,
+        metadataJson: row.payment!.metadataJson,
       } satisfies RevenueRow,
     })),
     ...detachedKeptRows
@@ -219,6 +231,7 @@ export default defineEventHandler(async (event) => {
           method: row.method,
           status: row.status,
           bookingStatus: 'CANCELLED',
+          metadataJson: row.metadataJson,
         } satisfies RevenueRow,
       })),
   ]
@@ -230,6 +243,7 @@ export default defineEventHandler(async (event) => {
       method: row.payment!.method,
       status: row.payment!.status,
       bookingStatus: row.status,
+      metadataJson: row.payment!.metadataJson,
     } satisfies RevenueRow,
   }))
   const totalSummary = summarizeCollectedRevenue(courtRevenueRows.map((row) => row.revenue))
@@ -242,8 +256,6 @@ export default defineEventHandler(async (event) => {
     })
   )._sum.ownerNet || 0
   const revenue = totalSummary.total
-  // Method-share bar stays this Jalali month (counts, not money).
-  const monthCourt = courtRevenueRows.filter((row) => row.date >= monthStart && row.date <= today)
 
   const totalReservationCount = bookings.length + coachSessions.length
   const noShowCount = bookings.filter((booking) => booking.noShowAt).length + coachSessions.filter((session) => session.noShowAt).length
@@ -253,31 +265,8 @@ export default defineEventHandler(async (event) => {
   const churnRisk = contacts.filter((contact) => contact.inactiveDays >= 14).length
   const ltv = contacts.length ? Math.round(contacts.reduce((sum, contact) => sum + contact.lifetimeValue, 0) / contacts.length) : 0
 
-  // Status-first buckets (court bookings, this month). Wallet (method PAID) is online — never till cash.
-  // PAID amount-0 siblings are covered checkouts — skip them so online % is not inflated.
-  const paymentTotals = { PAID_CASH: 0, PAID_IPG: 0, UNPAID: 0 }
-  for (const row of monthCourt) {
-    if (row.revenue.bookingStatus === 'CANCELLED') continue
-    const status = row.revenue.status || ''
-    if (isUnpaidPaymentStatus(status)) {
-      paymentTotals.UNPAID += 1
-      continue
-    }
-    if (!isChargedPaidCheckout(row.revenue.amount, status)) continue
-    const rail = paymentRail(row.revenue.method)
-    if (rail === 'online') paymentTotals.PAID_IPG += 1
-    else if (rail === 'cash') paymentTotals.PAID_CASH += 1
-  }
-  const paymentCount = paymentTotals.PAID_CASH + paymentTotals.PAID_IPG + paymentTotals.UNPAID
-  const paymentBreakdown = {
-    PAID_CASH: paymentCount ? Math.round((paymentTotals.PAID_CASH / paymentCount) * 100) : 0,
-    PAID_IPG: paymentCount ? Math.round((paymentTotals.PAID_IPG / paymentCount) * 100) : 0,
-    UNPAID: paymentCount ? Math.round((paymentTotals.UNPAID / paymentCount) * 100) : 0,
-    // Legacy keys kept for older clients / smoke scripts.
-    IPG: paymentCount ? Math.round((paymentTotals.PAID_IPG / paymentCount) * 100) : 0,
-    CASH: paymentCount ? Math.round((paymentTotals.PAID_CASH / paymentCount) * 100) : 0,
-    NOT_PAID: paymentCount ? Math.round((paymentTotals.UNPAID / paymentCount) * 100) : 0,
-  }
+  // Method-share bar: all court checkouts (counts, not money) — same scope as lifetime collected above.
+  const paymentBreakdown = computePaymentMethodBreakdown(courtRevenueRows.map((row) => row.revenue))
 
   const funnel = {
     views: totalReservationCount + waitlistEntries.length,
@@ -371,21 +360,22 @@ export default defineEventHandler(async (event) => {
     return 'normal' as const
   }
 
-  function seasonLedgerContext(payment: { metadataJson?: string | null } | null | undefined) {
+  function seasonLedgerContext(
+    payment: { metadataJson?: string | null } | null | undefined,
+    seasonCountMaps: ReturnType<typeof buildSeasonRegisteredSessionCountMaps>,
+  ) {
     const meta = parseSeriesPaymentMeta(payment?.metadataJson)
     const coveredByBookingId = meta.coveredByBookingId?.trim() || null
-    const siblingIds = meta.groupSiblingBookingIds || []
-    const seasonSessionCount = siblingIds.length > 0 ? siblingIds.length + 1 : null
-    return { coveredByBookingId, seasonSessionCount, seasonBookingId: meta.seasonBookingId?.trim() || null }
+    const seasonBookingId = meta.seasonBookingId?.trim() || null
+    const seasonSessionCount = seasonBookingId
+      ? resolveSeasonSessionCountForDisplay(meta, seasonCountMaps)
+      : seriesRegisteredSessionCount(meta)
+    return { coveredByBookingId, seasonSessionCount, seasonBookingId }
   }
 
-  const seasonBookingCounts = new Map<string, number>()
-  for (const booking of listBookings) {
-    const { seasonBookingId } = seasonLedgerContext(booking.payment)
-    if (seasonBookingId) {
-      seasonBookingCounts.set(seasonBookingId, (seasonBookingCounts.get(seasonBookingId) || 0) + 1)
-    }
-  }
+  const seasonCountMaps = buildSeasonRegisteredSessionCountMaps(
+    listBookings.map((booking) => booking.payment),
+  )
 
   const bookingTransactions = [
     ...listBookings.map((booking) => {
@@ -393,12 +383,8 @@ export default defineEventHandler(async (event) => {
       const courtName = toPersianDigits(booking.slot.court.nameFa)
       const coachName = booking.coach?.nameFa ? toPersianDigits(booking.coach.nameFa) : ''
       const paymentStatus = paymentStatusOf(booking)
-      const seriesLedger = seasonLedgerContext(booking.payment)
-      let seasonSessionCount = seriesLedger.seasonSessionCount
-      if (!seasonSessionCount && seriesLedger.seasonBookingId) {
-        const total = seasonBookingCounts.get(seriesLedger.seasonBookingId)
-        if (total && total > 1) seasonSessionCount = total
-      }
+      const seriesLedger = seasonLedgerContext(booking.payment, seasonCountMaps)
+      const seasonSessionCount = seriesLedger.seasonSessionCount
       return {
         id: booking.id,
         guestName: resolveLinkedGuestDisplayName({
@@ -449,7 +435,7 @@ export default defineEventHandler(async (event) => {
     }),
     ...listSessions.map((session) => {
       const paymentStatus = paymentStatusOf(session)
-      const seriesLedger = seasonLedgerContext(session.payment)
+      const seriesLedger = seasonLedgerContext(session.payment, seasonCountMaps)
       return {
         id: session.id,
         guestName: session.athlete.name,
@@ -523,7 +509,7 @@ export default defineEventHandler(async (event) => {
   const cashRefunded = await prisma.payment.findMany({
     where: {
       method: 'CASH',
-      status: 'REFUNDED',
+      status: { in: ['REFUNDED', 'PAID'] },
       OR: [
         { booking: { slot: { court: { clubId: club.id } } } },
         {
@@ -550,9 +536,14 @@ export default defineEventHandler(async (event) => {
     .filter((p) => readDeskCashReturn(parsePaymentMetadata(p.metadataJson)) === 'owed')
     .map((p) => {
       const meta = parsePaymentMetadata(p.metadataJson)
+      const sessionRefundsTotal = Math.max(0, Math.floor(Number(meta.sessionRefundsTotal) || 0))
+      const refundCreditAmount = Math.max(0, Math.floor(Number(meta.refundCreditAmount) || 0))
+      const tillOwed = sessionRefundsTotal > 0
+        ? sessionRefundsTotal
+        : (refundCreditAmount > 0 ? refundCreditAmount : p.amount)
       return {
         paymentId: p.id,
-        amount: p.amount,
+        amount: tillOwed,
         guestName: [p.booking?.guestName, p.booking?.guestFamily].filter(Boolean).join(' ').trim(),
         guestMobile: p.booking?.guestMobile || null,
         date: p.booking?.slot.date

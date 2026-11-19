@@ -5,7 +5,7 @@ import { PILOT_CLUB_ADDRESS_FA, PILOT_OWNER_NAME } from './shared/pilotClub'
 
 const externalCalendarModuleDir = fileURLToPath(new URL('./modules/inbox-external-calendar', import.meta.url))
 
-const PWA_RESET_VERSION = '40'
+const PWA_RESET_VERSION = '41'
 
 const siteUrl = (process.env.NUXT_PUBLIC_SITE_URL || '').replace(/\/$/, '')
 const googleRedirectUrl = process.env.NUXT_OAUTH_GOOGLE_REDIRECT_URL || (siteUrl ? `${siteUrl}/auth/google` : '')
@@ -13,6 +13,12 @@ const googleRedirectUrl = process.env.NUXT_OAUTH_GOOGLE_REDIRECT_URL || (siteUrl
 export default defineNuxtConfig({
   compatibilityDate: '2025-06-02',
   devtools: { enabled: false },
+
+  // Stale-tab client navigation after deploy: reload immediately on missing route chunks
+  // instead of landing on error.vue with a misleading HTTP 500 (IB-28).
+  experimental: {
+    emitRouteChunkError: 'automatic-immediate',
+  },
 
   alias: {
     '#shared': fileURLToPath(new URL('./shared', import.meta.url)),

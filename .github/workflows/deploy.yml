@@ -145,16 +145,36 @@ jobs:
           LIARA_TOKEN: ${{ secrets.LIARA_API_TOKEN }}
         run: |
           set -euo pipefail
-          npm i -g @liara/cli@9
+          npm i -g @liara/cli@9.7.0
           # Proven path: multi-stage Dockerfile on Liara Iran. No BuildKit mounts.
           # Cap at 12m (healthy ~9m). Stuck Iran must fail so auto→Germany can start.
           # Do not raise this back to 20m/75m — that blocks production.
-          timeout 12m liara deploy \
-            --app=inbox \
-            --api-token="$LIARA_TOKEN" \
-            --no-app-logs \
-            --build-location=iran \
-            --message "GitHub ${GITHUB_SHA:0:7} iran-${{ needs.gate.outputs.path }}"
+          # Retry once on transient "Upload failed" / registry blips.
+          attempt=1
+          max=2
+          while [ "$attempt" -le "$max" ]; do
+            echo "Liara Iran deploy attempt $attempt/$max"
+            set +e
+            timeout 12m liara deploy \
+              --app=inbox \
+              --api-token="$LIARA_TOKEN" \
+              --no-app-logs \
+              --build-location=iran \
+              --message "GitHub ${GITHUB_SHA:0:7} iran-${{ needs.gate.outputs.path }}-a${attempt}"
+            rc=$?
+            set -e
+            if [ "$rc" -eq 0 ]; then
+              echo "Liara Iran deploy OK on attempt $attempt"
+              exit 0
+            fi
+            echo "::warning::Liara Iran deploy failed (rc=$rc) on attempt $attempt"
+            if [ "$attempt" -eq "$max" ]; then
+              exit "$rc"
+            fi
+            sleep 30
+            attempt=$((attempt + 1))
+          done
+          exit 1
 
   # Prep Germany context (germany-fast primary, or auto fallback). Skip for iran-only.
   bundle:
@@ -222,7 +242,8 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: liara-deploy-context
-          path: deploy-context
+          # Trailing slash / glob: artifact root = context files (no nested deploy-context/).
+          path: deploy-context/
           include-hidden-files: true
           retention-days: 1
 
@@ -252,9 +273,15 @@ jobs:
       - name: Verify prebuilt context before Liara upload
         run: |
           set -euo pipefail
+          if [ ! -f deploy-context/Dockerfile ] && [ -f deploy-context/deploy-context/Dockerfile ]; then
+            mv deploy-context/deploy-context /tmp/liara-ctx
+            rm -rf deploy-context
+            mv /tmp/liara-ctx deploy-context
+          fi
           test -f deploy-context/Dockerfile
           test -f deploy-context/nitro-output/server/index.mjs
           du -sh deploy-context deploy-context/nitro-output
+          find deploy-context -maxdepth 2 -type d | head -40
       - name: Deploy inbox to Liara (Germany prebuilt)
         env:
           LIARA_TOKEN: ${{ secrets.LIARA_API_TOKEN }}
@@ -267,14 +294,56 @@ jobs:
           else
             echo "::warning::Iran did not succeed (result=$IRAN_RESULT); falling back to Germany prebuilt"
           fi
-          npm i -g @liara/cli@9
-          timeout 45m liara deploy \
-            --path=deploy-context \
-            --app=inbox \
-            --api-token="$LIARA_TOKEN" \
-            --no-app-logs \
-            --build-location=germany \
-            --message "GitHub ${GITHUB_SHA:0:7} germany-${PATH_MODE}"
+          # download-artifact can nest as deploy-context/deploy-context when the upload
+          # path was a directory named deploy-context — flatten before liara packs.
+          if [ ! -f deploy-context/Dockerfile ] && [ -f deploy-context/deploy-context/Dockerfile ]; then
+            echo "Flattening nested deploy-context/deploy-context"
+            mv deploy-context/deploy-context /tmp/liara-ctx
+            rm -rf deploy-context
+            mv /tmp/liara-ctx deploy-context
+          fi
+          test -f deploy-context/Dockerfile
+          test -f deploy-context/nitro-output/server/index.mjs
+          ls -la deploy-context | head -30
+          npm i -g @liara/cli@9.7.0
+          # Liara "Upload failed" is often a transient storage blip — retry with backoff.
+          attempt=1
+          max=3
+          while [ "$attempt" -le "$max" ]; do
+            echo "Liara Germany deploy attempt $attempt/$max"
+            set +e
+            if [ "$attempt" -eq 1 ]; then
+              timeout 45m liara deploy \
+                --path=deploy-context \
+                --app=inbox \
+                --api-token="$LIARA_TOKEN" \
+                --no-app-logs \
+                --build-location=germany \
+                --message "GitHub ${GITHUB_SHA:0:7} germany-${PATH_MODE}"
+            else
+              timeout 45m liara deploy \
+                --path=deploy-context \
+                --app=inbox \
+                --api-token="$LIARA_TOKEN" \
+                --no-app-logs \
+                --build-location=germany \
+                --debug \
+                --message "GitHub ${GITHUB_SHA:0:7} germany-${PATH_MODE}-retry${attempt}"
+            fi
+            rc=$?
+            set -e
+            if [ "$rc" -eq 0 ]; then
+              echo "Liara Germany deploy OK on attempt $attempt"
+              exit 0
+            fi
+            echo "::warning::Liara Germany deploy failed (rc=$rc) on attempt $attempt"
+            if [ "$attempt" -eq "$max" ]; then
+              exit "$rc"
+            fi
+            sleep $((attempt * 20))
+            attempt=$((attempt + 1))
+          done
+          exit 1
 
   deploy-ok:
     name: Deploy succeeded (Iran or Germany)

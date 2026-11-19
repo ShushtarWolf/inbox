@@ -28,6 +28,7 @@ vi.mock('../../utils/cancellations', () => ({
 vi.mock('../../utils/ownerSeriesCancel', () => ({
   cancelOwnerSeriesBookings: vi.fn(),
   loadOwnerSeriesBookings: vi.fn().mockResolvedValue([]),
+  finalizeSeasonBookingIfNoActiveSessions: vi.fn().mockResolvedValue(false),
 }))
 vi.mock('../../utils/reservations', () => ({
   activeSlotBooking: (b: unknown) => b,
@@ -39,15 +40,14 @@ vi.mock('../../utils/seriesCancelRefund', () => ({
   cancelUnpaidSeriesSiblings: vi.fn(),
   loadSeriesGroupForBooking: vi.fn(),
 }))
-vi.mock('../../utils/bookingNotify', () => ({
-  clubNotifyName: (c: { nameFa?: string }) => c.nameFa || 'باشگاه',
-  courtNotifyName: (c: { nameFa?: string }) => c.nameFa || '',
-  ownerNotifyPhone: () => '09120000000',
-  personNotifyName: (...p: Array<string | null | undefined>) => p.filter(Boolean).join(' '),
-  skipGuestBookingSms: (b: { source?: string | null }) => b.source === 'CLUB',
-  notifyBookingCancelled: (...a: unknown[]) => { order.push('guestSms'); return notifyBookingCancelled(...a) },
-  notifyOwnerBookingCancelled: (...a: unknown[]) => { order.push('ownerSms'); return notifyOwnerBookingCancelled(...a) },
-}))
+vi.mock('../../utils/bookingNotify', async (importOriginal) => {
+  const orig = await importOriginal<typeof import('../../utils/bookingNotify')>()
+  return {
+    ...orig,
+    notifyBookingCancelled: (...a: unknown[]) => { order.push('guestSms'); return notifyBookingCancelled(...a) },
+    notifyOwnerBookingCancelled: (...a: unknown[]) => { order.push('ownerSms'); return notifyOwnerBookingCancelled(...a) },
+  }
+})
 
 type Handler = (event: unknown) => Promise<unknown>
 let ownerCancel: Handler
@@ -90,6 +90,21 @@ describe('owner cancel (POST /api/owner/cancel)', () => {
     expect(notifyOwnerBookingCancelled).toHaveBeenCalledTimes(1)
     expect(notifyBookingCancelled).toHaveBeenCalledTimes(1)
     expect(notifyBookingCancelled.mock.calls[0]![0]).toMatchObject({ phone: '09121111111', skipGuest: false })
+  })
+
+  it('CLUB pay-link + IPG → guest cancel SMS (skipGuest false)', async () => {
+    slotFindFirst.mockResolvedValue({
+      id: 's1', courtId: 'c1', date: '2099-11-13', startTime: '09:00', endTime: '10:00',
+      court,
+      booking: {
+        ...platformBooking,
+        source: 'CLUB',
+        payment: { id: 'pay-1', status: 'PAID', method: 'IPG', metadataJson: null },
+      },
+    })
+    await ownerCancel({ body: { slotId: 's1' } })
+    expect(notifyBookingCancelled).toHaveBeenCalledTimes(1)
+    expect(notifyBookingCancelled.mock.calls[0]![0]).toMatchObject({ skipGuest: false })
   })
 
   it('money failure → no SMS claims a cancel that did not happen', async () => {

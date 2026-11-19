@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { financeSheetXml } from './financeSpreadsheet.ts'
-import { financePaymentBucket, financeRowTypeOf, isBlockedFinanceTx, isFinanceLedgerCoveredSibling, selectFinanceTransactions, type FinanceTxTimes } from './financeTransactions.ts'
+import { financePaymentBucket, financeRowTypeOf, isBlockedFinanceTx, isFinanceLedgerCoveredSibling, isOwnerFinanceTxFiltersActive, selectFinanceTransactions, type FinanceTxTimes, type OwnerFinanceTxFilterState } from './financeTransactions.ts'
 
 const rows: FinanceTxTimes[] = [
   {
@@ -115,6 +115,18 @@ describe('selectFinanceTransactions', () => {
     expect(xml).toContain('ss:Type="Number">20000')
     expect(xml).toContain('علی &amp; رضا')
     expect(xml).not.toContain('علی & رضا')
+  })
+
+  it('finance ledger export status uses booking cancel, not payment PAID', async () => {
+    const { financeLedgerStatusKind, financeLedgerStatusToken } = await import('./financeLedgerStatus.ts')
+    const tx = {
+      kind: 'court',
+      bookingStatus: 'CANCELLED',
+      paymentStatus: 'PAID',
+      paymentMethod: 'CASH',
+    }
+    expect(financeLedgerStatusToken(tx)).toBe('CANCELLED')
+    expect(financeLedgerStatusKind(tx)).toBe('booking')
   })
 
   it('filters the same states as the calendar legend', () => {
@@ -262,5 +274,31 @@ describe('selectFinanceTransactions', () => {
     expect(xml.match(/<Row>/g)?.length).toBe(41)
     expect(xml).toContain('مهمان39')
     expect(xml).toContain('<Data ss:Type="Number">1039</Data>')
+  })
+})
+
+describe('isOwnerFinanceTxFiltersActive', () => {
+  const defaults: OwnerFinanceTxFilterState = {
+    session: 'free',
+    bookingKind: 'all',
+    payment: 'all',
+    legend: 'all',
+    guest: '',
+    discountCode: '',
+    reservedFrom: '',
+    reservedTo: '',
+    paidFrom: '',
+    paidTo: '',
+    sortKey: 'reservedAt',
+    sortDir: 'desc',
+  }
+
+  it('is false at defaults', () => {
+    expect(isOwnerFinanceTxFiltersActive(defaults, defaults)).toBe(false)
+  })
+
+  it('detects any active control', () => {
+    expect(isOwnerFinanceTxFiltersActive({ ...defaults, guest: 'علی' }, defaults)).toBe(true)
+    expect(isOwnerFinanceTxFiltersActive({ ...defaults, payment: 'cash' }, defaults)).toBe(true)
   })
 })

@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest'
 import {
   availableEquipmentQty,
   availableSellEquipmentQty,
+  isBookableEquipmentCategory,
+  isOwnerDeskEquipmentPickerCategory,
   isSellEquipmentCategory,
   minAvailableEquipmentAcrossTimes,
   normalizeSlotTime,
@@ -9,6 +11,15 @@ import {
   sumSoldEquipmentFromSlots,
   type SlotEquipmentSnapshot,
 } from '#shared/equipmentAvailability.ts'
+
+describe('equipment category helpers', () => {
+  it('treats SERVICE as bookable and visible on owner desk picker', () => {
+    expect(isBookableEquipmentCategory('SERVICE')).toBe(true)
+    expect(isOwnerDeskEquipmentPickerCategory('SERVICE')).toBe(true)
+    expect(isBookableEquipmentCategory('CLUB')).toBe(false)
+    expect(isOwnerDeskEquipmentPickerCategory('CLUB')).toBe(true)
+  })
+})
 
 describe('normalizeSlotTime', () => {
   it('normalizes HH:MM:SS to HH:MM', () => {

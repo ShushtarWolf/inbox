@@ -283,20 +283,16 @@ async function retryPay(row: { bookingId?: string | null; status: string }) {
             <div>
               <span class="mb-1 block text-xs font-bold text-brand-navy">{{ t('athlete.paymentFilterDate') }}</span>
               <span class="flex gap-2">
-                <input
+                <AppIsoDateFilterInput
                   v-model="dateFrom"
-                  type="date"
-                  dir="ltr"
-                  class="canva-finance-date tabular-nums"
+                  input-class="canva-finance-date tabular-nums"
                   :aria-label="`${t('athlete.paymentFilterDate')} ${t('owner.financeTable.dateFrom')}`"
-                >
-                <input
+                />
+                <AppIsoDateFilterInput
                   v-model="dateTo"
-                  type="date"
-                  dir="ltr"
-                  class="canva-finance-date tabular-nums"
+                  input-class="canva-finance-date tabular-nums"
                   :aria-label="`${t('athlete.paymentFilterDate')} ${t('owner.financeTable.dateTo')}`"
-                >
+                />
               </span>
             </div>
 

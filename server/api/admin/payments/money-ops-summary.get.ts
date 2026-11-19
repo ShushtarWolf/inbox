@@ -105,6 +105,10 @@ export default defineEventHandler(async (event) => {
         deskCashReturnsOwedAged: audit.deskCashReturnsOwedAged,
         action: 'Ack desk cash / mark manual bank refund returned in admin payments',
       },
+      cancelledOnlineWithoutRefundCredit: {
+        count: audit.cancelledOnlineWithoutRefundCredit,
+        action: 'Dry-run POST /api/admin/money-audit/repair-historical-cancel-refunds then reviewed apply / reviewPaymentId',
+      },
     },
   }
 })

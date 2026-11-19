@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildHourlyOptions, formatMinutesAsTime } from './courtFacilities'
+import { buildHourlyOptions, formatMinutesAsTime, slotStartWithinOperatingHours } from './courtFacilities'
 
 describe('formatMinutesAsTime', () => {
   it('formats midnight close as 24:00', () => {
@@ -10,6 +10,14 @@ describe('formatMinutesAsTime', () => {
     expect(formatMinutesAsTime(0)).toBe('00:00')
     expect(formatMinutesAsTime(8 * 60)).toBe('08:00')
     expect(formatMinutesAsTime(23 * 60 + 30)).toBe('23:30')
+  })
+})
+
+describe('slotStartWithinOperatingHours', () => {
+  it('excludes starts after close minus session length', () => {
+    expect(slotStartWithinOperatingHours('21:00', 8, 22, 60)).toBe(true)
+    expect(slotStartWithinOperatingHours('22:00', 8, 22, 60)).toBe(false)
+    expect(slotStartWithinOperatingHours('23:00', 8, 22, 60)).toBe(false)
   })
 })
 

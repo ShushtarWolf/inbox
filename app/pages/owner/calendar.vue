@@ -3,6 +3,7 @@ import { isoToJalaali, jalaaliDaysInMonth, jalaaliToIso, PERSIAN_MONTHS } from '
 import { palette } from '#shared/palette.ts'
 import { isPaidPaymentStatus, isUnpaidPaymentStatus, resolvePaymentChannel } from '#shared/bookingPayment.ts'
 import { addDaysToIsoDate, isPastDate, isSlotStartInPast } from '#shared/localDate.ts'
+import { countFutureFreeOverviewSlots } from '#shared/ownerCalendarOverview.ts'
 import {
   countRecurringSessionsByDayInRange,
   ensureDayTimesForDays,
@@ -11,7 +12,7 @@ import {
   weekdayNameFromDate,
   type DayTimeRange,
 } from '#shared/recurringSessions.ts'
-import { buildHourlyOptions } from '#shared/courtFacilities.ts'
+import { buildHourlyOptions, slotStartWithinOperatingHours } from '#shared/courtFacilities.ts'
 import { isOwnerRecurringBooking } from '#shared/recurringReserve.ts'
 import { bookingTimeRange } from '#shared/bookingTimeRange.ts'
 import { whatsappHrefForIranMobile } from '#shared/payPin.ts'
@@ -38,7 +39,11 @@ import {
 import { guestSearchHitToFormPair, type GuestSearchHit } from '#shared/guestSearch.ts'
 import { normalizeIranPhone } from '#shared/phone.ts'
 import { parseDeskPercent, resolveDeskCharge } from '#shared/deskCharge.ts'
-import { mergeGuestMobileFromDom, applyGuestMobileInput } from '#shared/ownerDeskGuestForm.ts'
+import {
+  applyGuestDeskInputsFromModel,
+  mergeGuestMobileFromDom,
+  applyGuestMobileInput,
+} from '#shared/ownerDeskGuestForm.ts'
 import { resolveSeasonGuestFields } from '#shared/seasonFormHydrate.ts'
 import { shouldExitBookedSelectForFreeSlot } from '#shared/ownerCalendarSelection.ts'
 import { deskPaymentAnchorSlot } from '#shared/deskPaymentAnchor.ts'
@@ -46,6 +51,7 @@ import { resolveDeskPaymentWrite } from '#shared/deskPaidGuard.ts'
 import { isDeskCashCancelRefund, resolveRefundChannel } from '#shared/cancelRefund.ts'
 import { bookingNote } from '#shared/packages.ts'
 import {
+  isOwnerDeskEquipmentPickerCategory,
   isSellEquipmentCategory,
   minAvailableEquipmentAcrossTimes,
   normalizeSlotTime,
@@ -240,6 +246,12 @@ const payLinkSmsError = ref('')
 const sessionType = ref<'free' | 'coach'>('free')
 /** Grid filter: all reserved types, free-play only, or coach-tagged only. */
 const sessionFilter = ref<'all' | 'free' | 'coach'>('all')
+const sessionFilterDefault = 'all' as const
+const sessionFilterActive = computed(() => sessionFilter.value !== sessionFilterDefault)
+
+function clearCalendarSessionFilter() {
+  sessionFilter.value = sessionFilterDefault
+}
 /** After season/package preview → desk pay sheet before create. */
 const pendingRecurringPay = ref<'season' | 'package' | null>(null)
 
@@ -472,7 +484,17 @@ watch(
 
 const hours = computed(() => {
   const set = new Set<string>()
-  data.value?.slots?.forEach((s) => set.add(s.startTime))
+  const duration = data.value?.sessionDurationMinutes ?? 60
+  const clubOpen = data.value?.clubOpenHour ?? 8
+  const clubClose = data.value?.clubCloseHour ?? 22
+  data.value?.slots?.forEach((slot) => {
+    const court = courts.value.find((item) => item.id === slot.courtId)
+    const open = court?.effectiveOpenHour ?? clubOpen
+    const close = court?.effectiveCloseHour ?? clubClose
+    if (slotStartWithinOperatingHours(slot.startTime, open, close, duration)) {
+      set.add(slot.startTime)
+    }
+  })
   return [...set].sort()
 })
 
@@ -511,14 +533,14 @@ const activeCourt = computed(() =>
 const overviewStats = computed(() => {
   const slots = (data.value?.slots || []) as OwnerCalendarSlot[]
   const bookable = slots.filter((slot) => slot.displayStatus !== 'CLOSED')
-  const free = bookable.filter((slot) => slot.displayStatus === 'FREE' && !isExternalOnlyOccupied(slot))
+  const freeCount = countFutureFreeOverviewSlots(bookable, date.value, isExternalOnlyOccupied)
   const reserved = bookable.filter((slot) =>
     slot.displayStatus === 'RESERVED'
     || slot.displayStatus === 'PENDING'
     || Boolean(activeBooking(slot))
     || isExternalOnlyOccupied(slot),
   )
-  const freePct = bookable.length ? Math.round((free.length / bookable.length) * 100) : 0
+  const freePct = bookable.length ? Math.round((freeCount / bookable.length) * 100) : 0
   const reservedPct = bookable.length ? Math.round((reserved.length / bookable.length) * 100) : 0
   const perCourt = courts.value.map((court) => {
     const courtSlots = bookable.filter((slot) => slot.courtId === court.id)
@@ -539,7 +561,7 @@ const overviewStats = computed(() => {
     reservedPct,
     bookingsToday: reserved.length,
     bookable: bookable.length,
-    free: free.length,
+    free: freeCount,
     perCourt,
   }
 })
@@ -1010,6 +1032,14 @@ function slotPaymentStatus(slot: OwnerCalendarSlot | null | undefined) {
   return booking.payment?.status || booking.paymentStatus || null
 }
 
+function detailBookingAmount(slot: OwnerCalendarSlot | null | undefined) {
+  const booking = activeBooking(slot)
+  if (!booking) return slot?.price ?? 0
+  const paid = Number(booking.payment?.amount)
+  if (paid > 0) return paid
+  return slot?.price ?? 0
+}
+
 function slotMeta(slot: OwnerCalendarSlot | null | undefined) {
   if (!slot || slot.displayStatus === 'FREE') return ''
   if (slot.displayStatus === 'BLOCKED') {
@@ -1106,12 +1136,15 @@ const guestSearchOpen = ref(false)
 const guestSearchPending = ref(false)
 let guestSearchTimer: ReturnType<typeof setTimeout> | null = null
 let guestSearchRequest = 0
+const guestSearchScheduledAt = ref(0)
+let guestInputSuppressUntil = 0
 
 function clearGuestSearch() {
   if (guestSearchTimer) {
     clearTimeout(guestSearchTimer)
     guestSearchTimer = null
   }
+  guestSearchScheduledAt.value = 0
   guestSuggestions.value = []
   guestSearchOpen.value = false
   guestSearchPending.value = false
@@ -1146,15 +1179,34 @@ async function runGuestSearch(raw: string) {
 }
 
 function scheduleGuestSearch(raw: string) {
+  const q = raw.trim()
   if (guestSearchTimer) clearTimeout(guestSearchTimer)
-  guestSearchTimer = setTimeout(() => {
+  guestSearchTimer = null
+  if (q.length < 2) {
+    guestSuggestions.value = []
+    guestSearchOpen.value = false
+    guestSearchPending.value = false
+    return
+  }
+  /** Fast typists never hit a 250ms idle — cap wait so suggestions still load. */
+  const maxWaitMs = 400
+  const now = Date.now()
+  const lastAt = guestSearchScheduledAt.value
+  if (!lastAt || now - lastAt >= maxWaitMs) {
+    guestSearchScheduledAt.value = now
     void runGuestSearch(raw)
-  }, 250)
+  }
+  guestSearchTimer = setTimeout(() => {
+    guestSearchScheduledAt.value = Date.now()
+    void runGuestSearch(raw)
+    guestSearchTimer = null
+  }, 120)
 }
 
 const guestSearchSource = ref<'name' | 'mobile'>('name')
 
 function onGuestNameFieldInput() {
+  if (Date.now() < guestInputSuppressUntil) return
   guestSearchSource.value = 'name'
   scheduleGuestSearch(formatGuestDisplayName(form.guestName, form.guestFamily))
 }
@@ -1172,18 +1224,46 @@ function syncGuestFieldsFromDom() {
 }
 
 function onGuestMobileInput(event: Event) {
+  if (Date.now() < guestInputSuppressUntil) return
   const raw = (event.target as HTMLInputElement).value
   form.guestMobile = applyGuestMobileInput(raw)
   guestSearchSource.value = 'mobile'
   scheduleGuestSearch(form.guestMobile)
 }
 
+function syncGuestInputsFromModel() {
+  if (!import.meta.client) return
+  applyGuestDeskInputsFromModel(
+    {
+      guestName: form.guestName,
+      guestFamily: form.guestFamily,
+      guestMobile: form.guestMobile,
+    },
+    {
+      guestName: guestNameInput.value,
+      guestFamily: guestFamilyInput.value,
+      guestMobile: guestMobileInput.value,
+    },
+  )
+}
+
+function paintGuestInputsAfterSelect() {
+  syncGuestInputsFromModel()
+  nextTick(() => {
+    syncGuestInputsFromModel()
+    if (import.meta.client) requestAnimationFrame(() => syncGuestInputsFromModel())
+  })
+}
+
 function selectGuestSuggestion(guest: GuestSearchHit) {
+  guestSearchRequest += 1
+  guestInputSuppressUntil = Date.now() + 450
   const parts = guestSearchHitToFormPair(guest)
   form.guestName = parts.guestName
   form.guestFamily = parts.guestFamily
   if (guest.mobile) form.guestMobile = guest.mobile
   clearGuestSearch()
+  paintGuestInputsAfterSelect()
 }
 
 function closeGuestSearchSoon() {
@@ -3719,9 +3799,7 @@ function slotRowGuestName(slot: OwnerCalendarSlot) {
 const cancelReasons = ['CUSTOMER_REQUEST', 'NO_PAYMENT', 'SCHEDULE_CONFLICT'] as const
 
 const rentalEquipments = computed(() =>
-  (equipments.value || []).filter((item) =>
-    item.category === 'CLUB' || item.category === 'RENTAL' || item.category === 'SELL',
-  ),
+  (equipments.value || []).filter((item) => isOwnerDeskEquipmentPickerCategory(item.category)),
 )
 
 const equipmentPickerOptions = computed(() =>
@@ -4032,7 +4110,7 @@ const seasonDeleteTarget = ref<SeasonListRow | null>(null)
 const seasonDeletePending = ref(false)
 const seasonDeleteError = ref('')
 
-const { data: seasonListData, refresh: refreshSeasonList } = await useAuthedFetch<{ seasons: SeasonListRow[] }>(
+const { data: seasonListData, pending: seasonListPending, refresh: refreshSeasonList } = await useAuthedFetch<{ seasons: SeasonListRow[] }>(
   '/api/owner/seasons',
   { immediate: false, watch: false },
 )
@@ -4181,8 +4259,9 @@ watch(pilotNoCoach, (off) => {
           {{ t('owner.seasonTabNew') }}
         </button>
       </div>
+      <AppVenusSpinner v-if="seasonListPending" size="sm" />
       <CanvaEmptyState
-        v-if="!seasonListRows.length"
+        v-else-if="!seasonListRows.length"
         :title="t('owner.seasonTabEmpty')"
         icon="event_repeat"
       />
@@ -4270,17 +4349,20 @@ watch(pilotNoCoach, (off) => {
 
     <section v-else-if="calendarView === 'today'" class="space-y-3" :class="String(locale) === 'en' ? 'calendar-latin' : ''">
       <!-- Canva closed Today (9): legend · centered date + left FABs · multi-court GRID -->
-      <div v-if="!pilotNoCoach" class="canva-session-filter-row" role="group" :aria-label="t('owner.sessionTypeFilterHint')">
-        <button
-          v-for="opt in sessionFilterOptions"
-          :key="opt.value"
-          type="button"
-          class="canva-session-filter-btn"
-          :class="sessionFilter === opt.value ? 'canva-session-filter-btn-on' : ''"
-          @click="sessionFilter = opt.value"
-        >
-          {{ opt.label }}
-        </button>
+      <div v-if="!pilotNoCoach" class="space-y-2">
+        <div class="canva-session-filter-row" role="group" :aria-label="t('owner.sessionTypeFilterHint')">
+          <button
+            v-for="opt in sessionFilterOptions"
+            :key="opt.value"
+            type="button"
+            class="canva-session-filter-btn"
+            :class="sessionFilter === opt.value ? 'canva-session-filter-btn-on' : ''"
+            @click="sessionFilter = opt.value"
+          >
+            {{ opt.label }}
+          </button>
+        </div>
+        <AppFilterClearButton :show="sessionFilterActive" @click="clearCalendarSessionFilter" />
       </div>
       <div v-if="bookingTypeLegend.length" class="canva-legend-row">
         <div v-for="item in bookingTypeLegend" :key="item.key" class="canva-legend-item">
@@ -4349,7 +4431,8 @@ watch(pilotNoCoach, (off) => {
 
         <div class="canva-cal-split">
         <div class="canva-cal-body">
-          <div v-if="!courts.length">
+          <AppVenusSpinner v-if="pending && !courts.length" size="sm" />
+          <div v-else-if="!courts.length">
             <CanvaEmptyState :title="t('owner.emptyCourtsTitle')" doodle="bench" />
           </div>
           <div v-else-if="!hours.length">
@@ -4698,6 +4781,10 @@ watch(pilotNoCoach, (off) => {
             <div v-if="!pilotNoCoach" class="canva-detail-row">
               <span class="text-brand-gray-500">{{ t('owner.coachLabel') }}</span>
               <span class="max-w-[60%] text-start font-bold text-brand-navy">{{ detailCoachLabel() }}</span>
+            </div>
+            <div class="canva-detail-row">
+              <span class="text-brand-gray-500">{{ t('owner.financeTable.income') }}</span>
+              <span class="font-bold tabular-nums text-brand-navy">{{ formatCurrency(detailBookingAmount(selectedSlotFull)) }}</span>
             </div>
             <div class="canva-detail-row" :class="{ 'border-b-0': !slotNoteLine(selectedSlotFull) }">
               <span class="text-brand-gray-500">{{ t('owner.paymentStatusLabel') }}</span>

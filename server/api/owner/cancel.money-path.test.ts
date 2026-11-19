@@ -29,6 +29,7 @@ vi.mock('../../utils/cancellations', () => ({
 vi.mock('../../utils/ownerSeriesCancel', () => ({
   cancelOwnerSeriesBookings: vi.fn(),
   loadOwnerSeriesBookings: vi.fn().mockResolvedValue([]),
+  finalizeSeasonBookingIfNoActiveSessions: vi.fn().mockResolvedValue(false),
 }))
 vi.mock('../../utils/reservations', () => ({
   activeSlotBooking: (b: unknown) => b,
@@ -43,6 +44,7 @@ vi.mock('../../utils/bookingNotify', () => ({
   ownerNotifyPhone: () => '09120000000',
   personNotifyName: (...p: Array<string | null | undefined>) => p.filter(Boolean).join(' '),
   skipGuestBookingSms: () => false,
+  skipGuestCancelSms: () => false,
   notifyBookingCancelled: vi.fn().mockResolvedValue(undefined),
   notifyOwnerBookingCancelled: vi.fn().mockResolvedValue(undefined),
 }))

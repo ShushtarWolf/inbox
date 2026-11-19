@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { isStaleChunkLoadError } from '#shared/chunkLoadError.ts'
+
 const props = defineProps<{
   error: {
     statusCode?: number
@@ -8,6 +10,19 @@ const props = defineProps<{
 }>()
 
 const { t } = useI18n()
+
+const staleChunk = computed(() => isStaleChunkLoadError(props.error))
+
+const statusCodeDisplay = computed(() => {
+  if (staleChunk.value) return undefined
+  return props.error.statusCode || 500
+})
+
+onMounted(() => {
+  if (staleChunk.value) {
+    reloadNuxtApp({ force: true, persistState: true })
+  }
+})
 
 const title = computed(() => {
   if (props.error.statusCode === 404) return t('errors.notFoundTitle')
@@ -35,7 +50,7 @@ function goHome() {
         <div class="canva-error-brand flex justify-center">
           <InboxBrandLockup home-link height-class="h-8" />
         </div>
-        <p v-if="error.statusCode !== 404" class="text-5xl font-bold text-brand-primary">{{ error.statusCode || 500 }}</p>
+        <p v-if="statusCodeDisplay" class="text-5xl font-bold text-brand-primary">{{ statusCodeDisplay }}</p>
         <h1 class="canva-authbox-title">{{ title }}</h1>
         <p class="canva-authbox-sub">{{ message }}</p>
         <p v-if="error.statusCode !== 404" class="text-xs font-bold text-brand-gray-400">inbox · inboxs.ir</p>

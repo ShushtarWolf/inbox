@@ -163,13 +163,62 @@ function syncVisualViewport() {
 /** Insets below this are browser chrome (URL bar) jitter, not a software keyboard. */
 const KEYBOARD_OPEN_MIN_INSET = 120
 
+const keyboardOpenOnDoc = ref(false)
+
 function setKeyboardOpenFlag(open: boolean) {
   if (!import.meta.client) return
   // Compact owner-sheet layout is for iOS software keyboard — not desktop/laptop viewports
   // where visualViewport jitter can falsely set data-app-keyboard=open and break flex inputs.
   const touchPrimary = window.matchMedia('(pointer: coarse)').matches
-  if (!open || !touchPrimary) document.documentElement.removeAttribute('data-app-keyboard')
-  else document.documentElement.setAttribute('data-app-keyboard', 'open')
+  const effective = open && touchPrimary
+  const wasOpen = keyboardOpenOnDoc.value
+  keyboardOpenOnDoc.value = effective
+  if (!effective) {
+    document.documentElement.removeAttribute('data-app-keyboard')
+    // iOS Safari can leave the modal overlay scrolled after keyboard dismiss — reset so
+    // the sheet does not stay visually shifted.
+    if (wasOpen) {
+      document.querySelectorAll<HTMLElement>('[data-app-modal-overlay]').forEach((el) => {
+        el.scrollTop = 0
+      })
+    }
+  } else {
+    document.documentElement.setAttribute('data-app-keyboard', 'open')
+  }
+}
+
+function findSheetScrollParent(field: HTMLElement): HTMLElement | null {
+  const panelBody = field.closest('.venus-modal-panel-body') as HTMLElement | null
+  const authBody = field.closest('.canva-auth-body') as HTMLElement | null
+  const panel = field.closest('.venus-modal-panel') as HTMLElement | null
+  const confirmBook = field.closest('.canva-confirm-book') as HTMLElement | null
+
+  const candidates = [panelBody, authBody, panel, confirmBook].filter(Boolean) as HTMLElement[]
+  for (const el of candidates) {
+    const { overflowY } = getComputedStyle(el)
+    if ((overflowY === 'auto' || overflowY === 'scroll') && el.scrollHeight > el.clientHeight + 2) {
+      return el
+    }
+  }
+  if (document.documentElement.getAttribute('data-app-keyboard') === 'open') {
+    return panel ?? confirmBook ?? panelBody ?? authBody
+  }
+  return panelBody ?? authBody ?? null
+}
+
+/** Scroll only inside the sheet body — never scroll the fixed overlay (iOS layout jump). */
+function scrollFieldWithinSheet(field: HTMLElement, scrollParent: HTMLElement) {
+  const margin = 20
+  const fieldRect = field.getBoundingClientRect()
+  const parentRect = scrollParent.getBoundingClientRect()
+  const parentTop = parentRect.top + margin
+  const parentBottom = parentRect.bottom - margin
+
+  if (fieldRect.bottom > parentBottom) {
+    scrollParent.scrollTop += fieldRect.bottom - parentBottom
+  } else if (fieldRect.top < parentTop) {
+    scrollParent.scrollTop -= parentTop - fieldRect.top
+  }
 }
 
 function getFocusableElements(root: HTMLElement) {
@@ -210,11 +259,19 @@ function scrollFocusedFieldIntoView(target: EventTarget | null) {
   if (!(target instanceof HTMLElement)) return
   if (!/^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName)) return
   if ((target as HTMLInputElement).type === 'hidden') return
-  // Wait for keyboard + visualViewport to settle, then center the field in the scrollable body.
+  if (!dialogRef.value?.contains(target)) return
+  const touchPrimary = window.matchMedia('(pointer: coarse)').matches
+  // Wait for keyboard + visualViewport to settle (longer on touch — iOS animates both).
   window.setTimeout(() => {
     syncVisualViewport()
-    target.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'smooth' })
-  }, 80)
+    const scrollParent = findSheetScrollParent(target)
+    if (scrollParent) {
+      scrollFieldWithinSheet(target, scrollParent)
+      return
+    }
+    // Desktop centered modal — safe to use nearest (not center) on the dialog subtree only.
+    target.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: touchPrimary ? 'auto' : 'smooth' })
+  }, touchPrimary ? 120 : 80)
 }
 
 function onDialogFocusIn(event: FocusEvent) {
@@ -356,7 +413,10 @@ onUnmounted(() => {
                   <template v-else>{{ $t('common.close') }}</template>
                 </button>
               </div>
-              <div class="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain">
+              <div
+                class="app-modal-body flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain"
+                :class="sheet ? 'app-modal-body-sheet' : ''"
+              >
                 <slot />
               </div>
             </div>

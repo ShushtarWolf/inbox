@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { FinanceBookingKindFilter, FinanceLegendFilter, FinancePaymentFilter, FinanceSessionFilter, FinanceTxSortDir, FinanceTxSortKey } from '#shared/financeTransactions.ts'
+import { isOwnerFinanceTxFiltersActive, type FinanceBookingKindFilter, type FinanceLegendFilter, type FinancePaymentFilter, type FinanceSessionFilter, type FinanceTxSortDir, type FinanceTxSortKey, type OwnerFinanceTxFilterState } from '#shared/financeTransactions.ts'
 
 const session = defineModel<FinanceSessionFilter>('session', { required: true })
 const bookingKind = defineModel<FinanceBookingKindFilter>('bookingKind', { required: true })
@@ -17,13 +17,23 @@ const sortDir = defineModel<FinanceTxSortDir>('sortDir', { required: true })
 const props = withDefaults(defineProps<{
   showSession?: boolean
   /** always: report cards. narrow: phone list, table headers sort on desktop. */
-  sortMode?: 'always' | 'narrow' | 'never'
+  sortMode?: 'never' | 'always' | 'narrow'
+  /** Page-specific filter defaults (session default differs on finance vs report). */
+  defaults: OwnerFinanceTxFilterState
 }>(), {
   showSession: true,
   sortMode: 'never',
 })
 
+const emit = defineEmits<{
+  cleared: []
+}>()
+
 const { t } = useI18n()
+const { formatNumber } = useFormatters()
+
+/** Phone-width finance tabs: collapsed by default so the tx list stays reachable. */
+const mobileFiltersOpen = ref(false)
 
 const sessionFilterOptions = computed(() => ([
   { value: 'all' as const, label: t('owner.financeTable.sessionFilterAll') },
@@ -60,11 +70,67 @@ const sortOptions: FinanceTxSortKey[] = ['reservation', 'reservedAt', 'paidAt', 
 
 const hasDateFilter = computed(() => Boolean(reservedFrom.value || reservedTo.value || paidFrom.value || paidTo.value))
 
+const filterState = computed<OwnerFinanceTxFilterState>(() => ({
+  session: session.value,
+  bookingKind: bookingKind.value,
+  payment: payment.value,
+  legend: legend.value,
+  guest: guest.value,
+  discountCode: discountCode.value,
+  reservedFrom: reservedFrom.value,
+  reservedTo: reservedTo.value,
+  paidFrom: paidFrom.value,
+  paidTo: paidTo.value,
+  sortKey: sortKey.value,
+  sortDir: sortDir.value,
+}))
+
+const hasActiveFilters = computed(() => isOwnerFinanceTxFiltersActive(filterState.value, props.defaults))
+
+const activeFilterCount = computed(() => {
+  let n = 0
+  const d = props.defaults
+  const c = filterState.value
+  if (props.showSession && c.session !== d.session) n++
+  if (c.legend !== (d.legend ?? 'all')) n++
+  if (c.bookingKind !== (d.bookingKind ?? 'all')) n++
+  if (c.payment !== (d.payment ?? 'all')) n++
+  if ((c.guest ?? '').trim() !== (d.guest ?? '').trim()) n++
+  if ((c.discountCode ?? '').trim() !== (d.discountCode ?? '').trim()) n++
+  if ((c.reservedFrom ?? '') !== (d.reservedFrom ?? '') || (c.reservedTo ?? '') !== (d.reservedTo ?? '')) n++
+  if ((c.paidFrom ?? '') !== (d.paidFrom ?? '') || (c.paidTo ?? '') !== (d.paidTo ?? '')) n++
+  if (c.sortKey !== (d.sortKey ?? 'reservedAt') || c.sortDir !== (d.sortDir ?? 'desc')) n++
+  return n
+})
+
+const mobileFiltersToggleLabel = computed(() => {
+  const n = activeFilterCount.value
+  if (n === 0) return t('owner.financeTable.filtersToggle')
+  return t('owner.financeTable.filtersToggleActive', { n: formatNumber(n) })
+})
+
 function clearDates() {
   reservedFrom.value = ''
   reservedTo.value = ''
   paidFrom.value = ''
   paidTo.value = ''
+}
+
+function clearAllFilters() {
+  const d = props.defaults
+  session.value = d.session
+  bookingKind.value = d.bookingKind ?? 'all'
+  payment.value = d.payment ?? 'all'
+  legend.value = d.legend ?? 'all'
+  guest.value = d.guest ?? ''
+  discountCode.value = d.discountCode ?? ''
+  reservedFrom.value = d.reservedFrom ?? ''
+  reservedTo.value = d.reservedTo ?? ''
+  paidFrom.value = d.paidFrom ?? ''
+  paidTo.value = d.paidTo ?? ''
+  sortKey.value = d.sortKey ?? 'reservedAt'
+  sortDir.value = d.sortDir ?? 'desc'
+  emit('cleared')
 }
 
 const visibleKindOptions = computed(() => (
@@ -82,7 +148,31 @@ function sortLabel(key: FinanceTxSortKey) {
 </script>
 
 <template>
-  <div class="space-y-2">
+  <div class="owner-finance-tx-filters space-y-2">
+    <button
+      type="button"
+      class="canva-session-filter-btn flex w-full items-center justify-between gap-2 text-start max-[430px]:flex min-[431px]:hidden"
+      :aria-expanded="mobileFiltersOpen"
+      aria-controls="owner-finance-tx-filters-panel"
+      @click="mobileFiltersOpen = !mobileFiltersOpen"
+    >
+      <span class="font-bold">{{ mobileFiltersToggleLabel }}</span>
+      <AppIcon
+        name="expand_more"
+        size="sm"
+        class="shrink-0 transition-transform duration-200"
+        :class="mobileFiltersOpen ? 'rotate-180' : ''"
+        aria-hidden="true"
+      />
+    </button>
+
+    <div
+      id="owner-finance-tx-filters-panel"
+      class="space-y-2"
+      :class="mobileFiltersOpen ? '' : 'max-[430px]:hidden'"
+    >
+    <AppFilterClearButton :show="hasActiveFilters" @click="clearAllFilters" />
+
     <div
       v-if="showSession"
       class="canva-session-filter-row"
@@ -176,39 +266,34 @@ function sortLabel(key: FinanceTxSortKey) {
       <div class="text-start">
         <span class="mb-1 block text-xs font-bold text-brand-navy">{{ t('owner.financeTable.reservedAt') }}</span>
         <span class="flex gap-2">
-          <input
+          <AppIsoDateFilterInput
             v-model="reservedFrom"
-            type="date"
-            dir="ltr"
-            class="canva-finance-date tabular-nums"
+            input-class="canva-finance-date tabular-nums"
             :aria-label="`${t('owner.financeTable.reservedAt')} ${t('owner.financeTable.dateFrom')}`"
-          >
-          <input
+          />
+          <AppIsoDateFilterInput
             v-model="reservedTo"
-            type="date"
-            dir="ltr"
-            class="canva-finance-date tabular-nums"
+            class="min-w-0 flex-1"
+            input-class="canva-finance-date tabular-nums"
             :aria-label="`${t('owner.financeTable.reservedAt')} ${t('owner.financeTable.dateTo')}`"
-          >
+          />
         </span>
       </div>
       <div class="text-start">
         <span class="mb-1 block text-xs font-bold text-brand-navy">{{ t('owner.financeTable.paidAt') }}</span>
         <span class="flex gap-2">
-          <input
+          <AppIsoDateFilterInput
             v-model="paidFrom"
-            type="date"
-            dir="ltr"
-            class="canva-finance-date tabular-nums"
+            class="min-w-0 flex-1"
+            input-class="canva-finance-date tabular-nums"
             :aria-label="`${t('owner.financeTable.paidAt')} ${t('owner.financeTable.dateFrom')}`"
-          >
-          <input
+          />
+          <AppIsoDateFilterInput
             v-model="paidTo"
-            type="date"
-            dir="ltr"
-            class="canva-finance-date tabular-nums"
+            class="min-w-0 flex-1"
+            input-class="canva-finance-date tabular-nums"
             :aria-label="`${t('owner.financeTable.paidAt')} ${t('owner.financeTable.dateTo')}`"
-          >
+          />
         </span>
       </div>
     </div>
@@ -239,5 +324,6 @@ function sortLabel(key: FinanceTxSortKey) {
         {{ sortDir === 'asc' ? '↑' : '↓' }}
       </button>
     </label>
+    </div>
   </div>
 </template>

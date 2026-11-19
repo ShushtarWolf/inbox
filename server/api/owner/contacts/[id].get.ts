@@ -1,14 +1,22 @@
+import { syncClubContactByClubAndMobile } from '../../../utils/contactSync'
+
 export default defineEventHandler(async (event) => {
   const { club } = await requireOwnerClub(event, 'crm')
   const id = getRouterParam(event, 'id')
   if (!id) {
     throw createError({ statusCode: 400, statusMessage: 'Missing contact id' })
   }
-  const contact = await prisma.contact.findFirst({
+  let contact = await prisma.contact.findFirst({
     where: { id, clubId: club.id },
   })
   if (!contact) {
     throw createError({ statusCode: 404, statusMessage: 'Contact not found' })
+  }
+  if (contact.mobile) {
+    await syncClubContactByClubAndMobile(club.id, contact.mobile)
+    contact = await prisma.contact.findFirstOrThrow({
+      where: { id, clubId: club.id },
+    })
   }
   const recipients = await prisma.campaignRecipient.findMany({
     where: { contactId: contact.id },
