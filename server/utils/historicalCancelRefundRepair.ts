@@ -430,6 +430,43 @@ export async function inventoryHistoricalCancelRefunds(tracking?: string): Promi
   }
 }
 
+/** Phase 3 — dry-run inventory only (credit / skip / review / series_gap). Never writes. */
+export async function runPhase3CancelRefundInventory(opts?: {
+  tracking?: string
+  clubSlug?: string
+  sampleLimit?: number
+}) {
+  const report = await inventoryHistoricalCancelRefunds(opts?.tracking)
+  const sampleLimit = Math.max(1, Math.min(50, opts?.sampleLimit ?? 25))
+  const samples: Record<HistoricalRepairBucket, HistoricalCancelRefundLine[]> = {
+    credit: [],
+    skip: [],
+    review: [],
+    series_gap: [],
+  }
+  for (const line of report.lines) {
+    const bucket = line.bucket || historicalRepairBucket(line.decision)
+    const bucketList = samples[bucket]
+    if (bucketList.length < sampleLimit) bucketList.push(line)
+  }
+  let clubFilter: string | null = opts?.clubSlug?.trim() || null
+  if (clubFilter) {
+    const club = await prisma.club.findUnique({ where: { slug: clubFilter }, select: { id: true } })
+    if (!club) clubFilter = null
+  }
+  return {
+    dryRun: true,
+    clubSlug: clubFilter,
+    creditCount: report.creditCount,
+    creditToman: report.creditToman,
+    bucketCounts: report.buckets,
+    decisionCounts: report.counts,
+    samples,
+    trackingMatch: report.trackingMatch,
+    overCreditSample: report.overCredits,
+  }
+}
+
 export async function applyHistoricalCancelCredit(line: HistoricalCancelRefundLine, opts?: {
   force?: boolean
   /** Trust the inventory decision (series/ledger synthesis already used owed helper). */

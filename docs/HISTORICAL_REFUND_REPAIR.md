@@ -10,6 +10,13 @@ TRACKING=1541908 node --import tsx scripts/repair-historical-cancel-refunds.ts
 APPLY=yes node --import tsx scripts/repair-historical-cancel-refunds.ts
 ```
 
+Phase 3 inventory (dry-run only — buckets `credit` / `skip` / `review` / `series_gap`):
+
+```bash
+npm run db:inventory-cancel-refunds
+TRACKING=1541908 CLUB_SLUG=iust-tennis npm run db:inventory-cancel-refunds
+```
+
 Prod (app has DB access):
 
 ```bash
