@@ -83,7 +83,7 @@ jobs:
           # Refuse GlitchTip / non-inbox artifacts so agents never treat bad dumps as money truth.
           ./scripts/sql/assert-inbox-postgres-dump.sh "$OUT"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: inbox-db-local-backup
           path: backups/*.dump
