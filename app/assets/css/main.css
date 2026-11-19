@@ -1843,6 +1843,13 @@
     @apply flex h-3 w-full overflow-hidden bg-brand-gray-200;
     border-radius: var(--sz-canva-radius);
   }
+  .canva-finance-method-segment {
+    @apply block h-full shrink-0;
+    min-width: 0;
+  }
+  .canva-finance-method-segment[style*='width: 0%'] {
+    display: none;
+  }
   .canva-finance-legend-swatch {
     @apply inline-block h-2.5 w-2.5 shrink-0;
     border-radius: var(--sz-canva-radius);
@@ -1921,8 +1928,11 @@
     border-radius: var(--sz-canva-radius);
   }
   .canva-finance-funnel-empty {
-    @apply flex min-h-[7rem] items-center justify-center border border-brand-gray-200 bg-white px-3 text-center text-xs text-brand-gray-500;
+    @apply flex min-h-[7rem] w-full flex-col items-stretch justify-center gap-3 border border-brand-gray-200 bg-white px-3 py-3 text-center text-xs text-brand-gray-500;
     border-radius: var(--sz-canva-radius);
+  }
+  .canva-finance-funnel-empty-summary {
+    @apply w-full border-t border-brand-gray-100 pt-3 text-start;
   }
   .canva-crm-stats {
     @apply grid grid-cols-3 gap-2;
@@ -2467,7 +2477,8 @@
     @apply flex items-stretch gap-2;
   }
   .canva-confirm-book-discount-input {
-    @apply min-w-0 flex-1 border border-[rgba(44,44,42,0.2)] bg-white px-[10px] py-[10px] text-sm text-brand-navy placeholder:text-brand-gray-600 disabled:cursor-not-allowed disabled:opacity-70;
+    /* text-base (16px) on phone — iOS Safari auto-zooms focused fields under 16px (neo-input pattern) */
+    @apply min-w-0 flex-1 border border-[rgba(44,44,42,0.2)] bg-white px-[10px] py-[10px] text-base text-brand-navy placeholder:text-brand-gray-600 disabled:cursor-not-allowed disabled:opacity-70 sm:text-sm;
     border-radius: var(--sz-canva-radius);
   }
   /* HTML .cxtiny — beige apply */
@@ -2555,16 +2566,34 @@
   }
 
   /*
+   * Sheet + software keyboard (iOS): one scroll surface, no overlay scroll chaining.
+   * Overlay padding lifts the sheet above the keyboard; do not also shrink the dialog
+   * with --app-vv-height (double accounting caused IB-45 layout jumps).
+   */
+  html[data-app-keyboard='open'] [data-app-modal-overlay]:has(.canva-sheet-dialog) {
+    overflow: hidden;
+    padding-top: 0.25rem;
+    padding-bottom: calc(var(--app-keyboard-inset, 0px) + 0.25rem);
+  }
+  html[data-app-keyboard='open'] .canva-sheet-dialog {
+    max-height: 100%;
+    margin-top: 0;
+  }
+  html[data-app-keyboard='open'] .canva-sheet-dialog .app-modal-body-sheet {
+    @apply flex-none overflow-visible;
+    min-height: 0;
+  }
+  html[data-app-keyboard='open'] .canva-owner-slot-modal .venus-modal-shell {
+    max-height: none;
+  }
+
+  /*
    * Owner slot sheet — compact single-scroll mode when vertical space is scarce:
    * iOS keyboard up (AppModal sets html[data-app-keyboard=open]; layout viewport
    * and media queries stay full-height there) or a genuinely short viewport.
    * Header, body and footer scroll together so the pinned header + footer no
    * longer squeeze the inputs to ~0px and the footer cannot cover fields.
    */
-  html[data-app-keyboard='open'] [data-app-modal-overlay]:has(.canva-owner-slot-modal) {
-    padding-top: 0.25rem;
-    padding-bottom: calc(var(--app-keyboard-inset, 0px) + 0.25rem);
-  }
   html[data-app-keyboard='open'] .canva-owner-slot-modal .venus-modal-panel {
     @apply block overflow-y-auto overscroll-contain;
   }
@@ -2574,6 +2603,20 @@
   html[data-app-keyboard='open'] .canva-owner-slot-modal .venus-modal-footer {
     position: static;
   }
+
+  /* Athlete checkout sheet — same single-scroll pattern as owner slot sheets. */
+  html[data-app-keyboard='open'] .canva-sheet-dialog .canva-confirm-book {
+    @apply block overflow-y-auto overscroll-contain;
+    max-height: none;
+    flex: none;
+  }
+  html[data-app-keyboard='open'] .canva-sheet-dialog .canva-confirm-book .canva-auth-body {
+    @apply flex-none overflow-visible;
+  }
+  html[data-app-keyboard='open'] .canva-sheet-dialog .canva-confirm-book .canva-auth-header {
+    position: static;
+  }
+
   @media (max-height: 640px) and (max-width: 1023px) {
     .canva-owner-slot-modal .venus-modal-panel {
       @apply block overflow-y-auto overscroll-contain;
@@ -2610,10 +2653,11 @@
   }
   /* Canva multi-court today grid (home page 9) — date row; FABs never absolute-overlay the label */
   .canva-cal-date-nav {
-    @apply relative mb-2 flex min-h-[2.5rem] flex-col items-stretch gap-1.5 pt-0.5 text-sm font-bold text-[#3B82F6];
+    @apply relative mb-2 flex min-h-[2.5rem] min-w-0 max-w-full flex-col items-stretch gap-1.5 pt-0.5 text-sm font-bold text-[#3B82F6];
   }
   .canva-cal-date-fabs {
-    @apply z-[2] flex flex-wrap items-center justify-end gap-1.5;
+    /* RTL phone: justify-start keeps مسدود/رزرو on the inline-start (right) edge inside overflow-x-hidden shells. */
+    @apply z-[2] flex w-full min-w-0 max-w-full flex-wrap items-center justify-start gap-1.5;
   }
   .canva-cal-fab {
     @apply inline-flex h-8 min-w-0 shrink-0 items-center justify-center px-2 text-[11px] font-bold text-white disabled:opacity-35;
@@ -2641,7 +2685,7 @@
     border-radius: var(--sz-canva-radius);
   }
   .canva-cal-grid-shell {
-    @apply relative;
+    @apply relative min-w-0 max-w-full;
   }
   .canva-cal-booked-select-toggle {
     @apply absolute bottom-1 left-1 z-[3] max-w-[calc(100%-0.5rem)] border border-[rgba(44,44,42,.14)] bg-[#eceae6] px-2.5 py-1.5 text-[10px] font-bold text-brand-navy shadow-sm transition hover:bg-[#e4e0da];
@@ -2651,10 +2695,15 @@
     @apply border-brand-navy bg-brand-navy text-white hover:bg-brand-navy;
   }
   .canva-cal-body {
-    @apply block;
+    @apply block min-w-0 max-w-full;
   }
   .canva-cal-grid-scroll {
-    @apply relative min-w-0 flex-1 overflow-x-auto pb-9;
+    @apply relative min-w-0 max-w-full flex-1 overflow-x-auto pb-9;
+  }
+  @media (max-width: 430px) {
+    .owner-cal-page .canva-cal-split {
+      @apply min-w-0 max-w-full;
+    }
   }
   /* Mobile HTML .omg/.omc: 1px gutters; desk HTML .mx: gap 8px */
   .canva-cal-grid {
@@ -4471,7 +4520,12 @@
 /* SoT .field inputs + .chip presets + auto-width .btn (athlete profile/wallet) */
 .canva-sot-form .neo-input, .canva-sot-form .neo-select, .canva-sot-form input:not([type=file]):not([type=checkbox]):not([type=radio]) {
   border: 1px solid rgba(44,44,42,.08) !important; border-radius: 0 !important; background: #fff !important;
-  padding: 10px 12px; font-size: 13px; color: #2c2c2a; box-shadow: none !important; width: 100%;
+  padding: 10px 12px; font-size: 16px; color: #2c2c2a; box-shadow: none !important; width: 100%;
+}
+@media (min-width: 640px) {
+  .canva-sot-form .neo-input, .canva-sot-form .neo-select, .canva-sot-form input:not([type=file]):not([type=checkbox]):not([type=radio]) {
+    font-size: 13px;
+  }
 }
 .canva-sot-form .neo-input:focus, .canva-sot-form .neo-select:focus { outline: none; border-color: #C41E1E !important; }
 .canva-sot-chips { display: flex !important; flex-wrap: wrap; gap: 8px; }
@@ -4485,7 +4539,7 @@
   border: 1px solid rgba(44,44,42,.08); border-radius: 0; background-color: #fff; color: #2c2c2a; padding: 10px 12px;
 }
 .neo-input:focus, .neo-select:focus, .neo-textarea:focus, .tail-input:focus, .tail-select:focus, .tail-textarea:focus { border: 1px solid #C41E1E; }
-@media (min-width: 431px) { .neo-input, .neo-select, .neo-textarea, .tail-input, .tail-select, .tail-textarea { font-size: 13px; } }
+@media (min-width: 640px) { .neo-input, .neo-select, .neo-textarea, .tail-input, .tail-select, .tail-textarea { font-size: 13px; } }
 /* SoT owner: single in-page active-club card (layout switcher wins when shown) */
 .canva-club-switcher ~ * .owner-rclubcard, .canva-club-switcher ~ .owner-rclubcard { display: none !important; }
 .canva-sot-actions .canva-gate-btn-primary { width: auto !important; padding: 9px 22px; }
@@ -5072,8 +5126,10 @@ main:has(.owner-staff-page) section:has(> .owner-staff-page) { background:transp
   main .owner-discount-page.venus-page-stack > div:first-child { padding-top: 8px }
   main .owner-discount-page h1 { font-size: 22px; line-height: 35px; color: #2c2c2a }
   main .owner-discount-page h1 + p { font-size: 13px; line-height: 20px; color: #4a4a47; margin: 6px 0 10px }
-  main .owner-discount-page.venus-page-stack > .flex { flex-direction: column-reverse; align-items: flex-start; gap: 0 }
-  main .owner-discount-page.venus-page-stack > .flex > p { font-size: 12px; line-height: 18px; color: #4a4a47; margin: -4px 0 10px } /* flex (non-collapsing) → lands at SoT y=305 */
+  main .owner-discount-page.venus-page-stack > .flex.justify-between:has(.canva-equip-add) { flex-direction: column-reverse; align-items: flex-start; gap: 0 }
+  main .owner-discount-page.venus-page-stack > .flex.justify-between:has(.canva-equip-add) > p { font-size: 12px; line-height: 18px; color: #4a4a47; margin: -4px 0 10px } /* flex (non-collapsing) → lands at SoT y=305 */
+  main .owner-discount-page .owner-discount-tabs { margin-top: 10px; margin-bottom: 12px }
+  main .owner-discount-page .canva-legal-footer { margin-top: 1.25rem; justify-content: flex-start }
   main .owner-discount-page .canva-equip-add { padding: 6px 0; font-size: 12px; line-height: 18px; font-weight: 700; color: #2e7d4f; background: none; border: 0; min-height: 0 }
   main .owner-discount-page ul > li.text-xs { padding: 14px; font-size: 12px; color: #2c2c2a }
 }
@@ -5085,7 +5141,7 @@ main:has(.owner-staff-page) section:has(> .owner-staff-page) { background:transp
 .owner-finance-page .owner-fin-method-head { flex-direction:column; align-items:flex-start; gap:8px }
 .owner-finance-page .owner-fin-method-head h2 { font-size:13px }
 .owner-finance-page .owner-fin-method-legend { font-size:10px; font-weight:400 }
-.owner-finance-page .owner-fin-method-pct { display:none }
+.owner-finance-page .owner-fin-method-pct { display:flex; gap:8px; font-size:11px }
 .owner-finance-page .canva-finance-method-bar + .owner-fin-method-pct + p, .owner-finance-page .owner-fin-method-pct + p { font-size:10.5px; margin-top:8px }
 
 /* leftovers batch 3: settings field density, support guide rhythm (SoT .zrule p: 13px, 12px gap) */
@@ -5378,4 +5434,16 @@ main:has(.owner-staff-page) section:has(> .owner-staff-page) { background:transp
   .fin-v4 .fin-today{gap:6px}
   .fin-v4 .fin-today .canva-finance-chip,.fin-v4 .fin-today .canva-finance-chip-link{padding:10px}
   .fin-v4 .fin-today .canva-finance-chip-value{font-size:15px}
+}
+
+/* ─── iOS Safari input zoom guard (mobile) ───
+   Safari auto-zooms focused fields under 16px and often stays zoomed (layout “jumble”).
+   Backstop below sm: beats SoT 13px overrides; desktop sizes unchanged at ≥640px. */
+@media (max-width: 639px) {
+  input:not([type='checkbox']):not([type='radio']):not([type='file']):not([type='hidden']):not([type='button']):not([type='submit']):not([type='reset']):not([type='image']):not([type='range']):not([type='color']),
+  textarea,
+  select,
+  [contenteditable]:not([contenteditable='false']) {
+    font-size: 16px !important;
+  }
 }

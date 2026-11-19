@@ -10,6 +10,10 @@ import {
   athleteListPrice,
   receiptLinePrice,
   sessionRefundAmount,
+  seriesRegisteredSessionCount,
+  buildSeasonRegisteredSessionCountMaps,
+  resolveSeasonSessionCountForDisplay,
+  seriesRegisteredSessionCountFromRows,
 } from './athleteSeason'
 
 describe('isAthleteSeasonEnabled', () => {
@@ -112,6 +116,30 @@ describe('series payment meta + pro-rata', () => {
     })).toBe(100_000)
   })
 
+  it('caps list sessionPrice by group size when remainingSessions missing (series fail-safe)', () => {
+    expect(sessionRefundAmount({
+      sessionPrice: 5_000,
+      primaryAmount: 9_000,
+      alreadyRefunded: 0,
+      totalSessionsInGroup: 6,
+    })).toBe(1_500)
+  })
+
+  it('caps list sessionPrice by fair share when remainingSessions known (pack discount)', () => {
+    expect(sessionRefundAmount({
+      sessionPrice: 5_000,
+      primaryAmount: 9_000,
+      alreadyRefunded: 0,
+      remainingSessions: 6,
+    })).toBe(1_500)
+    expect(sessionRefundAmount({
+      sessionPrice: 5_000,
+      primaryAmount: 30_000,
+      alreadyRefunded: 0,
+      remainingSessions: 6,
+    })).toBe(5_000)
+  })
+
   it('fair-splits residual when sessionPrice is missing mid-series', () => {
     expect(sessionRefundAmount({
       sessionPrice: null,
@@ -189,6 +217,43 @@ describe('series payment meta + pro-rata', () => {
       paymentAmount: 15_000,
       slotPrice: 12_000,
     })).toBe(15_000)
+  })
+
+  it('seriesRegisteredSessionCount uses primary sibling list', () => {
+    expect(seriesRegisteredSessionCount({
+      groupSiblingBookingIds: ['b2', 'b3'],
+    })).toBe(3)
+    expect(seriesRegisteredSessionCount({ groupPrimaryBookingId: 'b1' })).toBeNull()
+    expect(seriesRegisteredSessionCount({ coveredByBookingId: 'b1', seasonBookingId: 's1' })).toBeNull()
+  })
+
+  it('resolveSeasonSessionCountForDisplay follows covered primary metadata', () => {
+    const maps = buildSeasonRegisteredSessionCountMaps([
+      {
+        metadataJson: JSON.stringify({
+          seasonBookingId: 's1',
+          groupPrimaryBookingId: 'b1',
+          groupSiblingBookingIds: Array.from({ length: 29 }, (_, i) => `b${i + 2}`),
+        }),
+      },
+    ])
+    const siblingMeta = parseSeriesPaymentMeta(JSON.stringify({
+      seasonBookingId: 's1',
+      coveredByBookingId: 'b1',
+      sessionPrice: 12_000,
+    }))
+    expect(resolveSeasonSessionCountForDisplay(siblingMeta, maps)).toBe(30)
+    expect(seriesRegisteredSessionCountFromRows([
+      { payment: { metadataJson: JSON.stringify({ coveredByBookingId: 'b1' }) } },
+      {
+        payment: {
+          metadataJson: JSON.stringify({
+            groupPrimaryBookingId: 'b1',
+            groupSiblingBookingIds: ['b2'],
+          }),
+        },
+      },
+    ])).toBe(2)
   })
 
   it('athleteListPrice keeps charged totals and fills sibling zeros', () => {

@@ -99,7 +99,7 @@ const { fetchErrorMessage } = useFetchError()
 const { pilotNoCoach } = usePilotFlags()
 const { fetch: fetchAuth } = useAuth()
 const { data, pending, error, refresh } = await useAuthedFetch<OwnerSettingsResponse>('/api/owner/settings')
-const { data: courtsData, refresh: refreshCourts } = await useAuthedFetch<OwnerCourtListItem[]>('/api/owner/courts')
+const { data: courtsData, pending: courtsPending, refresh: refreshCourts } = await useAuthedFetch<OwnerCourtListItem[]>('/api/owner/courts')
 useOwnerClubRefresh(() => { refresh(); refreshCourts() })
 
 const isOwner = computed(() => data.value?.membership?.role === 'OWNER')
@@ -809,7 +809,8 @@ const hourOptions = computed(() => Array.from({ length: 25 }, (_, i) => i))
                 {{ t('common.edit') }}
               </button>
             </li>
-            <li v-if="!(courtsData || []).length" class="text-sm text-brand-gray-600">{{ t('common.empty') }}</li>
+            <li v-if="courtsPending" class="text-sm text-brand-gray-600">{{ t('common.loading') }}</li>
+            <li v-else-if="!(courtsData || []).length" class="text-sm text-brand-gray-600">{{ t('common.empty') }}</li>
           </ul>
         </div>
 

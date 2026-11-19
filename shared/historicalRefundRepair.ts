@@ -9,12 +9,31 @@ import { cancelWalletCreditAmount } from './owedCancelRefund.ts'
  */
 export const HISTORICAL_REFUND_NOTE_PREFIX = 'recon:historical-cancel:'
 
-export function historicalRefundIdempotencyKey(paymentId: string): string {
+/**
+ * Stable recon key. Standalone = per payment. Series session heal = payment + cancelled booking
+ * so several sibling cancels on one primary can each append once.
+ */
+export function historicalRefundIdempotencyKey(
+  paymentId: string,
+  bookingId?: string | null,
+): string {
+  if (bookingId) return `${HISTORICAL_REFUND_NOTE_PREFIX}${paymentId}:${bookingId}`
   return `${HISTORICAL_REFUND_NOTE_PREFIX}${paymentId}`
 }
 
+/** Phase-3 dry-run bucket for ops review. */
+export type HistoricalRepairBucket = 'credit' | 'skip' | 'review' | 'series_gap'
+
+export function historicalRepairBucket(
+  decision: HistoricalRefundDecision,
+): Exclude<HistoricalRepairBucket, 'series_gap'> {
+  if (decision.action === 'credit') return 'credit'
+  if (decision.action === 'skip') return 'skip'
+  return 'review'
+}
+
 export type HistoricalRefundDecision =
-  | { action: 'credit'; amount: number; reason: 'wallet_path_shortfall' | 'wallet_spend_shortfall' | 'split_wallet_rail_after_card_reverse' }
+  | { action: 'credit'; amount: number; reason: 'wallet_path_shortfall' | 'wallet_spend_shortfall' | 'split_wallet_rail_after_card_reverse' | 'series_session_shortfall' }
   | { action: 'skip'; reason: 'cash_club_responsibility' | 'already_credited' | 'already_reconciled' | 'not_cancelled' | 'card_already_reversed' }
   | { action: 'unresolved'; reason: 'bank_outcome_unknown' | 'bank_outcome_pending' | 'no_verified_account' | 'owed_amount_unknown' }
 
@@ -114,6 +133,7 @@ function owedAmount(input: HistoricalRefundInput): number | null {
     remainingSessionsIncludingCancelled: input.remainingSessionsIncludingCancelled,
     treatAsSeries: input.treatAsSeries,
     metadata: meta,
+    honorExplicitRefundMeta: false,
   })
   if (result.reason === 'desk_cash') return null
   return result.amount
@@ -152,6 +172,9 @@ export function decideHistoricalCancelRefund(input: HistoricalRefundInput): Hist
   if (owed == null) return { action: 'unresolved', reason: 'owed_amount_unknown' }
   const gap = Math.max(0, owed - credited)
   if (gap <= 0) return { action: 'skip', reason: 'already_credited' }
+  if (input.treatAsSeries === true) {
+    return { action: 'credit', amount: gap, reason: 'series_session_shortfall' }
+  }
   return {
     action: 'credit',
     amount: gap,

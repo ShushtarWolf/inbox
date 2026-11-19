@@ -1,7 +1,7 @@
 import { normalizeIranPhone } from '#shared/phone.ts'
 import { notifyUserDisplayName } from '#shared/userName.ts'
 import { isCashPaidBooking } from '#shared/cancelNotice.ts'
-import { seriesCancelPaymentId } from '#shared/ownerSeries.ts'
+import { ownerSeriesKey, seriesCancelPaymentId } from '#shared/ownerSeries.ts'
 import {
   notifyBookingCancelled,
   notifyOwnerBookingCancelled,
@@ -9,10 +9,14 @@ import {
   courtNotifyName,
   ownerNotifyPhone,
   personNotifyName,
-  skipGuestBookingSms,
+  skipGuestCancelSms,
 } from '../../utils/bookingNotify'
 import { cancelCourtBooking } from '../../utils/cancellations'
-import { cancelOwnerSeriesBookings, loadOwnerSeriesBookings } from '../../utils/ownerSeriesCancel'
+import {
+  cancelOwnerSeriesBookings,
+  finalizeSeasonBookingIfNoActiveSessions,
+  loadOwnerSeriesBookings,
+} from '../../utils/ownerSeriesCancel'
 import { activeSlotBooking } from '../../utils/reservations'
 import {
   bookingLooksLikeSeriesPayment,
@@ -33,7 +37,16 @@ export default defineEventHandler(async (event) => {
 
   const slot = await prisma.slot.findFirst({
     where: { id: body.slotId, court: { clubId: club.id } },
-    include: { booking: { include: { payment: true, user: true } }, court: true },
+    include: {
+      booking: {
+        include: {
+          payment: true,
+          user: true,
+          events: { where: { type: 'CREATED' }, select: { metadataJson: true }, take: 8 },
+        },
+      },
+      court: true,
+    },
   })
   if (!slot) throw createError({ statusCode: 404, statusMessage: 'Not found' })
 
@@ -63,6 +76,14 @@ export default defineEventHandler(async (event) => {
       const phone = anchor.user?.phone || (rawGuest ? normalizeIranPhone(rawGuest) || rawGuest : null)
       const guestName = personNotifyName(anchor.guestName, anchor.guestFamily)
         || notifyUserDisplayName(anchor.user)
+      const seriesKey = ownerSeriesKey({
+        packageDraftId: booking.packageDraftId,
+        paymentMetadataJson: booking.payment?.metadataJson,
+        eventMetadataJson: booking.events?.map((event) => event.metadataJson),
+      })
+      if (seriesKey?.kind === 'season') {
+        await finalizeSeasonBookingIfNoActiveSessions(club.id, seriesKey.id)
+      }
       if (!body.skipNotify) {
         await notifyOwnerBookingCancelled({
           ownerPhone: ownerNotifyPhone(club),
@@ -91,11 +112,11 @@ export default defineEventHandler(async (event) => {
         reason,
         guestName,
         courtName: courtNotifyName(anchor.slot.court),
-        skipGuest: skipGuestBookingSms(anchor),
+        skipGuest: skipGuestCancelSms(anchor),
         cashPaid: isCashPaidBooking({
-          paymentMethod: booking.payment?.method,
-          bookingPaymentMethod: booking.paymentMethod,
-          paymentStatus: booking.payment?.status || booking.paymentStatus,
+          paymentMethod: anchor.payment?.method,
+          bookingPaymentMethod: anchor.paymentMethod,
+          paymentStatus: anchor.payment?.status || anchor.paymentStatus,
         }),
       })
       return {
@@ -174,7 +195,7 @@ export default defineEventHandler(async (event) => {
       reason,
       guestName,
       courtName: courtNotifyName(slot.court),
-      skipGuest: skipGuestBookingSms(booking),
+      skipGuest: skipGuestCancelSms(booking),
       cashPaid: isCashPaidBooking({
         paymentMethod: booking.payment?.method,
         bookingPaymentMethod: booking.paymentMethod,

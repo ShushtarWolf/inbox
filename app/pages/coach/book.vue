@@ -1008,7 +1008,10 @@ async function startTopUp() {
 
 <style scoped>
 /* SoT .cxin input: 42px tall, padding 12px; .cxin small label 11px #4a4a47 */
-.cb-student .neo-input { min-height: 0; height: 42px; padding: 12px; font-size: 13px; }
+.cb-student .neo-input { min-height: 0; height: 42px; padding: 12px; font-size: 16px; }
+@media (min-width: 640px) {
+  .cb-student .neo-input { font-size: 13px; }
+}
 .cb-student :deep(label) { font-size: 11px; color: #4a4a47; }
 /* SoT cxCalBox: flat calendar (no inner card), cells padding 12px 0 (not square), .cxlb label */
 .cb-dates :deep(.jalali-calendar-default) { border: 0; border-radius: 0; padding: 0; box-shadow: none; }

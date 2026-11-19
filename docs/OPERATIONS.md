@@ -396,6 +396,11 @@ Smoke: `npm run smoke:auth` expects no Google button on `/login` and fail-closed
 
 Prefer phone OTP. Do not set Google OAuth on Liara for the Iran MVP.
 
+## Money cancel / wallet refund guardrails
+
+One-page ops path for stranded cancel refunds: [MONEY_GUARDRAILS.md](./MONEY_GUARDRAILS.md)  
+Historical dry-run / apply: [HISTORICAL_REFUND_REPAIR.md](./HISTORICAL_REFUND_REPAIR.md)
+
 ## Money audit / cash settlement correction
 
 Dual-rail rule: desk `CASH` must never sit in club/coach withdrawable wallets. Historical bugs left open `SettlementLedgerEntry` rows on CASH payments.

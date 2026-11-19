@@ -1,4 +1,5 @@
 import { MANUAL_REFUND_MARKER } from '#shared/cancelRefund.ts'
+import { shouldExpectSettlementLedgerEntry } from '#shared/deskPaidGuard.ts'
 import { prisma } from './prisma'
 import { notifyAdminSms } from './adminNotify'
 
@@ -17,8 +18,10 @@ export type MoneyAuditSummary = {
   clubWalletsNegative: number
   userBalanceDrift: number
   clubBalanceDrift: number
-  /** PAID online booking payments with no SettlementLedgerEntry (needs money-jobs retry). */
+  /** PAID booking payments that should have a ledger row but do not (money-jobs retry). */
   paidWithoutSettlement: number
+  /** PAID rows without ledger that are expected (series $0 siblings, unverified desk IPG, etc.). */
+  paidWithoutSettlementExcluded: number
   /** PAID top-ups with userId missing TOPUP_CREDIT (retryable). */
   paidTopUpWithoutCredit: number
   /** PAID top-ups with null userId and no credit (heal via maskedPan or dead-letter). */
@@ -51,7 +54,7 @@ export async function runMoneyAudit(): Promise<MoneyAuditSummary> {
     deskCashReturnsOwedAged,
     userWalletsNegative,
     clubWalletsNegative,
-    paidWithoutSettlement,
+    paidWithoutSettlementRows,
     paidTopUpWithoutCredit,
     paidTopUpOrphanNoUser,
     openPlatformCommission,
@@ -103,12 +106,20 @@ export async function runMoneyAudit(): Promise<MoneyAuditSummary> {
     }),
     prisma.wallet.count({ where: { OR: [{ balance: { lt: 0 } }, { availableBalance: { lt: 0 } }] } }),
     prisma.clubWallet.count({ where: { OR: [{ balance: { lt: 0 } }, { availableBalance: { lt: 0 } }] } }),
-    prisma.payment.count({
+    prisma.payment.findMany({
       where: {
         status: 'PAID',
         purpose: { not: 'topup' },
         method: { not: 'CASH' },
         settlementLedgerEntry: { is: null },
+      },
+      select: {
+        status: true,
+        purpose: true,
+        method: true,
+        amount: true,
+        gatewayRef: true,
+        metadataJson: true,
       },
     }),
     prisma.$queryRaw<Array<{ c: bigint }>>`
@@ -205,6 +216,13 @@ export async function runMoneyAudit(): Promise<MoneyAuditSummary> {
        OR w.balance <> w."availableBalance" + w."lockedBalance"
   `
 
+  const paidWithoutSettlementExcluded = paidWithoutSettlementRows.filter(
+    (p) => !shouldExpectSettlementLedgerEntry(p),
+  ).length
+  const paidWithoutSettlement = paidWithoutSettlementRows.filter(
+    (p) => shouldExpectSettlementLedgerEntry(p),
+  ).length
+
   const summary: MoneyAuditSummary = {
     openCashSettlements,
     refundedOpenSettlements,
@@ -217,6 +235,7 @@ export async function runMoneyAudit(): Promise<MoneyAuditSummary> {
     userBalanceDrift: Number(userDrift[0]?.c || 0),
     clubBalanceDrift: Number(clubDrift[0]?.c || 0),
     paidWithoutSettlement,
+    paidWithoutSettlementExcluded,
     paidTopUpWithoutCredit,
     paidTopUpOrphanNoUser,
     openPlatformCommissionToman: openPlatformCommission,
@@ -253,8 +272,9 @@ export async function runMoneyAuditAndAlert(opts?: { notify?: boolean }) {
   if (opts?.notify !== false && summary.alert) {
     await notifyAdminSms('ADMIN_WITHDRAW_REQUEST', {
       kind: 'money-audit',
-      amount: summary.openCashSettlements + summary.clubWalletsNegative + summary.userBalanceDrift,
-      sheba: `cash=${summary.openCashSettlements} negClub=${summary.clubWalletsNegative} driftU=${summary.userBalanceDrift}`,
+      amount: summary.openCashSettlements + summary.clubWalletsNegative + summary.userBalanceDrift
+        + summary.cancelledOnlineWithoutRefundCredit,
+      sheba: `cash=${summary.openCashSettlements} negClub=${summary.clubWalletsNegative} driftU=${summary.userBalanceDrift} cancelNoCredit=${summary.cancelledOnlineWithoutRefundCredit}`,
       userName: 'money-audit',
       userPhone: '',
       requestId: `audit-${Date.now()}`,

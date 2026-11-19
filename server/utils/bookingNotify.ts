@@ -1,3 +1,4 @@
+import { isCashPaidBooking } from '#shared/cancelNotice.ts'
 import { formatGuestDisplayName } from '#shared/guestName.ts'
 import { formatSmsJalaliDate, formatSmsTime, toPersianDigits } from '#shared/jalali.ts'
 import { normalizeIranPhone } from '#shared/phone.ts'
@@ -14,6 +15,36 @@ export type BookingNotifyKind = 'court' | 'coach' | 'package'
 /** Owner desk / club-calendar bookings — never SMS the receipt guest mobile; club-side only. */
 export function skipGuestBookingSms(booking: { source?: string | null }) {
   return booking.source === 'CLUB'
+}
+
+type CancelSmsBooking = {
+  source?: string | null
+  userId?: string | null
+  paymentMethod?: string | null
+  paymentStatus?: string | null
+  payment?: { method?: string | null; status?: string | null } | null
+}
+
+/**
+ * Cancel SMS: desk walk-in cash stays club-only; pay-link / IPG / wallet / linked athletes still
+ * get BOOKING_CANCELLED even when Booking.source is CLUB.
+ */
+export function skipGuestCancelSms(booking: CancelSmsBooking): boolean {
+  if (booking.source !== 'CLUB') return false
+  const paymentMethod = booking.payment?.method ?? booking.paymentMethod ?? null
+  const paymentStatus = booking.payment?.status ?? booking.paymentStatus ?? null
+  if (isCashPaidBooking({
+    paymentMethod,
+    bookingPaymentMethod: booking.paymentMethod,
+    paymentStatus,
+  })) {
+    return true
+  }
+  if (paymentStatus === 'PAID' || paymentStatus === 'PENDING_ONLINE') {
+    return false
+  }
+  if (booking.userId) return false
+  return true
 }
 
 export type BookingNotifySessionLine = {

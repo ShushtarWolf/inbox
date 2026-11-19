@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { isChargedPaidCheckout, paymentRail, summarizeCollectedRevenue } from './ownerRevenue.ts'
+import {
+  computePaymentMethodBreakdown,
+  countsTowardCollectedRevenue,
+  isChargedPaidCheckout,
+  paymentRail,
+  summarizeCollectedRevenue,
+} from './ownerRevenue.ts'
 
 describe('ownerRevenue', () => {
   it('treats athlete wallet (method PAID) as online, not desk cash', () => {
@@ -28,6 +34,31 @@ describe('ownerRevenue', () => {
     expect(summary).toEqual({ cash: 0, online: 400_000, total: 400_000, keptOnCancel: 400_000 })
   })
 
+  it('excludes cancelled desk cash still marked PAID from collected totals (IB-38)', () => {
+    const cancelledCash = {
+      amount: 12_000,
+      method: 'CASH',
+      status: 'PAID',
+      bookingStatus: 'CANCELLED',
+    }
+    expect(countsTowardCollectedRevenue(cancelledCash)).toBe(false)
+    expect(summarizeCollectedRevenue([
+      cancelledCash,
+      { amount: 500_000, method: 'CASH', status: 'PAID', bookingStatus: 'CONFIRMED' },
+    ])).toEqual({ cash: 500_000, online: 0, total: 500_000, keptOnCancel: 0 })
+  })
+
+  it('excludes cancelled rows flagged deskCashReturn owed even when still PAID', () => {
+    const row = {
+      amount: 12_000,
+      method: 'CASH',
+      status: 'PAID',
+      bookingStatus: 'CANCELLED',
+      metadataJson: JSON.stringify({ deskCashReturn: 'owed' }),
+    }
+    expect(countsTowardCollectedRevenue(row)).toBe(false)
+  })
+
   it('counts season sibling PAID zeros as one checkout, not N online events', () => {
     // Haerizadeh-style: one charged primary + coveredByBookingId siblings at amount 0.
     const series = [
@@ -54,5 +85,32 @@ describe('ownerRevenue', () => {
     expect(paidCash).toBe(1)
     // Revenue sum stays on raw amounts (siblings add 0).
     expect(summarizeCollectedRevenue(series).total).toBe(4_800_000)
+  })
+
+  it('payment method mix ignores this-month scope pitfalls — all court checkouts count', () => {
+    const rows = [
+      { amount: 300_000, method: 'CASH', status: 'PAID', bookingStatus: 'CONFIRMED' },
+      { amount: 500_000, method: 'IPG', status: 'PAID', bookingStatus: 'CONFIRMED' },
+      { amount: 200_000, method: 'PAID', status: 'PAID', bookingStatus: 'CONFIRMED' },
+      { amount: 400_000, method: 'CASH', status: 'PAY_AT_CLUB', bookingStatus: 'CONFIRMED' },
+      { amount: 0, method: 'IPG', status: 'PAID', bookingStatus: 'CONFIRMED' },
+      { amount: 100_000, method: 'IPG', status: 'PAID', bookingStatus: 'CANCELLED' },
+    ]
+    expect(computePaymentMethodBreakdown(rows)).toMatchObject({
+      PAID_CASH: 25,
+      PAID_IPG: 50,
+      UNPAID: 25,
+    })
+  })
+
+  it('payment method mix is empty when no charged paid checkouts', () => {
+    expect(computePaymentMethodBreakdown([])).toEqual({
+      PAID_CASH: 0,
+      PAID_IPG: 0,
+      UNPAID: 0,
+      CASH: 0,
+      IPG: 0,
+      NOT_PAID: 0,
+    })
   })
 })

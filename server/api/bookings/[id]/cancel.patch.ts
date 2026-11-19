@@ -9,7 +9,7 @@ import {
   courtNotifyName,
   ownerNotifyPhone,
   personNotifyName,
-  skipGuestBookingSms,
+  skipGuestCancelSms,
 } from '../../../utils/bookingNotify'
 import { cancelCourtBooking } from '../../../utils/cancellations'
 import { refundPaymentForCancellation } from '../../../utils/refunds'
@@ -168,7 +168,7 @@ export default defineEventHandler(async (event) => {
     courtName,
     guestName,
     reason: 'athlete-cancel',
-    skipGuest: skipGuestBookingSms(booking),
+    skipGuest: skipGuestCancelSms(booking),
     cashPaid: isCashPaidBooking({
       paymentMethod: booking.payment?.method,
       bookingPaymentMethod: booking.paymentMethod,

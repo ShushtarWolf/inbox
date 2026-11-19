@@ -75,6 +75,67 @@ export function parseSeriesPaymentMeta(raw?: string | null): SeriesPaymentMeta {
   }
 }
 
+/** Sessions registered at series checkout (primary payment sibling list). Display-only. */
+export function seriesRegisteredSessionCount(meta: SeriesPaymentMeta): number | null {
+  const siblings = meta.groupSiblingBookingIds
+  if (!Array.isArray(siblings) || siblings.length < 1) return null
+  return siblings.length + 1
+}
+
+export type SeasonSessionCountMaps = {
+  byPrimaryBookingId: Map<string, number>
+  bySeasonBookingId: Map<string, number>
+}
+
+/** Index registered season counts from primary payment metadata on a batch of payments. */
+export function buildSeasonRegisteredSessionCountMaps(
+  payments: Array<{ metadataJson?: string | null } | null | undefined>,
+): SeasonSessionCountMaps {
+  const byPrimaryBookingId = new Map<string, number>()
+  const bySeasonBookingId = new Map<string, number>()
+  for (const payment of payments) {
+    const meta = parseSeriesPaymentMeta(payment?.metadataJson)
+    const count = seriesRegisteredSessionCount(meta)
+    if (count == null || count <= 1) continue
+    const primaryId = meta.groupPrimaryBookingId?.trim()
+    if (primaryId) byPrimaryBookingId.set(primaryId, count)
+    const seasonId = meta.seasonBookingId?.trim()
+    if (seasonId) bySeasonBookingId.set(seasonId, count)
+  }
+  return { byPrimaryBookingId, bySeasonBookingId }
+}
+
+/** Resolve season series size for labels; prefers registered checkout count over live row counts. */
+export function resolveSeasonSessionCountForDisplay(
+  meta: SeriesPaymentMeta,
+  maps: SeasonSessionCountMaps,
+): number | null {
+  const direct = seriesRegisteredSessionCount(meta)
+  if (direct != null) return direct
+  const covered = meta.coveredByBookingId?.trim()
+  if (covered) {
+    const fromPrimary = maps.byPrimaryBookingId.get(covered)
+    if (fromPrimary != null) return fromPrimary
+  }
+  const seasonId = meta.seasonBookingId?.trim()
+  if (seasonId) {
+    const fromSeason = maps.bySeasonBookingId.get(seasonId)
+    if (fromSeason != null) return fromSeason
+  }
+  return null
+}
+
+/** Pick registered session count from any row in a loaded series (primary metadata wins). */
+export function seriesRegisteredSessionCountFromRows(
+  rows: Array<{ payment?: { metadataJson?: string | null } | null }>,
+): number | null {
+  for (const row of rows) {
+    const count = seriesRegisteredSessionCount(parseSeriesPaymentMeta(row.payment?.metadataJson))
+    if (count != null) return count
+  }
+  return null
+}
+
 export function isSeriesPaymentGroup(meta: SeriesPaymentMeta): boolean {
   return Boolean(
     meta.seasonBookingId
@@ -129,8 +190,10 @@ export function athleteListPrice(opts: {
 
 /**
  * How much to refund for one cancelled session while siblings remain.
- * Prefer stored sessionPrice; if missing, fair-split residual across remaining
- * sessions (including the one being cancelled). Never silent 0 when money remains.
+ * Prefer stored sessionPrice, but never above an equal share of residual when
+ * remainingSessions is known (desk/list sessionPrice can exceed paid-per-session
+ * after pack discounts — e.g. list 5000 × 6 vs paid 9000 → credit 1500, not 5000).
+ * Missing sessionPrice → fair-split residual. Never silent 0 when money remains.
  */
 export function sessionRefundAmount(opts: {
   sessionPrice?: number | null
@@ -138,20 +201,30 @@ export function sessionRefundAmount(opts: {
   alreadyRefunded: number
   /** Active sessions still claiming money, including the cancelled one. */
   remainingSessions?: number
+  /** Series/pack size — caps list price when remainingSessions is unknown (repair-safe). */
+  totalSessionsInGroup?: number
 }): number {
   const residual = Math.max(0, Math.floor(opts.primaryAmount) - Math.floor(opts.alreadyRefunded))
   if (residual <= 0) return 0
 
+  const sessions = Math.max(1, Math.floor(Number(opts.remainingSessions) || 1))
+  const fair = Math.floor(residual / sessions)
   const listed = typeof opts.sessionPrice === 'number' && opts.sessionPrice > 0
     ? Math.floor(opts.sessionPrice)
     : 0
   if (listed > 0) {
-    const sessions = Math.max(1, Math.floor(Number(opts.remainingSessions) || 0))
-    const fairCap = sessions > 1 ? Math.min(listed, Math.floor(residual / sessions)) : listed
-    return Math.min(fairCap, residual)
+    // Cap by fair share when we know how many sessions still claim the residual.
+    if (opts.remainingSessions != null && Number(opts.remainingSessions) > 0) {
+      return Math.min(listed, fair, residual)
+    }
+    const groupTotal = Math.floor(Number(opts.totalSessionsInGroup) || 0)
+    if (groupTotal > 0) {
+      const perSessionCap = Math.floor(opts.primaryAmount / groupTotal)
+      return Math.min(listed, residual, perSessionCap)
+    }
+    return Math.min(listed, residual)
   }
 
   // Missing sessionPrice: equal share of residual; last session path refunds leftover.
-  const sessions = Math.max(1, Math.floor(Number(opts.remainingSessions) || 1))
-  return Math.min(Math.floor(residual / sessions), residual)
+  return Math.min(fair, residual)
 }

@@ -29,6 +29,47 @@ export function hasVerifiedIpgCapture(payment: {
   return false
 }
 
+/** Series pack sibling row: charge lives on the primary payment — no club ledger row. */
+export function isSeriesChargeSiblingRow(metadataJson?: string | null): boolean {
+  const meta = parsePaymentMetadata(metadataJson)
+  if (typeof meta.coveredByBookingId === 'string' && meta.coveredByBookingId.trim()) {
+    return true
+  }
+  const siblings = meta.groupSiblingBookingIds
+  if (Array.isArray(siblings) && siblings.length > 0
+    && !meta.groupPrimaryBookingId
+    && !(typeof meta.seasonBookingId === 'string' && meta.seasonBookingId.trim())) {
+    return true
+  }
+  return false
+}
+
+/**
+ * Whether money-jobs should create/hold a missing SettlementLedgerEntry for this row.
+ * Excludes zero-amount series siblings and desk IPG+PAID without verified capture (same as SETTLE enqueue).
+ */
+export function shouldExpectSettlementLedgerEntry(payment: {
+  status?: string | null
+  purpose?: string | null
+  method?: string | null
+  amount?: number
+  gatewayRef?: string | null
+  metadataJson?: string | null
+}): boolean {
+  if (payment.status !== 'PAID') return false
+  if (payment.purpose === 'topup') return false
+  if (payment.method === 'CASH') return false
+  if (!canSettleOwnerForPaidPayment(payment)) return false
+  const amount = Math.max(0, Math.floor(Number(payment.amount) || 0))
+  if (amount <= 0) {
+    if (isSeriesChargeSiblingRow(payment.metadataJson)) return false
+    const meta = parsePaymentMetadata(payment.metadataJson)
+    if (meta.zeroAmountCheckout === true) return true
+    return false
+  }
+  return true
+}
+
 /** Club/coach settlement may run for wallet-rail PAID, or for IPG only after a verified capture. */
 export function canSettleOwnerForPaidPayment(payment: {
   method?: string | null

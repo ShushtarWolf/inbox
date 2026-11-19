@@ -1,5 +1,9 @@
 import { linkOrphanBookingsByPhone } from '../../utils/phoneAuth'
-import { parseSeriesPaymentMeta } from '#shared/athleteSeason.ts'
+import {
+  buildSeasonRegisteredSessionCountMaps,
+  parseSeriesPaymentMeta,
+  resolveSeasonSessionCountForDisplay,
+} from '#shared/athleteSeason.ts'
 import { athleteEffectiveBookingStatus } from '#shared/athleteHistoryStatus.ts'
 
 export default defineEventHandler(async (event) => {
@@ -33,23 +37,22 @@ export default defineEventHandler(async (event) => {
     orderBy: { createdAt: 'desc' },
   })
 
-  const seasonCounts = new Map<string, number>()
-  for (const booking of courtBookings) {
-    if (booking.status === 'CANCELLED') continue
-    const seasonId = parseSeriesPaymentMeta(booking.payment?.metadataJson).seasonBookingId
-    if (!seasonId) continue
-    seasonCounts.set(seasonId, (seasonCounts.get(seasonId) || 0) + 1)
-  }
+  const seasonCountMaps = buildSeasonRegisteredSessionCountMaps(
+    courtBookings.map((booking) => booking.payment),
+  )
 
   return {
     courtBookings: courtBookings.map((booking) => {
-      const seasonBookingId = parseSeriesPaymentMeta(booking.payment?.metadataJson).seasonBookingId || null
+      const meta = parseSeriesPaymentMeta(booking.payment?.metadataJson)
+      const seasonBookingId = meta.seasonBookingId?.trim() || null
       const athleteStatus = athleteEffectiveBookingStatus(booking)
       return {
         ...booking,
         athleteStatus,
         seasonBookingId,
-        seasonSessionCount: seasonBookingId ? (seasonCounts.get(seasonBookingId) || 0) : null,
+        seasonSessionCount: seasonBookingId
+          ? resolveSeasonSessionCountForDisplay(meta, seasonCountMaps)
+          : null,
       }
     }),
     coachSessions,

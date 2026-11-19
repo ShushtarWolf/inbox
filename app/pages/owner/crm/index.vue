@@ -62,6 +62,11 @@ const localePath = useLocalePath()
 const { formatHours, formatPhone, formatNumber } = useFormatters()
 const { today } = useLocalDate()
 const selectedSegment = ref('all')
+const crmSegmentActive = computed(() => selectedSegment.value !== 'all')
+
+function clearCrmFilters() {
+  selectedSegment.value = 'all'
+}
 
 /** Persian digits without grouping — for schedule dropdowns / Canva review date. */
 function toFaDigits(value: string | number) {
@@ -305,17 +310,20 @@ async function send() {
 
       <div class="canva-crm-wide">
       <div class="space-y-4">
-      <div class="canva-underline-tabs overflow-x-auto">
-        <button
-          v-for="segment in data?.segments || []"
-          :key="segment.id"
-          type="button"
-          class="canva-underline-tab shrink-0 whitespace-nowrap"
-          :class="selectedSegment === segment.id ? 'canva-underline-tab-active' : ''"
-          @click="selectedSegment = segment.id"
-        >
-          {{ segmentLabel(segment) }}
-        </button>
+      <div class="space-y-2">
+        <div class="canva-underline-tabs overflow-x-auto">
+          <button
+            v-for="segment in data?.segments || []"
+            :key="segment.id"
+            type="button"
+            class="canva-underline-tab shrink-0 whitespace-nowrap"
+            :class="selectedSegment === segment.id ? 'canva-underline-tab-active' : ''"
+            @click="selectedSegment = segment.id"
+          >
+            {{ segmentLabel(segment) }}
+          </button>
+        </div>
+        <AppFilterClearButton :show="crmSegmentActive" @click="clearCrmFilters" />
       </div>
 
       <div class="space-y-0">

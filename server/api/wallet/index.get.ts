@@ -1,5 +1,5 @@
 import { summarizeAthleteCashDesk } from '#shared/dualRailBooks.ts'
-import { refundChannelFromPaymentMetadata, refundChannelI18nKey } from '#shared/refundChannelLabel.ts'
+import { enrichWalletRefundCreditTx } from '../../utils/walletRefundCreditDisplay'
 import { totalUserWithdrawable } from '#shared/walletWithdrawRail.ts'
 import { ATHLETE_WITHDRAW_MIN_TOMAN } from '#shared/athleteCashOut.ts'
 import {
@@ -166,17 +166,11 @@ export default defineEventHandler(async (event) => {
       )
     : {}
 
-  const transactions = (wallet?.transactions || []).map((tx) => {
-    if (tx.type !== 'REFUND_CREDIT') return tx
-    const refundBooking = tx.bookingId ? refundBookingById[tx.bookingId] : undefined
-    if (!tx.paymentId && !refundBooking) return tx
-    const channel = tx.paymentId
-      ? refundChannelFromPaymentMetadata(refundMetaByPayment[tx.paymentId])
-      : 'wallet_closed_loop'
-    const refundChannelKey = refundChannelI18nKey(channel)
-    const base = refundChannelKey ? { ...tx, refundChannelKey } : { ...tx }
-    return refundBooking ? { ...base, refundBooking } : base
-  })
+  const transactions = (wallet?.transactions || []).map((tx) => enrichWalletRefundCreditTx(
+    tx,
+    refundMetaByPayment,
+    refundBookingById,
+  ))
 
   return {
     balance: balances.availableBalance,
