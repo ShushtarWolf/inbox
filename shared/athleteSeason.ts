@@ -75,6 +75,67 @@ export function parseSeriesPaymentMeta(raw?: string | null): SeriesPaymentMeta {
   }
 }
 
+/** Sessions registered at series checkout (primary payment sibling list). Display-only. */
+export function seriesRegisteredSessionCount(meta: SeriesPaymentMeta): number | null {
+  const siblings = meta.groupSiblingBookingIds
+  if (!Array.isArray(siblings) || siblings.length < 1) return null
+  return siblings.length + 1
+}
+
+export type SeasonSessionCountMaps = {
+  byPrimaryBookingId: Map<string, number>
+  bySeasonBookingId: Map<string, number>
+}
+
+/** Index registered season counts from primary payment metadata on a batch of payments. */
+export function buildSeasonRegisteredSessionCountMaps(
+  payments: Array<{ metadataJson?: string | null } | null | undefined>,
+): SeasonSessionCountMaps {
+  const byPrimaryBookingId = new Map<string, number>()
+  const bySeasonBookingId = new Map<string, number>()
+  for (const payment of payments) {
+    const meta = parseSeriesPaymentMeta(payment?.metadataJson)
+    const count = seriesRegisteredSessionCount(meta)
+    if (count == null || count <= 1) continue
+    const primaryId = meta.groupPrimaryBookingId?.trim()
+    if (primaryId) byPrimaryBookingId.set(primaryId, count)
+    const seasonId = meta.seasonBookingId?.trim()
+    if (seasonId) bySeasonBookingId.set(seasonId, count)
+  }
+  return { byPrimaryBookingId, bySeasonBookingId }
+}
+
+/** Resolve season series size for labels; prefers registered checkout count over live row counts. */
+export function resolveSeasonSessionCountForDisplay(
+  meta: SeriesPaymentMeta,
+  maps: SeasonSessionCountMaps,
+): number | null {
+  const direct = seriesRegisteredSessionCount(meta)
+  if (direct != null) return direct
+  const covered = meta.coveredByBookingId?.trim()
+  if (covered) {
+    const fromPrimary = maps.byPrimaryBookingId.get(covered)
+    if (fromPrimary != null) return fromPrimary
+  }
+  const seasonId = meta.seasonBookingId?.trim()
+  if (seasonId) {
+    const fromSeason = maps.bySeasonBookingId.get(seasonId)
+    if (fromSeason != null) return fromSeason
+  }
+  return null
+}
+
+/** Pick registered session count from any row in a loaded series (primary metadata wins). */
+export function seriesRegisteredSessionCountFromRows(
+  rows: Array<{ payment?: { metadataJson?: string | null } | null }>,
+): number | null {
+  for (const row of rows) {
+    const count = seriesRegisteredSessionCount(parseSeriesPaymentMeta(row.payment?.metadataJson))
+    if (count != null) return count
+  }
+  return null
+}
+
 export function isSeriesPaymentGroup(meta: SeriesPaymentMeta): boolean {
   return Boolean(
     meta.seasonBookingId

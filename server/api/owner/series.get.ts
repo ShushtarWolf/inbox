@@ -1,3 +1,4 @@
+import { seriesRegisteredSessionCountFromRows } from '#shared/athleteSeason.ts'
 import { notifyUserDisplayName } from '#shared/userName.ts'
 import { personNotifyName } from '../../utils/bookingNotify'
 import { loadOwnerSeriesBookings } from '../../utils/ownerSeriesCancel'
@@ -70,11 +71,18 @@ export default defineEventHandler(async (event) => {
     }
   }
 
+  const registeredCount = key.kind === 'season'
+    ? seriesRegisteredSessionCountFromRows(series)
+    : null
+  const count = key.kind === 'season' && registeredCount != null
+    ? registeredCount
+    : series.length
+
   return {
     ok: true,
     kind: key.kind,
     id: key.id,
-    count: series.length,
+    count,
     startDate,
     finishDate,
     guestName,

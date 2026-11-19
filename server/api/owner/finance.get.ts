@@ -1,4 +1,9 @@
-import { parseSeriesPaymentMeta } from '#shared/athleteSeason.ts'
+import {
+  buildSeasonRegisteredSessionCountMaps,
+  parseSeriesPaymentMeta,
+  resolveSeasonSessionCountForDisplay,
+  seriesRegisteredSessionCount,
+} from '#shared/athleteSeason.ts'
 import { countsTowardRevenue, financeIncomeAmount, financeSessionValue, isUnpaidPaymentStatus } from '#shared/bookingPayment.ts'
 import { parsePaymentMetadata, readDeskCashReturn } from '#shared/cancelRefund.ts'
 import { resolveFinanceDiscount } from '#shared/financeDiscount.ts'
@@ -355,21 +360,22 @@ export default defineEventHandler(async (event) => {
     return 'normal' as const
   }
 
-  function seasonLedgerContext(payment: { metadataJson?: string | null } | null | undefined) {
+  function seasonLedgerContext(
+    payment: { metadataJson?: string | null } | null | undefined,
+    seasonCountMaps: ReturnType<typeof buildSeasonRegisteredSessionCountMaps>,
+  ) {
     const meta = parseSeriesPaymentMeta(payment?.metadataJson)
     const coveredByBookingId = meta.coveredByBookingId?.trim() || null
-    const siblingIds = meta.groupSiblingBookingIds || []
-    const seasonSessionCount = siblingIds.length > 0 ? siblingIds.length + 1 : null
-    return { coveredByBookingId, seasonSessionCount, seasonBookingId: meta.seasonBookingId?.trim() || null }
+    const seasonBookingId = meta.seasonBookingId?.trim() || null
+    const seasonSessionCount = seasonBookingId
+      ? resolveSeasonSessionCountForDisplay(meta, seasonCountMaps)
+      : seriesRegisteredSessionCount(meta)
+    return { coveredByBookingId, seasonSessionCount, seasonBookingId }
   }
 
-  const seasonBookingCounts = new Map<string, number>()
-  for (const booking of listBookings) {
-    const { seasonBookingId } = seasonLedgerContext(booking.payment)
-    if (seasonBookingId) {
-      seasonBookingCounts.set(seasonBookingId, (seasonBookingCounts.get(seasonBookingId) || 0) + 1)
-    }
-  }
+  const seasonCountMaps = buildSeasonRegisteredSessionCountMaps(
+    listBookings.map((booking) => booking.payment),
+  )
 
   const bookingTransactions = [
     ...listBookings.map((booking) => {
@@ -377,12 +383,8 @@ export default defineEventHandler(async (event) => {
       const courtName = toPersianDigits(booking.slot.court.nameFa)
       const coachName = booking.coach?.nameFa ? toPersianDigits(booking.coach.nameFa) : ''
       const paymentStatus = paymentStatusOf(booking)
-      const seriesLedger = seasonLedgerContext(booking.payment)
-      let seasonSessionCount = seriesLedger.seasonSessionCount
-      if (!seasonSessionCount && seriesLedger.seasonBookingId) {
-        const total = seasonBookingCounts.get(seriesLedger.seasonBookingId)
-        if (total && total > 1) seasonSessionCount = total
-      }
+      const seriesLedger = seasonLedgerContext(booking.payment, seasonCountMaps)
+      const seasonSessionCount = seriesLedger.seasonSessionCount
       return {
         id: booking.id,
         guestName: resolveLinkedGuestDisplayName({
@@ -433,7 +435,7 @@ export default defineEventHandler(async (event) => {
     }),
     ...listSessions.map((session) => {
       const paymentStatus = paymentStatusOf(session)
-      const seriesLedger = seasonLedgerContext(session.payment)
+      const seriesLedger = seasonLedgerContext(session.payment, seasonCountMaps)
       return {
         id: session.id,
         guestName: session.athlete.name,
