@@ -212,6 +212,8 @@ export async function refundAfterSeriesSessionCancel(opts: {
     })
   }
 
+  const settleResidual = remainingActive === 0 && alreadyRefunded > 0
+
   return applySeriesSessionRefund({
     userId: opts.userId,
     paymentId: primaryPayment.id,
@@ -222,6 +224,7 @@ export async function refundAfterSeriesSessionCancel(opts: {
     reason: opts.reason,
     primaryMeta,
     markRefunded: remainingActive === 0,
+    settleResidual,
     db: opts.db,
   })
 }
@@ -237,6 +240,7 @@ async function applySeriesSessionRefund(opts: {
   reason: string
   primaryMeta: SeriesPaymentMeta
   markRefunded: boolean
+  settleResidual?: boolean
   db?: Prisma.TransactionClient
 }): Promise<RefundResult> {
   const channel = resolveRefundChannel(opts.method, opts.bookingPaymentMethod)
@@ -261,37 +265,56 @@ async function applySeriesSessionRefund(opts: {
     const refundChannel = historicallyReversed ? 'gateway_reverse' as const : channel
     const canCredit = Boolean(opts.userId) && refundChannel === 'wallet_closed_loop'
     const doneIds = Array.isArray(freshMeta.sessionRefundedBookingIds) ? freshMeta.sessionRefundedBookingIds : []
-    const [priorUserTx, priorClubTx] = await Promise.all([
-      tx.walletTransaction.findFirst({
-        where: {
-          paymentId: opts.paymentId,
-          bookingId: opts.bookingId,
-          type: { in: ['REFUND_CREDIT', 'SETTLEMENT_CLAWBACK'] },
-        },
-        select: { id: true },
-      }),
-      tx.clubWalletTransaction.findFirst({
-        where: { paymentId: opts.paymentId, bookingId: opts.bookingId, type: 'CLAWBACK' },
-        select: { id: true },
-      }),
-    ])
-    // Retry of an already-refunded session (athlete re-tap, owner re-run) moves no money.
-    if (doneIds.includes(opts.bookingId) || priorUserTx || priorClubTx) {
-      return { amount: 0, walletCredited: false, gatewayRefunded: historicallyReversed, refundChannel }
-    }
-
     const already = Number(freshMeta.sessionRefundsTotal || 0)
     const capped = Math.min(opts.amount, Math.max(0, fresh.amount - already))
     if (capped <= 0) {
       return { amount: 0, walletCredited: false, gatewayRefunded: historicallyReversed, refundChannel }
     }
 
+    const residualSweep = Boolean(opts.settleResidual && opts.markRefunded && already > 0)
+    if (residualSweep) {
+      const priorResidual = await tx.walletTransaction.findFirst({
+        where: {
+          paymentId: opts.paymentId,
+          type: 'REFUND_CREDIT',
+          note: { contains: 'series-primary-residual' },
+        },
+        select: { id: true },
+      })
+      if (priorResidual) {
+        return { amount: 0, walletCredited: false, gatewayRefunded: historicallyReversed, refundChannel }
+      }
+    }
+    else {
+      const [priorUserTx, priorClubTx] = await Promise.all([
+        tx.walletTransaction.findFirst({
+          where: {
+            paymentId: opts.paymentId,
+            bookingId: opts.bookingId,
+            type: { in: ['REFUND_CREDIT', 'SETTLEMENT_CLAWBACK'] },
+          },
+          select: { id: true },
+        }),
+        tx.clubWalletTransaction.findFirst({
+          where: { paymentId: opts.paymentId, bookingId: opts.bookingId, type: 'CLAWBACK' },
+          select: { id: true },
+        }),
+      ])
+      // Retry of an already-refunded session (athlete re-tap, owner re-run) moves no money.
+      if (doneIds.includes(opts.bookingId) || priorUserTx || priorClubTx) {
+        return { amount: 0, walletCredited: false, gatewayRefunded: historicallyReversed, refundChannel }
+      }
+    }
+
     let walletCredited = false
+    const refundNote = residualSweep
+      ? `series-primary-residual:${opts.paymentId}`
+      : opts.reason
     if (canCredit && opts.userId) {
       await creditWallet(opts.userId, capped, {
         paymentId: opts.paymentId,
         bookingId: opts.bookingId,
-        note: opts.reason,
+        note: refundNote,
         type: 'REFUND_CREDIT',
       }, tx)
       walletCredited = true
@@ -302,6 +325,9 @@ async function applySeriesSessionRefund(opts: {
       bookingId: opts.bookingId,
       db: tx,
     })
+    const nextDoneIds = residualSweep && doneIds.includes(opts.bookingId)
+      ? doneIds
+      : [...doneIds, opts.bookingId]
     await tx.payment.update({
       where: { id: opts.paymentId },
       data: {
@@ -313,7 +339,8 @@ async function applySeriesSessionRefund(opts: {
             manualRefund: refundChannel === 'wallet_closed_loop' && !canCredit,
           }),
           sessionRefundsTotal: already + capped,
-          sessionRefundedBookingIds: [...doneIds, opts.bookingId],
+          sessionRefundedBookingIds: nextDoneIds,
+          ...(residualSweep ? { seriesResidualSettledAt: new Date().toISOString() } : {}),
         }),
       },
     })
