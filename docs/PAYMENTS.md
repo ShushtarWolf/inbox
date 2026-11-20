@@ -133,7 +133,7 @@ Money outcome from `resolveCancelMoneyDetail` / `resolveCancelMoneyOutcome` (`sh
 |-------|------|-------|
 | Owner / coach | Anytime | **100%** refund + settlement clawback |
 | Athlete | Outside club `cancellationWindowHours` (default 12) | **100%** refund + clawback |
-| Athlete | Inside window (until slot start) | Share = club `insideWindowRefundBps` (default **10000** = 100%). `0` = zero refund; `5000` = 50% partial, etc. |
+| Athlete | Inside window (until slot start) | **Cannot self-cancel** (`409 Cancellation window has passed`). Owner `insideWindowRefundBps` applies only if product allows in-window cancel in the future; owner/coach cancel is always 100%. |
 
 `refundPaymentForCancellation` (mark `REFUNDED` + clawback; wallet credit when applicable):
 

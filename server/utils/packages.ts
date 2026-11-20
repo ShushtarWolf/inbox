@@ -568,6 +568,9 @@ export function assertPackageCancelAllowed(pkg: {
   if (isSlotStartInPast(pkg.startDate, firstTime)) {
     throw createError({ statusCode: 409, statusMessage: 'Slot already started' })
   }
+  if (!canCancelPackageBooking(pkg.startDate, firstTime, pkg.club.cancellationWindowHours)) {
+    throw createError({ statusCode: 409, statusMessage: 'Cancellation window has passed' })
+  }
 }
 
 export async function expireStalePendingPackageBookings(now = new Date()) {

@@ -130,4 +130,16 @@ describe('athlete cancel (PATCH /api/bookings/:id/cancel)', () => {
     expect(notifyBookingCancelled).toHaveBeenCalledTimes(1)
     expect(notifyOwnerBookingCancelled).toHaveBeenCalledTimes(1)
   })
+
+  it('rejects cancel inside the club cancellation window (IB-48)', async () => {
+    bookingFindFirst.mockResolvedValue({
+      ...platformBooking,
+      slot: { date: '2026-11-21', startTime: '07:00', endTime: '08:00', courtId: 'c1', court },
+    })
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-11-20T20:50:00+03:30'))
+    await expect(athleteCancel({})).rejects.toThrow('Cancellation window has passed')
+    expect(cancelCourtBooking).not.toHaveBeenCalled()
+    vi.useRealTimers()
+  })
 })

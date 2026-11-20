@@ -80,13 +80,24 @@ describe('canCancelReservation', () => {
     })).toBe(false)
   })
 
-  it('allows athlete before slot start', () => {
+  it('allows athlete before slot start and outside cancellation window', () => {
     expect(canCancelReservation({
       actor: 'athlete',
       date: today,
       startTime: '20:00',
+      cancellationWindowHours: 12,
       now,
     })).toBe(true)
+  })
+
+  it('blocks athlete inside cancellation window', () => {
+    expect(canCancelReservation({
+      actor: 'athlete',
+      date: today,
+      startTime: '09:00',
+      cancellationWindowHours: 12,
+      now,
+    })).toBe(false)
   })
 
   it('allows coach/owner even after start', () => {
