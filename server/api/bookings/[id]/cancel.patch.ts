@@ -1,4 +1,5 @@
 import { canCancelReservation, resolveCancelMoneyDetail } from '#shared/cancelPolicy.ts'
+import { isSlotStartInPast } from '#shared/localDate.ts'
 import { isPaymentRefundable } from '#shared/bookingPayment.ts'
 import { isCashPaidBooking } from '#shared/cancelNotice.ts'
 import { normalizeIranPhone } from '#shared/phone.ts'
@@ -83,12 +84,16 @@ export default defineEventHandler(async (event) => {
     return { ok: true, moneyOutcome }
   }
 
+  if (isSlotStartInPast(booking.slot.date, booking.slot.startTime)) {
+    throw createError({ statusCode: 409, statusMessage: 'Slot already started' })
+  }
   if (!canCancelReservation({
     actor: 'athlete',
     date: booking.slot.date,
     startTime: booking.slot.startTime,
+    cancellationWindowHours: windowHours,
   })) {
-    throw createError({ statusCode: 409, statusMessage: 'Slot already started' })
+    throw createError({ statusCode: 409, statusMessage: 'Cancellation window has passed' })
   }
 
   // Series: money first (pro-rata), then free the slot — never FREE without credit.

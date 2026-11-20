@@ -1,4 +1,5 @@
 import { canCancelReservation, resolveCancelMoneyOutcome } from '#shared/cancelPolicy.ts'
+import { isSlotStartInPast } from '#shared/localDate.ts'
 import { notifyBookingCancelled } from '../../../utils/bookingNotify'
 import { cancelCoachSession } from '../../../utils/cancellations'
 
@@ -29,12 +30,18 @@ export default defineEventHandler(async (event) => {
   const actor = isCoachActor ? 'coach' as const : 'athlete' as const
   const windowHours = hostClub?.cancellationWindowHours ?? 12
 
-  if (!canCancelReservation({
-    actor,
-    date: session.date,
-    startTime: session.startTime,
-  })) {
-    throw createError({ statusCode: 409, statusMessage: 'Slot already started' })
+  if (!isCoachActor) {
+    if (isSlotStartInPast(session.date, session.startTime)) {
+      throw createError({ statusCode: 409, statusMessage: 'Slot already started' })
+    }
+    if (!canCancelReservation({
+      actor: 'athlete',
+      date: session.date,
+      startTime: session.startTime,
+      cancellationWindowHours: windowHours,
+    })) {
+      throw createError({ statusCode: 409, statusMessage: 'Cancellation window has passed' })
+    }
   }
 
   const moneyOutcome = resolveCancelMoneyOutcome({

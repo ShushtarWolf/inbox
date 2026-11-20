@@ -1,4 +1,4 @@
-import { isSlotStartInPast, minutesUntilSlotStart } from './localDate.ts'
+import { canManageReservation, isSlotStartInPast, minutesUntilSlotStart } from './localDate.ts'
 
 export type CancelMoneyActor = 'athlete' | 'coach' | 'owner'
 export type CancelMoneyOutcome = 'full_wallet_refund' | 'partial_wallet_refund' | 'zero_refund'
@@ -11,7 +11,8 @@ export type CancelMoneyDetail = {
 
 /**
  * Money outcome for a cancellation. Cancel permission is separate:
- * athletes may cancel until slot start; coach/owner anytime.
+ * athletes may cancel only outside the club cancellation window (until slot start);
+ * coach/owner anytime.
  *
  * Owner/coach cancels always 100%. Athlete outside window: 100%.
  * Athlete inside window: club.insideWindowRefundBps (default 10000 = full refund).
@@ -67,13 +68,17 @@ function clampBps(raw: number): number {
   return Math.max(0, Math.min(10_000, Math.floor(raw)))
 }
 
-/** Athletes may cancel until the slot starts; coach/owner unrestricted here. */
+/** Athletes: outside cancellationWindowHours and before slot start. Coach/owner: always. */
 export function canCancelReservation(opts: {
   actor: CancelMoneyActor
   date: string
   startTime: string
+  cancellationWindowHours?: number
   now?: Date
 }): boolean {
   if (opts.actor === 'coach' || opts.actor === 'owner') return true
-  return !isSlotStartInPast(opts.date, opts.startTime, opts.now)
+  if (isSlotStartInPast(opts.date, opts.startTime, opts.now)) return false
+  const windowHours = Math.max(0, Number(opts.cancellationWindowHours ?? 0))
+  if (windowHours <= 0) return true
+  return canManageReservation(opts.date, opts.startTime, windowHours, opts.now)
 }

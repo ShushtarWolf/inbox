@@ -327,7 +327,36 @@ async function confirmCancel() {
   const item = detailItem.value
   if (!item) return
   if (!canCancel(item)) {
-    actionError.value = t('booking.errors.slotAlreadyStarted')
+    if (item.kind === 'court' || item.kind === 'coach') {
+      const raw = item.raw
+      const session = item.kind === 'coach'
+        ? (data.value?.coachSessions || []).find((row) => row.id === item.id)
+        : null
+      const date = item.kind === 'court' ? raw?.slot?.date : session?.date
+      const startTime = item.kind === 'court' ? raw?.slot?.startTime : session?.startTime
+      const hours = item.kind === 'court'
+        ? (raw?.slot?.court?.club?.cancellationWindowHours ?? 12)
+        : (session?.coach?.club?.cancellationWindowHours ?? 12)
+      if (
+        date
+        && startTime
+        && canCancelReservation({ actor: 'athlete', date, startTime })
+        && !canCancelReservation({
+          actor: 'athlete',
+          date,
+          startTime,
+          cancellationWindowHours: hours,
+        })
+      ) {
+        actionError.value = t('booking.errors.cancellationWindowPassed')
+      }
+      else {
+        actionError.value = t('booking.errors.slotAlreadyStarted')
+      }
+    }
+    else {
+      actionError.value = t('booking.errors.slotAlreadyStarted')
+    }
     confirmingCancel.value = false
     return
   }
@@ -737,19 +766,23 @@ function canCancel(item: HistoryItem) {
   if (item.kind === 'court') {
     const slot = item.raw?.slot
     if (!slot) return false
+    const hours = slot.court?.club?.cancellationWindowHours ?? 12
     return canCancelReservation({
       actor: 'athlete',
       date: slot.date,
       startTime: slot.startTime,
+      cancellationWindowHours: hours,
     })
   }
   if (item.kind === 'coach') {
     const session = (data.value?.coachSessions || []).find((row) => row.id === item.id)
     if (!session) return false
+    const hours = session.coach?.club?.cancellationWindowHours ?? 12
     return canCancelReservation({
       actor: 'athlete',
       date: session.date,
       startTime: session.startTime,
+      cancellationWindowHours: hours,
     })
   }
   if (item.kind === 'package') {
