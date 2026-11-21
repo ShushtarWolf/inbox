@@ -95,6 +95,7 @@ export function fetchErrorMessage(error: unknown, fallback: string, translate?: 
     SEASON_EDIT_START_IN_PAST: 'owner.seasonPage.editStartInPast',
     SEASON_EDIT_FINISH_IN_PAST: 'owner.seasonPage.editFinishInPast',
     SEASON_EDIT_FINISH_BEFORE_START: 'owner.packagesPage.dateRangeInvalid',
+    RECURRING_NO_FREE_SLOTS: 'owner.seasonPage.noFreeSlots',
     'Insufficient withdrawable balance': 'athlete.withdrawInsufficient',
     'Withdraw amount below minimum': 'athlete.withdrawBelowMinGeneric',
     'Athlete wallet is closed-loop — bank withdraw is not available': 'athlete.walletClosedLoopHint',

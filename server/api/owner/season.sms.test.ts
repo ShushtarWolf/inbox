@@ -100,6 +100,14 @@ describe('POST /api/owner/season — athlete SMS', () => {
     expect(opts.payPin).toBe('PIN12345')
   })
 
+  it('paid season: notification errors do not fail the API after bookings are created', async () => {
+    notifyBookingConfirmed.mockRejectedValueOnce(new Error('notify down'))
+    const res = await seasonPost(event({ paymentStatus: 'PAID', paymentMethod: 'CASH' }))
+    expect(res.slotsCreated).toBe(2)
+    expect(res.smsSent).toBe(false)
+    expect(createSeasonSessions).toHaveBeenCalled()
+  })
+
   it('no athlete mobile: club side only, no guest SMS attempted', async () => {
     await seasonPost(event({ guestMobile: '', paymentStatus: 'PAID' }))
     const opts = notifyBookingPaid.mock.calls[0]![0] as { skipGuest: boolean }
