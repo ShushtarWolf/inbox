@@ -51,7 +51,7 @@ async function loginOwnerPassword(page: Page) {
 async function pickFreeClubSlot(page: Page) {
   await page.getByRole('heading', { name: 'انتخاب تاریخ و زمان' }).scrollIntoViewIfNeeded()
   await expect(page.locator('.canva-club-cal-grid')).toBeVisible({ timeout: 15_000 })
-  const nextMonth = page.getByRole('button', { name: 'ماه بعد' })
+  const nextMonth = page.locator('button.canva-club-cal-nav-btn[aria-label="ماه بعد"]')
   const selectableDay = page.locator(
     'button.canva-club-cal-day:not(.canva-club-cal-day-disabled):not([disabled])',
   )
