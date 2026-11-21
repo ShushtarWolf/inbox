@@ -5,6 +5,7 @@ import {
   initialSequentialRangePhase,
   pickRangeDay,
   pickSequentialRangeTap,
+  sequentialRangeHintKind,
   type SequentialRangePhase,
 } from '#shared/rangePick.ts'
 
@@ -107,14 +108,23 @@ const todayIso = computed(() => today())
 
 const sequentialPhase = ref<SequentialRangePhase>('pick-start')
 
-function syncSequentialPhaseFromModel() {
+watch([model, rangeEnd], () => {
   if (!props.sequentialRange || props.mode !== 'range') return
-  sequentialPhase.value = rangeEnd.value
-    ? initialSequentialRangePhase({ start: model.value, end: rangeEnd.value })
-    : 'pick-start'
-}
+  if (rangeEnd.value) {
+    sequentialPhase.value = initialSequentialRangePhase({ start: model.value, end: rangeEnd.value })
+    return
+  }
+  // End cleared externally (wizard reset): back to first tap; otherwise keep phase from selectDay.
+  if (!model.value) sequentialPhase.value = 'pick-start'
+}, { immediate: true })
 
-watch([model, rangeEnd], syncSequentialPhaseFromModel, { immediate: true })
+const sequentialRangeHint = computed(() => {
+  if (props.mode !== 'range' || !props.sequentialRange || props.lockStart) return ''
+  const kind = sequentialRangeHintKind(sequentialPhase.value)
+  if (kind === 'start') return t('calendar.sequentialPickStart')
+  if (kind === 'end') return t('calendar.sequentialPickEnd')
+  return ''
+})
 
 /** Only ISO YYYY-MM-DD counts — a bare `:min-date="today"` passes the function and would disable every day. */
 function resolveIsoDateProp(raw: unknown): string {
@@ -283,6 +293,14 @@ function jumpToRangeStart() {
         </button>
       </div>
     </div>
+
+    <p
+      v-if="sequentialRangeHint"
+      class="jalali-calendar-sequential-hint mb-2 text-start text-xs font-bold text-[#8f8f8b]"
+      aria-live="polite"
+    >
+      {{ sequentialRangeHint }}
+    </p>
 
     <div class="jalali-calendar-weekdays grid grid-cols-7 gap-1 text-center text-xs font-bold">
       <span v-for="weekday in PERSIAN_WEEKDAYS" :key="weekday">{{ weekday }}</span>

@@ -16,6 +16,13 @@ export function initialSequentialRangePhase(state: RangePickState): SequentialRa
   return state.start && state.end ? 'adjust' : 'pick-start'
 }
 
+/** Persian hint under sequential range calendar (pick-start | pick-end only). */
+export function sequentialRangeHintKind(phase: SequentialRangePhase): 'start' | 'end' | null {
+  if (phase === 'pick-start') return 'start'
+  if (phase === 'pick-end') return 'end'
+  return null
+}
+
 export function pickSequentialRangeTap(
   state: RangePickState,
   iso: string,

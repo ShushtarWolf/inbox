@@ -5,6 +5,7 @@ import {
   pickSequentialRangeTap,
   seasonEditDateError,
   seasonEditLocksStart,
+  sequentialRangeHintKind,
 } from './rangePick'
 
 // Eli's season: 7 Aban 1405 → stored end 26 Azar 1405 (last Thursday session); today 22 Aban 1405.
@@ -16,6 +17,14 @@ const ABAN_30 = '2026-11-21'
 // IB-49: today = 30 Aban; owner taps 1 Azar then 30 Azar for a fresh season range.
 const AZAR_1 = '2026-11-22'
 const AZAR_30 = '2026-12-21'
+
+describe('sequentialRangeHintKind', () => {
+  it('returns Persian hint keys only during the two-tap flow', () => {
+    expect(sequentialRangeHintKind('pick-start')).toBe('start')
+    expect(sequentialRangeHintKind('pick-end')).toBe('end')
+    expect(sequentialRangeHintKind('adjust')).toBeNull()
+  })
+})
 
 describe('pickSequentialRangeTap', () => {
   it('IB-49: prefilled start (today) is replaced on the first tap (1 Azar)', () => {
