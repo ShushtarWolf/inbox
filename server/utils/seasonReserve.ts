@@ -98,6 +98,7 @@ export async function previewSeasonSessions(opts: {
       include: {
         booking: {
           select: {
+            id: true,
             status: true,
             payment: { select: { metadataJson: true } },
             events: {
@@ -298,6 +299,7 @@ export async function createSeasonSessions(opts: CreateSeasonSessionsOpts): Prom
         include: {
           booking: {
             select: {
+              id: true,
               status: true,
               payment: { select: { metadataJson: true } },
               events: {
@@ -341,8 +343,11 @@ export async function createSeasonSessions(opts: CreateSeasonSessionsOpts): Prom
             data: { displayStatus: holdDisplay.displayStatus },
           })
           if (claimedRows.count !== 1) return null
-          if (existing.booking?.status === 'CANCELLED') {
-            await deleteStaleCancelledBooking(tx, existing.booking.id)
+          const staleCancelledId = existing.booking?.status === 'CANCELLED'
+            ? existing.booking.id
+            : null
+          if (staleCancelledId) {
+            await deleteStaleCancelledBooking(tx, staleCancelledId)
           }
           slotId = existing.id
         }

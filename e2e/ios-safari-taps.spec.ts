@@ -50,28 +50,44 @@ async function loginOwnerPassword(page: Page) {
  */
 async function pickFreeClubSlot(page: Page) {
   await page.getByRole('heading', { name: 'انتخاب تاریخ و زمان' }).scrollIntoViewIfNeeded()
-  await expect(page.locator('.canva-club-cal-grid')).toBeVisible({ timeout: 15_000 })
-  const nextMonth = page.getByRole('button', { name: 'ماه بعد' })
-  const selectableDay = page.locator(
+  const bookingCal = page.locator('.canva-club-book-cal')
+  await expect(bookingCal.locator('.canva-club-cal-grid')).toBeVisible({ timeout: 15_000 })
+  const nextMonth = bookingCal.getByRole('button', { name: 'ماه بعد' })
+  const selectableDay = bookingCal.locator(
     'button.canva-club-cal-day:not(.canva-club-cal-day-disabled):not([disabled])',
   )
-  const freeSlot = page.locator('button.canva-club-slot:not(.canva-club-slot-booked):not([disabled])')
-  let picked = false
-  for (let attempt = 0; attempt < 12; attempt += 1) {
+  const freeSlot = page.locator('.canva-club-book-slots').locator(
+    'button.canva-club-slot:not(.canva-club-slot-booked):not([disabled])',
+  )
+
+  for (let month = 0; month < 14; month += 1) {
     const dayCount = await selectableDay.count()
-    if (dayCount > 0) {
-      await selectableDay.first().click()
-      picked = true
-      break
+    for (let dayIdx = 0; dayIdx < dayCount; dayIdx += 1) {
+      const slotsLoad = page.waitForResponse(
+        (res) => res.url().includes('/api/slots/available') && res.ok(),
+        { timeout: 15_000 },
+      )
+      await selectableDay.nth(dayIdx).click()
+      await slotsLoad.catch(() => {})
+      await expect(page.locator('.canva-club-slot-grid')).toBeVisible({ timeout: 15_000 })
+      try {
+        await expect.poll(async () => freeSlot.count(), {
+          timeout: 12_000,
+          intervals: [250, 500, 1000],
+        }).toBeGreaterThan(0)
+        await expect(freeSlot.first()).toBeVisible({ timeout: 5_000 })
+        return freeSlot.first()
+      } catch {
+        // First selectable day may have only past/disabled slots late in Tehran; try rest of month.
+      }
     }
-    await expect(nextMonth).toBeVisible({ timeout: 5_000 })
-    await nextMonth.click()
-    await page.waitForTimeout(400)
+    if (month < 13) {
+      await expect(nextMonth).toBeVisible({ timeout: 5_000 })
+      await nextMonth.click()
+      await page.waitForTimeout(300)
+    }
   }
-  expect(picked).toBe(true)
-  await expect(page.locator('.canva-club-slot-grid')).toBeVisible({ timeout: 15_000 })
-  await expect(freeSlot.first()).toBeVisible({ timeout: 25_000 })
-  return freeSlot.first()
+  throw new Error('No bookable free slot found within booking horizon')
 }
 
 test.describe('iOS Safari tap guard', () => {

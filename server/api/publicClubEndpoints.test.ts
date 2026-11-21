@@ -49,7 +49,7 @@ const fullClub = {
   priceToLegacy: null,
 }
 const relations = {
-  courts: [{ id: 'court-1', nameFa: 'زمین 3', nameEn: 'C3', price: 5000, pricingJson: null, facilitiesJson: null, sport: { slug: 'tennis', nameFa: 'تنیس', nameEn: 'Tennis' } }],
+  courts: [{ id: 'court-1', nameFa: 'زمین 3', nameEn: 'C3', price: 5000, pricingJson: null, facilitiesJson: null, description: 'کفش تخت الزامی است.', sport: { slug: 'tennis', nameFa: 'تنیس', nameEn: 'Tennis' } }],
   media: [],
   reviews: [{ id: 'r1', rating: 5, title: null, body: 'ok', authorName: 'A', isVerified: true, publishedAt: new Date(), authorUserId: 'u-9', bookingId: 'b-9' }],
   equipment: [],
@@ -138,6 +138,8 @@ describe('public club endpoints never leak private club fields', () => {
     expect(res.phone).toBe('02100000000')
     expect(res.nameFa).toBe('باشگاه')
     expect(Array.isArray(res.courts)).toBe(true)
+    const court = (res.courts as Array<Record<string, unknown>>)[0]!
+    expect(court.description).toBe('کفش تخت الزامی است.')
     const testimonial = (res.testimonials as Array<Record<string, unknown>>)[0]!
     expect(testimonial).not.toHaveProperty('authorUserId')
     expect(testimonial).not.toHaveProperty('bookingId')

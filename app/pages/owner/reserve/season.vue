@@ -416,7 +416,8 @@ function initFromQuery() {
   const q = route.query
   const start = String(q.start || q.date || '').trim() || today()
   startDate.value = start
-  finishDate.value = String(q.finish || '').trim() || jalaliMonthEndIso(start)
+  const finishFromQuery = String(q.finish || '').trim()
+  finishDate.value = finishFromQuery
   const fromQuery = String(q.guestName || '').trim()
   const familyQuery = String(q.guestFamily || '').trim()
   if (familyQuery) {
@@ -477,7 +478,7 @@ function applyLoadedSeason(season: LoadedSeason, opts: { resetDateRange?: boolea
   comments.value = season.comments || ''
   if (opts.resetDateRange) {
     startDate.value = today()
-    finishDate.value = jalaliMonthEndIso(startDate.value)
+    finishDate.value = ''
   }
   else {
     startDate.value = season.startDate || today()
@@ -571,8 +572,8 @@ async function runPreview() {
       },
     })
     occurrences.value = [...(preview.willCreate || [])]
-    // Edit: past hours of this season are kept untouched — not "skipped" sessions.
-    conflicts.value = (preview.conflicts || []).filter((row) => !(editingSeasonId.value && row.reason === 'PAST'))
+    // Past slot starts are never booked — do not count as overlap/conflict in the wizard UI.
+    conflicts.value = (preview.conflicts || []).filter((row) => row.reason !== 'PAST')
     const addedFromPreview = preview.editDiff?.addedSessions || []
     const addedSubtotal = addedFromPreview.reduce((sum, u) => {
       const row = (preview.willCreate || []).find((w) => seasonUnitKey(w) === seasonUnitKey(u))
@@ -658,7 +659,10 @@ async function confirmReserve(mode: 'cash' | 'unpaid') {
     successOpen.value = true
   }
   catch (error) {
-    formError.value = fetchErrorMessage(error, t('common.error'))
+    formError.value = fetchErrorMessage(error, t('owner.seasonPage.reserveFailed'))
+    if (import.meta.client) {
+      nextTick(() => document.getElementById('season-wizard-error')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }))
+    }
   }
   finally {
     saving.value = false
@@ -900,7 +904,7 @@ const phoneSmsHint = computed(() => t('owner.seasonPage.phoneSmsHint'))
         </li>
       </ol>
 
-      <p v-if="formError" class="venus-alert-error mb-4">{{ formError }}</p>
+      <p v-if="formError" id="season-wizard-error" role="alert" class="venus-alert-error mb-4">{{ formError }}</p>
 
       <!-- Step 1 -->
       <div v-show="step === 1">
@@ -1002,6 +1006,7 @@ const phoneSmsHint = computed(() => t('owner.seasonPage.phoneSmsHint'))
               selected-tone="green"
               square-cells
               :lock-start="startLocked"
+              :sequential-range="!editingSeasonId"
               :min-date="today()"
             />
             <div class="mt-3 flex flex-wrap gap-4 text-[11.5px] text-[#8C8A84]">

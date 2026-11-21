@@ -71,6 +71,7 @@ interface OwnerCourtListItem {
   facilitiesJson?: string | null
   pricingJson?: string | null
   audience?: string | null
+  description?: string | null
   sport?: { slug: string; nameFa?: string; nameEn?: string }
 }
 

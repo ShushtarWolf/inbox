@@ -9,6 +9,7 @@ import {
   type BulkCourtFields,
 } from '#shared/courtBulk.ts'
 import { COURT_AUDIENCE_VALUES, parseCourtAudience, type CourtAudience } from '#shared/courtAudience.ts'
+import { COURT_DESCRIPTION_MAX, parseCourtDescriptionInput } from '#shared/courtDescription.ts'
 
 const props = defineProps<{
   court?: {
@@ -23,6 +24,7 @@ const props = defineProps<{
     facilitiesJson?: string | null
     pricingJson?: string | null
     audience?: string | null
+    description?: string | null
     sport?: { slug: string }
   } | null
   clubOpenHour: number
@@ -40,10 +42,14 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
+const { formatNumber } = useFormatters()
+
+const descriptionError = ref('')
 
 const form = reactive({
   nameFa: '',
   nameEn: '',
+  description: '',
   price: 600000,
   sportSlug: 'padel',
   images: [] as string[],
@@ -90,9 +96,11 @@ const canSubmit = computed(() => {
 watch([() => props.court, () => props.bulkEdit], ([court]) => {
   form.applyPricingToAll = false
   bulkInitial = null
+  descriptionError.value = ''
   if (!court) {
     form.nameFa = ''
     form.nameEn = ''
+    form.description = ''
     form.price = 600000
     form.sportSlug = 'padel'
     form.images = []
@@ -107,6 +115,7 @@ watch([() => props.court, () => props.bulkEdit], ([court]) => {
   }
   form.nameFa = court.nameFa
   form.nameEn = court.nameEn
+  form.description = court.description?.trim() || ''
   form.price = court.price
   form.sportSlug = court.sport?.slug || 'padel'
   form.images = parseImagesJson(court.imagesJson, court.image)
@@ -126,6 +135,7 @@ watch([() => props.court, () => props.bulkEdit], ([court]) => {
 }, { immediate: true })
 
 function submit() {
+  descriptionError.value = ''
   if (props.bulkEdit) {
     const patch = buildBulkCourtPatch({
       initial: bulkInitial ?? currentBulkFields(),
@@ -148,10 +158,19 @@ function submit() {
       count = COURT_BULK_MIN
     }
   }
+  const descParsed = parseCourtDescriptionInput(form.description)
+  if (!descParsed.ok) {
+    descriptionError.value = descParsed.error === 'too_long'
+      ? t('owner.settingsPage.courtDescriptionTooLong', { max: formatNumber(COURT_DESCRIPTION_MAX) })
+      : t('common.error')
+    return
+  }
+
   const imagesJson = serializeImagesJson(form.images)
   emit('save', {
     nameFa: form.nameFa,
     nameEn: form.nameEn,
+    description: descParsed.value,
     price: form.price ?? 0,
     sportSlug: form.sportSlug,
     image: form.images[0] || null,
@@ -191,6 +210,20 @@ watch(() => form.useClubHours, (useClub) => {
         <input v-model="form.nameEn" required dir="ltr" class="neo-input">
       </label>
     </div>
+
+    <label v-if="!bulkEdit" class="block text-sm">
+      <span class="mb-1 block font-bold">{{ t('owner.settingsPage.courtDescription') }}</span>
+      <textarea
+        v-model="form.description"
+        class="neo-textarea min-h-24"
+        rows="4"
+        :maxlength="COURT_DESCRIPTION_MAX"
+        :aria-invalid="descriptionError ? 'true' : undefined"
+        data-testid="court-description-input"
+      />
+      <span class="mt-1 block text-xs text-brand-gray-600">{{ t('owner.settingsPage.courtDescriptionHint') }}</span>
+      <span v-if="descriptionError" class="mt-1 block text-xs text-red-700" role="alert">{{ descriptionError }}</span>
+    </label>
 
     <div class="grid grid-cols-2 gap-2">
       <label class="block text-sm">
