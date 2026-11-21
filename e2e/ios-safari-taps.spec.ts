@@ -51,19 +51,23 @@ async function loginOwnerPassword(page: Page) {
 async function pickFreeClubSlot(page: Page) {
   await page.getByRole('heading', { name: 'انتخاب تاریخ و زمان' }).scrollIntoViewIfNeeded()
   await expect(page.locator('.canva-club-cal-grid')).toBeVisible({ timeout: 15_000 })
-  const nextMonth = page.getByRole('button', { name: 'ماه بعد' })
+  const nextMonth = page.locator('button.canva-club-cal-nav-btn[aria-label="ماه بعد"]')
   const selectableDay = page.locator(
     'button.canva-club-cal-day:not(.canva-club-cal-day-disabled):not([disabled])',
   )
   const freeSlot = page.locator('button.canva-club-slot:not(.canva-club-slot-booked):not([disabled])')
   let picked = false
-  for (let attempt = 0; attempt < 12; attempt += 1) {
+  for (let month = 0; month < 12 && !picked; month += 1) {
     const dayCount = await selectableDay.count()
-    if (dayCount > 0) {
-      await selectableDay.first().click()
-      picked = true
-      break
+    for (let di = 0; di < dayCount; di += 1) {
+      await selectableDay.nth(di).click()
+      await page.waitForTimeout(400)
+      if (await freeSlot.count()) {
+        picked = true
+        break
+      }
     }
+    if (picked) break
     await expect(nextMonth).toBeVisible({ timeout: 5_000 })
     await nextMonth.click()
     await page.waitForTimeout(400)
