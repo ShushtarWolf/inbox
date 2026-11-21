@@ -9,6 +9,9 @@ Curated `psql` scripts for production investigations. Each file is **SELECT-only
 | `sms-delivery-gap.sql` | When booking/cancel SMS stopped being accepted by Kavenegar |
 | `trace-wallet-cancel-lost-refund.sql` | Stranded wallet debits on cancelled court bookings |
 | `list-suspect-court-time-bands.sql` | Court time-band pricing that looks unintended |
+| `ib47-season-residual-shortfall-dry-run.sql` | IB-47 fully-cancelled season IPG residual wallet shortfall |
+| `ib13-cancel-refund-classify-dry-run.sql` | IB-13 cancelled bookings — refund classification (no writes) |
+| `ib14-orphan-payment-classify-dry-run.sql` | IB-14 detached payments — orphan wallet classification |
 
 ### `trace-wallet-cancel-lost-refund.sql` section (c)
 

@@ -39,8 +39,16 @@ APPLY=yes npm run db:historical-money-corrections
 gh workflow run money-historical-corrections-ib13-14.yml -f apply=false
 gh workflow run money-historical-corrections-ib13-14.yml -f apply=true
 
-# Read-only SQL (replica)
-# BEGIN TRANSACTION READ ONLY; \\i scripts/sql/ib13-14-historical-corrections-dry-run.sql; ROLLBACK;
+# Read-only SQL (Actions — recommended)
+gh workflow run readonly-sql-reports.yml -f report=ib13-cancel-refund-classify
+gh workflow run readonly-sql-reports.yml -f report=ib14-orphan-payment-classify
+gh workflow run readonly-sql-reports.yml -f report=ib47-season-residual-shortfall
+
+# Local apply runners (after dry-run review + DB backup — not part of deploy)
+node --import tsx scripts/repair/ib13-cancel-refund-apply.ts
+APPLY=yes node --import tsx scripts/repair/ib13-cancel-refund-apply.ts
+node --import tsx scripts/repair/ib14-orphan-payment-apply.ts
+node --import tsx scripts/repair/ib47-season-residual-shortfall-apply.ts
 ```
 
 `APPLY=yes` / `apply=true` is **not** part of deploy. Run it only after a dry-run has been reviewed, and only against a database you intend to change. Re-run the dry-run afterward. `creditCount` should be 0.
