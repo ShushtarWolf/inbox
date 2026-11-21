@@ -16,7 +16,7 @@ const report = await runHistoricalOrphanPaymentRepair({ apply: true })
 const proposed = report.rows.filter((row) => row.proposal === 'wallet_credit' && row.creditAmount > 0)
 
 console.log(JSON.stringify({
-  mode: APPLY ? 'apply' : 'dry-run',
+  mode: 'apply',
   creditCount: report.creditCount,
   creditToman: report.creditToman,
   proposedCredits: proposed,

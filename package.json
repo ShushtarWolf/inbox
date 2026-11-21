@@ -68,7 +68,7 @@
     "check:ios-hit-testing": "node scripts/check-ios-hit-testing.mjs",
     "check:chunk-reload": "node scripts/check-chunk-reload.mjs",
     "check:money-safety": "node scripts/check-money-safety.mjs",
-    "test:money-matrix": "vitest run shared/moneyCancelMatrix.test.ts shared/owedCancelRefund.test.ts shared/historicalRefundRepair.test.ts shared/cancelRefund.walletRail.test.ts shared/moneyRepairGuards.test.ts",
+    "test:money-matrix": "vitest run shared/moneyCancelMatrix.test.ts shared/owedCancelRefund.test.ts shared/historicalRefundRepair.test.ts shared/cancelRefund.walletRail.test.ts shared/moneyRepairGuards.test.ts server/utils/historicalCancelRefundRepair.inventory.test.ts server/utils/seriesCancelRefund.residual.test.ts",
     "check:backup-assert": "bash scripts/sql/assert-inbox-postgres-dump.test.sh",
     "check:canva": "node scripts/canva-pixel-compare.mjs",
     "check:html": "node scripts/check-html-screens.mjs",

@@ -156,6 +156,15 @@ function emptyBuckets(): Record<HistoricalRepairBucket, number> {
   return { credit: 0, skip: 0, review: 0, series_gap: 0 }
 }
 
+/** Regression guard: never use debits.payer (userId strings) as toman. */
+export function resolveInventoryWalletDebitAbs(opts: {
+  decidePaymentId: string
+  rowId: string
+  debits: { abs: Map<string, number> },
+}): number {
+  return opts.debits.abs.get(opts.decidePaymentId) || opts.debits.abs.get(opts.rowId) || 0
+}
+
 function seriesGroupBookingIds(meta: SeriesPaymentMeta, bookingId: string | null): string[] {
   const primary = meta.groupPrimaryBookingId || meta.coveredByBookingId || bookingId
   const siblings = Array.isArray(meta.groupSiblingBookingIds) ? meta.groupSiblingBookingIds : []
@@ -393,7 +402,11 @@ export async function inventoryHistoricalCancelRefunds(tracking?: string): Promi
       amount: paymentAmount,
       userId: row.userId || row.booking?.userId || null,
       debitedWalletUserId: debits.payer.get(decidePaymentId) || debits.payer.get(row.id) || null,
-      walletDebitAbs: debits.abs.get(decidePaymentId) || debits.payer.get(row.id) || 0,
+      walletDebitAbs: resolveInventoryWalletDebitAbs({
+        decidePaymentId,
+        rowId: row.id,
+        debits,
+      }),
       metadata: meta,
       refundCreditSum,
       alreadyReconciled,

@@ -57,6 +57,8 @@ export async function ib47ResidualDryRunRow(paymentId: string) {
   })
   const eligible = Boolean(
     isIb47ResidualCanonicalPrimary(payment)
+    && clubId
+    && meta.seasonBookingId
     && activeSessions === 0
     && residualOwed > 0
     && !hasResidualNote,

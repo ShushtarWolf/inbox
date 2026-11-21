@@ -27,11 +27,18 @@ export function proposedResidualOwed(input: {
   sessionRefundsTotal: number
   refundCreditSum: number
 }): number {
-  const metaTotal = Math.max(0, Math.floor(input.sessionRefundsTotal))
   const credited = Math.max(0, Math.floor(input.refundCreditSum))
-  const residualByMeta = Math.max(0, input.amount - metaTotal)
-  const headroom = Math.max(0, input.amount - credited)
-  return Math.min(residualByMeta, headroom)
+  return Math.max(0, Math.floor(input.amount) - credited)
+}
+
+/** Cap a proposed credit so total REFUND_CREDIT never exceeds amount paid. */
+export function capCreditToPaymentHeadroom(
+  paymentAmount: number,
+  refundCreditSum: number,
+  proposedCredit: number,
+): number {
+  const headroom = Math.max(0, Math.floor(paymentAmount) - Math.max(0, Math.floor(refundCreditSum)))
+  return Math.max(0, Math.min(Math.floor(proposedCredit), headroom))
 }
 
 export function creditWouldBeSeriesResidual(input: {

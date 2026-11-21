@@ -1,9 +1,11 @@
 import { isPaymentRefundable } from '#shared/bookingPayment.ts'
 import { parseSeriesPaymentMeta } from '#shared/athleteSeason.ts'
 import {
+  IB47_ANCHOR_PAYMENT_ID,
   isIb47ResidualCanonicalPrimary,
   proposedResidualOwed,
 } from '#shared/moneyRepairGuards.ts'
+import type { Prisma } from '@prisma/client'
 import { prisma } from './prisma.ts'
 import {
   countActiveSeasonSessions,
@@ -26,6 +28,78 @@ export type Ib47ResidualRow = {
   ineligibleReason: string | null
   canonicalPath: 'ib47'
   repairNote: string | null
+}
+
+type PaymentWithClub = Prisma.PaymentGetPayload<{
+  include: {
+    booking: { select: { id: true, slot: { select: { court: { select: { clubId: true } } } } } },
+  },
+}>
+
+async function evaluateIb47Payment(payment: PaymentWithClub): Promise<Ib47ResidualRow | null> {
+  if (!isIb47ResidualCanonicalPrimary(payment) || !isPaymentRefundable(payment.status)) return null
+  const meta = parseSeriesPaymentMeta(payment.metadataJson)
+  const sessionRefunds = Math.max(0, Math.floor(Number(meta.sessionRefundsTotal) || 0))
+  if (sessionRefunds <= 0 || sessionRefunds >= payment.amount) return null
+
+  const clubId = resolvePaymentClubId(payment) || payment.booking?.slot?.court?.clubId || null
+  const refundCreditSum = await sumRefundCreditForPayment(payment.id)
+  const residualOwed = proposedResidualOwed({
+    amount: payment.amount,
+    sessionRefundsTotal: sessionRefunds,
+    refundCreditSum,
+  })
+
+  const hasResidualNote = await prisma.walletTransaction.findFirst({
+    where: {
+      paymentId: payment.id,
+      type: 'REFUND_CREDIT',
+      note: { contains: 'series-primary-residual' },
+    },
+    select: { id: true },
+  })
+  const residualSettled = Boolean(
+    meta.seriesResidualSettledAt
+    || (typeof payment.metadataJson === 'string' && payment.metadataJson.includes('seriesResidualSettledAt')),
+  )
+
+  let activeSessions: number | null = null
+  if (clubId && meta.seasonBookingId) {
+    activeSessions = await countActiveSeasonSessions(clubId, meta.seasonBookingId)
+  }
+
+  let ineligibleReason: string | null = null
+  if (!clubId || !meta.seasonBookingId) {
+    ineligibleReason = 'missing_club_or_season'
+  }
+  else if (activeSessions != null && activeSessions > 0) {
+    ineligibleReason = 'season_has_active_sessions'
+  }
+  else if (residualOwed <= 0) {
+    ineligibleReason = hasResidualNote || residualSettled ? 'already_settled' : 'no_gap'
+  }
+  else if (hasResidualNote || residualSettled) {
+    ineligibleReason = 'already_settled'
+  }
+
+  const eligible = ineligibleReason == null && residualOwed > 0
+
+  return {
+    paymentId: payment.id,
+    seasonBookingId: meta.seasonBookingId ?? null,
+    clubId,
+    primaryBookingId: payment.bookingId,
+    amount: payment.amount,
+    sessionRefundsTotal: sessionRefunds,
+    refundCreditSum,
+    residualOwed,
+    proposedWalletCredit: eligible ? residualOwed : 0,
+    activeSessions,
+    eligible,
+    ineligibleReason,
+    canonicalPath: 'ib47',
+    repairNote: eligible ? `series-primary-residual:${payment.id}` : null,
+  }
 }
 
 export async function inventoryIb47SeasonResidualShortfall(opts?: {
@@ -54,75 +128,22 @@ export async function inventoryIb47SeasonResidualShortfall(opts?: {
 
   const rows: Ib47ResidualRow[] = []
   for (const payment of payments) {
-    if (!isIb47ResidualCanonicalPrimary(payment) || !isPaymentRefundable(payment.status)) continue
-    const meta = parseSeriesPaymentMeta(payment.metadataJson)
-    const sessionRefunds = Math.max(0, Math.floor(Number(meta.sessionRefundsTotal) || 0))
-    if (sessionRefunds <= 0 || sessionRefunds >= payment.amount) continue
-
-    const clubId = resolvePaymentClubId(payment) || payment.booking?.slot?.court?.clubId || null
-    const refundCreditSum = await sumRefundCreditForPayment(payment.id)
-    const residualOwed = proposedResidualOwed({
-      amount: payment.amount,
-      sessionRefundsTotal: sessionRefunds,
-      refundCreditSum,
-    })
-
-    const hasResidualNote = await prisma.walletTransaction.findFirst({
-      where: {
-        paymentId: payment.id,
-        type: 'REFUND_CREDIT',
-        note: { contains: 'series-primary-residual' },
-      },
-      select: { id: true },
-    })
-    const residualSettled = Boolean(
-      meta.seriesResidualSettledAt
-      || (typeof payment.metadataJson === 'string' && payment.metadataJson.includes('seriesResidualSettledAt')),
-    )
-
-    let activeSessions: number | null = null
-    if (clubId && meta.seasonBookingId) {
-      activeSessions = await countActiveSeasonSessions(clubId, meta.seasonBookingId)
-    }
-
-    let ineligibleReason: string | null = null
-    if (activeSessions != null && activeSessions > 0) {
-      ineligibleReason = 'season_has_active_sessions'
-    }
-    else if (residualOwed <= 0) {
-      ineligibleReason = hasResidualNote || residualSettled ? 'already_settled' : 'no_gap'
-    }
-    else if (hasResidualNote || residualSettled) {
-      ineligibleReason = 'already_settled'
-    }
-
-    const eligible = ineligibleReason == null && residualOwed > 0
-
-    rows.push({
-      paymentId: payment.id,
-      seasonBookingId: meta.seasonBookingId ?? null,
-      clubId,
-      primaryBookingId: payment.bookingId,
-      amount: payment.amount,
-      sessionRefundsTotal: sessionRefunds,
-      refundCreditSum,
-      residualOwed,
-      proposedWalletCredit: eligible ? residualOwed : 0,
-      activeSessions,
-      eligible,
-      ineligibleReason,
-      canonicalPath: 'ib47',
-      repairNote: eligible ? `series-primary-residual:${payment.id}` : null,
-    })
+    const row = await evaluateIb47Payment(payment)
+    if (row) rows.push(row)
   }
 
-  const anchorPaymentId = opts?.paymentId || 'cmwhw6oye00rsnr33m065fwhu'
+  const anchorPaymentId = opts?.paymentId || IB47_ANCHOR_PAYMENT_ID
   let anchor = rows.find((row) => row.paymentId === anchorPaymentId) || null
   if (!anchor) {
-    const one = await inventoryIb47SeasonResidualShortfall({ paymentId: anchorPaymentId })
-    anchor = one.rows[0] || null
-    if (anchor && !rows.some((row) => row.paymentId === anchor!.paymentId)) {
-      rows.unshift(anchor)
+    const anchorPay = await prisma.payment.findUnique({
+      where: { id: anchorPaymentId },
+      include: {
+        booking: { select: { id: true, slot: { select: { court: { select: { clubId: true } } } } } },
+      },
+    })
+    if (anchorPay) {
+      anchor = await evaluateIb47Payment(anchorPay)
+      if (anchor) rows.unshift(anchor)
     }
   }
 

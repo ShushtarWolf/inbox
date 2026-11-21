@@ -50,25 +50,28 @@ async function loginOwnerPassword(page: Page) {
  */
 async function pickFreeClubSlot(page: Page) {
   await page.getByRole('heading', { name: 'انتخاب تاریخ و زمان' }).scrollIntoViewIfNeeded()
-  // Accessible names use Persian digits (e.g. «انتخاب ۱۳ آبان …»), not ASCII.
-  const dayButtons = page.getByRole('button', { name: /^انتخاب/ })
+  await expect(page.locator('.canva-club-cal-grid')).toBeVisible({ timeout: 15_000 })
   const nextMonth = page.getByRole('button', { name: 'ماه بعد' })
-  let futureDay = dayButtons.first()
-  for (let attempt = 0; attempt < 4; attempt += 1) {
-    if (await futureDay.isVisible().catch(() => false)) break
-    if (await nextMonth.isVisible().catch(() => false)) {
-      await nextMonth.click()
-      await page.waitForTimeout(300)
+  const selectableDay = page.locator(
+    'button.canva-club-cal-day:not(.canva-club-cal-day-disabled):not([disabled])',
+  )
+  const freeSlot = page.locator('button.canva-club-slot:not(.canva-club-slot-booked):not([disabled])')
+  let picked = false
+  for (let attempt = 0; attempt < 12; attempt += 1) {
+    const dayCount = await selectableDay.count()
+    if (dayCount > 0) {
+      await selectableDay.first().click()
+      picked = true
+      break
     }
-    futureDay = dayButtons.first()
+    await expect(nextMonth).toBeVisible({ timeout: 5_000 })
+    await nextMonth.click()
+    await page.waitForTimeout(400)
   }
-  await expect(futureDay).toBeVisible({ timeout: 20_000 })
-  await futureDay.click()
+  expect(picked).toBe(true)
   await expect(page.locator('.canva-club-slot-grid')).toBeVisible({ timeout: 15_000 })
-
-  const freeSlot = page.locator('button.canva-club-slot:not(.canva-club-slot-booked):not([disabled])').first()
-  await expect(freeSlot).toBeVisible({ timeout: 20_000 })
-  return freeSlot
+  await expect(freeSlot.first()).toBeVisible({ timeout: 25_000 })
+  return freeSlot.first()
 }
 
 test.describe('iOS Safari tap guard', () => {

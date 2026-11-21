@@ -23,7 +23,15 @@ const DISCOUNT_APP_SUBMIT_MAX = Number(process.env.DISCOUNT_APP_SUBMIT_MAX) || 5
 const PAY_LINK_WINDOW_MS = Number(process.env.PAY_LINK_RATE_LIMIT_WINDOW_MS) || 60_000
 const PAY_LINK_MAX = Number(process.env.PAY_LINK_RATE_LIMIT_MAX) || 8
 
+const ADMIN_MONEY_REPAIR_WINDOW_MS = Number(process.env.ADMIN_MONEY_REPAIR_RATE_LIMIT_WINDOW_MS) || 60_000
+const ADMIN_MONEY_REPAIR_MAX = Number(process.env.ADMIN_MONEY_REPAIR_RATE_LIMIT_MAX) || 6
+
 const KEY_LIMITS: Record<string, RateLimitKeyConfig> = {
+  'admin:money-repair-dry-run': {
+    windowMs: ADMIN_MONEY_REPAIR_WINDOW_MS,
+    max: ADMIN_MONEY_REPAIR_MAX,
+    statusMessage: 'ADMIN_MONEY_REPAIR_RATE_LIMITED',
+  },
   'competitions:join': {
     windowMs: COMPETITION_JOIN_WINDOW_MS,
     max: COMPETITION_JOIN_MAX,

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  capCreditToPaymentHeadroom,
   creditWouldBeSeriesResidual,
   isIb47ResidualCanonicalPrimary,
   proposedResidualOwed,
@@ -15,12 +16,22 @@ describe('moneyRepairGuards IB-47 mutual exclusion', () => {
     })).toBe(true)
   })
 
-  it('residual owed for anchor math', () => {
+  it('residual owed uses all REFUND_CREDIT rows (ledger headroom)', () => {
     expect(proposedResidualOwed({
       amount: 360_000,
       sessionRefundsTotal: 144_000,
       refundCreditSum: 144_000,
     })).toBe(216_000)
+    expect(proposedResidualOwed({
+      amount: 360_000,
+      sessionRefundsTotal: 144_000,
+      refundCreditSum: 200_000,
+    })).toBe(160_000)
+  })
+
+  it('caps proposed credit to payment headroom after all REFUND_CREDIT', () => {
+    expect(capCreditToPaymentHeadroom(360_000, 200_000, 216_000)).toBe(160_000)
+    expect(capCreditToPaymentHeadroom(360_000, 360_000, 10_000)).toBe(0)
   })
 
   it('detects residual-sized IB-13 credit', () => {

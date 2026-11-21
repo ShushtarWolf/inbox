@@ -1,4 +1,5 @@
 import { runMoneyRepairDryRun } from '../../../utils/moneyRepairDryRun.ts'
+import { enforceRateLimit } from '../../../utils/rateLimit.ts'
 
 /**
  * IB-13 / IB-14 / IB-47 unified dry-run (read-only). No query param writes.
@@ -6,6 +7,7 @@ import { runMoneyRepairDryRun } from '../../../utils/moneyRepairDryRun.ts'
  */
 export default defineEventHandler(async (event) => {
   requireAdminSecret(event)
+  await enforceRateLimit(event, 'admin:money-repair-dry-run')
   const query = getQuery(event)
   if (query.apply === '1' || query.apply === 'true') {
     throw createError({ statusCode: 400, statusMessage: 'apply_not_allowed_on_dry_run_endpoint' })

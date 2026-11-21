@@ -72,8 +72,7 @@ candidates AS (
   SELECT
     sp.*,
     COALESCE(a.active_sessions, 0) AS active_sessions,
-    GREATEST(0, sp.amount - sp.session_refunds_total) AS residual_owed,
-    GREATEST(0, sp.amount - sp.session_refunds_total - GREATEST(sp.refund_credit_total, sp.session_refunds_total)) AS would_credit_toman,
+    GREATEST(0, sp.amount - sp.refund_credit_total) AS residual_owed,
     ('series-primary-residual:' || sp.payment_id) AS repair_note,
     ('recon:ib47-season-residual:' || sp.season_booking_id) AS recon_key_hint
   FROM series_pay sp
@@ -84,6 +83,7 @@ candidates AS (
     AND sp.payment_status = 'PAID'
     AND NOT sp.has_residual_refund_row
     AND sp.residual_settled_at = ''
+    AND sp.club_id IS NOT NULL
 )
 SELECT
   'ib47_proposed_residual' AS report,
@@ -149,7 +149,10 @@ active AS (
 candidates AS (
   SELECT
     sp.payment_id,
-    GREATEST(0, sp.amount - sp.session_refunds_total) AS residual_owed
+    GREATEST(0, sp.amount - (
+      SELECT COALESCE(SUM(wt.amount), 0)::bigint FROM "WalletTransaction" wt
+      WHERE wt."paymentId" = sp.payment_id AND wt.type = 'REFUND_CREDIT'
+    )) AS residual_owed
   FROM series_pay sp
   LEFT JOIN active a ON a.payment_id = sp.payment_id
   WHERE sp.session_refunds_total > 0 AND sp.session_refunds_total < sp.amount
@@ -173,7 +176,10 @@ SELECT
   p."bookingId",
   (p."metadataJson"::jsonb ->> 'sessionRefundsTotal') AS session_refunds_total,
   (p."metadataJson"::jsonb ->> 'seasonBookingId') AS season_booking_id,
-  GREATEST(0, p.amount - COALESCE((p."metadataJson"::jsonb ->> 'sessionRefundsTotal')::bigint, 0)) AS residual_owed,
+  GREATEST(0, p.amount - (
+    SELECT COALESCE(SUM(wt.amount), 0)::bigint FROM "WalletTransaction" wt
+    WHERE wt."paymentId" = p.id AND wt.type = 'REFUND_CREDIT'
+  )) AS residual_owed,
   (
     SELECT count(DISTINCT b.id)
     FROM (

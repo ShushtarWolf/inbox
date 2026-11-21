@@ -266,7 +266,12 @@ async function applySeriesSessionRefund(opts: {
     const canCredit = Boolean(opts.userId) && refundChannel === 'wallet_closed_loop'
     const doneIds = Array.isArray(freshMeta.sessionRefundedBookingIds) ? freshMeta.sessionRefundedBookingIds : []
     const already = Number(freshMeta.sessionRefundsTotal || 0)
-    const capped = Math.min(opts.amount, Math.max(0, fresh.amount - already))
+    const refundCreditLive = await tx.walletTransaction.aggregate({
+      where: { paymentId: opts.paymentId, type: 'REFUND_CREDIT' },
+      _sum: { amount: true },
+    })
+    const totalRefundCredit = Math.max(0, refundCreditLive._sum.amount || 0)
+    const capped = Math.min(opts.amount, Math.max(0, fresh.amount - totalRefundCredit))
     if (capped <= 0) {
       return { amount: 0, walletCredited: false, gatewayRefunded: historicallyReversed, refundChannel }
     }
