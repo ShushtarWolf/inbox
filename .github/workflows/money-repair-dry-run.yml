@@ -1,0 +1,76 @@
+name: Money repair dry-run (IB-13/14/47 prod)
+
+# Read-only inventory on inboxs.ir (app has DB access). No APPLY.
+on:
+  workflow_dispatch:
+    inputs:
+      paymentId:
+        description: Optional single payment id (e.g. cmwhw6oye00rsnr33m065fwhu)
+        required: false
+        default: ''
+        type: string
+
+concurrency:
+  group: money-repair-dry-run
+  cancel-in-progress: false
+
+jobs:
+  dry-run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: IB-13/14/47 dry-run on inboxs.ir
+        env:
+          ADMIN_PROVISION_SECRET: ${{ secrets.ADMIN_PROVISION_SECRET }}
+          PAYMENT_ID: ${{ inputs.paymentId }}
+        run: |
+          set -euo pipefail
+          if [ -z "${ADMIN_PROVISION_SECRET:-}" ]; then
+            echo "ADMIN_PROVISION_SECRET missing"
+            exit 1
+          fi
+          QS=""
+          if [ -n "${PAYMENT_ID:-}" ]; then
+            QS="paymentId=${PAYMENT_ID}"
+          fi
+          URL="https://inboxs.ir/api/admin/money-audit/money-repair-dry-run"
+          if [ -n "$QS" ]; then URL="${URL}?${QS}"; fi
+          curl -sfS -X POST "$URL" \
+            -H "x-admin-secret: ${ADMIN_PROVISION_SECRET}" \
+            -H "content-type: application/json" \
+            -o /tmp/money-repair-dry-run.json
+          python3 - <<'PY'
+          import json
+          d = json.load(open('/tmp/money-repair-dry-run.json'))
+          ib47 = d.get('ib47') or {}
+          ib13 = d.get('ib13') or {}
+          ib14 = d.get('ib14') or {}
+          print(f"mode={d.get('mode')} anchorPaymentId={d.get('anchorPaymentId')}")
+          print(f"IB-47 eligible={ib47.get('candidateCount')} toman={ib47.get('proposedWalletCreditToman')}")
+          anchor = ib47.get('anchor') or {}
+          if anchor:
+              print(f"  anchor eligible={anchor.get('eligible')} activeSessions={anchor.get('activeSessions')} residualOwed={anchor.get('residualOwed')} reason={anchor.get('ineligibleReason')}")
+          print(f"IB-13 applyEligible={ib13.get('applyEligibleCount')} toman={ib13.get('applyEligibleToman')}")
+          print(f"IB-14 creditCount={ib14.get('creditCount')} toman={ib14.get('creditToman')}")
+          for row in (d.get('mutualExclusions') or [])[:20]:
+              print(f"  exclude payment={row.get('paymentId')} reason={row.get('reason')} active={row.get('activeSeasonSessions')}")
+          for row in (ib47.get('rows') or [])[:15]:
+              if row.get('eligible'):
+                  print(f"  ib47_eligible payment={row.get('paymentId')} credit={row.get('proposedWalletCredit')}")
+          for row in (ib13.get('rows') or [])[:30]:
+              if row.get('applyEligible'):
+                  print(f"  ib13_apply payment={row.get('paymentId')} amount={row.get('proposedWalletCredit')} class={row.get('ib13Class')}")
+          for row in (ib14.get('rows') or [])[:10]:
+              if row.get('creditAmount', 0) > 0:
+                  print(f"  ib14_proposed payment={row.get('paymentId')} amount={row.get('creditAmount')}")
+          PY
+
+      - name: Upload full dry-run JSON (short retention)
+        uses: actions/upload-artifact@v4
+        with:
+          name: money-repair-dry-run
+          path: /tmp/money-repair-dry-run.json
+          retention-days: 7
+          if-no-files-found: error

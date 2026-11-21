@@ -68,6 +68,9 @@ jobs:
             QS="${QS:+$QS&}reviewPaymentId=${REVIEW_PAYMENT_ID}"
           fi
           URL="https://inboxs.ir/api/admin/money-audit/historical-money-corrections"
+          if [ "$APPLY_INPUT" != "true" ]; then
+            QS="${QS:+$QS&}inventory=1"
+          fi
           if [ -n "$QS" ]; then URL="${URL}?${QS}"; fi
           curl -sfS -X POST "$URL" \
             -H "x-admin-secret: ${ADMIN_PROVISION_SECRET}" \
