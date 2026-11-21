@@ -615,6 +615,8 @@ model Court {
   id     String @id @default(cuid())
   nameFa String
   nameEn String
+  /** Owner rules / notes for athletes (optional). */
+  description String?
   price  Int    @default(600000)
   image  String?
   openHour  Int?

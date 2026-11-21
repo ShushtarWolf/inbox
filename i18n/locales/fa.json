@@ -241,6 +241,7 @@
     "reviewsEmpty": "هنوز نظری ثبت نشده است.",
     "selectDateTime": "انتخاب تاریخ و زمان",
     "selectCourt": "انتخاب زمین",
+    "courtDescriptionTitle": "توضیحات / قوانین زمین",
     "audience": {
       "MEN": "آقایان",
       "WOMEN": "بانوان",
@@ -3136,6 +3137,9 @@
       "courtCountHint": "چند زمین با همین تنظیمات ساخته می‌شود. نام‌ها به‌ترتیب شماره‌گذاری می‌شوند.",
       "courtNameFa": "نام زمین",
       "courtNameEn": "نام زمین (انگلیسی)",
+      "courtDescription": "توضیحات / قوانین زمین",
+      "courtDescriptionHint": "قوانین اختصاصی این زمین (مثلاً کفش، لباس، یا محدودیت سن). در صفحه رزرو برای ورزشکار نمایش داده می‌شود.",
+      "courtDescriptionTooLong": "حداکثر {max} کاراکتر مجاز است.",
       "courtPrice": "قیمت زمین",
       "courtSport": "ورزش",
       "courtAudience": "مخاطب زمین",

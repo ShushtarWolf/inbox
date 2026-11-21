@@ -1,5 +1,6 @@
 import { numberedCourtNames, parseCourtBulkCount } from '#shared/courtBulk.ts'
 import { parseCourtAudience } from '#shared/courtAudience.ts'
+import { normalizeCourtDescription } from '#shared/courtDescription.ts'
 import { normalizeCourtPricingForSave } from '#shared/courtPricing.ts'
 import { syncClubCatalogPrices } from '../../../utils/clubCatalogPrices'
 
@@ -17,6 +18,7 @@ export default defineEventHandler(async (event) => {
     facilitiesJson?: string | null
     pricingJson?: string | null
     audience?: string
+    description?: string | null
     count?: number
   }>(event)
   const audience = body.audience !== undefined
@@ -32,6 +34,19 @@ export default defineEventHandler(async (event) => {
   const sportId = sport.id
   if (body.openHour != null && body.closeHour != null && body.openHour >= body.closeHour) {
     throw createError({ statusCode: 400, statusMessage: 'openHour must be before closeHour' })
+  }
+
+  let description: string | null = null
+  if (body.description !== undefined) {
+    try {
+      description = normalizeCourtDescription(body.description)
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : ''
+      throw createError({
+        statusCode: 400,
+        statusMessage: msg.includes('too long') ? 'description too long' : 'Invalid description',
+      })
+    }
   }
 
   let count = 1
@@ -61,6 +76,7 @@ export default defineEventHandler(async (event) => {
       facilitiesJson: body.facilitiesJson ?? null,
       pricingJson: normalizeCourtPricingForSave(body.price ?? 600000, body.pricingJson ?? null),
       audience: audience || 'MIXED',
+      description,
     }
   }
 
