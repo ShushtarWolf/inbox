@@ -6,7 +6,9 @@
     "prevMonth": "ماه قبل",
     "nextMonth": "ماه بعد",
     "today": "امروز",
-    "showSelectedRange": "نمایش بازه انتخاب‌شده"
+    "showSelectedRange": "نمایش بازه انتخاب‌شده",
+    "sequentialPickStart": "تاریخ شروع را انتخاب کنید",
+    "sequentialPickEnd": "تاریخ پایان را انتخاب کنید"
   },
   "common": {
     "add": "افزودن",
