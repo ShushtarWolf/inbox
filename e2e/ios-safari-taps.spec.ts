@@ -51,8 +51,18 @@ async function loginOwnerPassword(page: Page) {
 async function pickFreeClubSlot(page: Page) {
   await page.getByRole('heading', { name: 'انتخاب تاریخ و زمان' }).scrollIntoViewIfNeeded()
   // Accessible names use Persian digits (e.g. «انتخاب ۱۳ آبان …»), not ASCII.
-  const futureDay = page.getByRole('button', { name: /^انتخاب/ }).first()
-  await expect(futureDay).toBeVisible({ timeout: 15_000 })
+  const dayButtons = page.getByRole('button', { name: /^انتخاب/ })
+  const nextMonth = page.getByRole('button', { name: 'ماه بعد' })
+  let futureDay = dayButtons.first()
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    if (await futureDay.isVisible().catch(() => false)) break
+    if (await nextMonth.isVisible().catch(() => false)) {
+      await nextMonth.click()
+      await page.waitForTimeout(300)
+    }
+    futureDay = dayButtons.first()
+  }
+  await expect(futureDay).toBeVisible({ timeout: 20_000 })
   await futureDay.click()
   await expect(page.locator('.canva-club-slot-grid')).toBeVisible({ timeout: 15_000 })
 

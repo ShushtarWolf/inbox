@@ -34,7 +34,7 @@ export function historicalRepairBucket(
 
 export type HistoricalRefundDecision =
   | { action: 'credit'; amount: number; reason: 'wallet_path_shortfall' | 'wallet_spend_shortfall' | 'split_wallet_rail_after_card_reverse' | 'series_session_shortfall' }
-  | { action: 'skip'; reason: 'cash_club_responsibility' | 'already_credited' | 'already_reconciled' | 'not_cancelled' | 'card_already_reversed' }
+  | { action: 'skip'; reason: 'cash_club_responsibility' | 'already_credited' | 'already_reconciled' | 'not_cancelled' | 'card_already_reversed' | 'deferred_ib47_residual' | 'season_has_active_sessions' }
   | { action: 'unresolved'; reason: 'bank_outcome_unknown' | 'bank_outcome_pending' | 'no_verified_account' | 'owed_amount_unknown' }
 
 export type HistoricalRefundInput = {

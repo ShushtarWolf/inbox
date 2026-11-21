@@ -39,10 +39,14 @@ APPLY=yes npm run db:historical-money-corrections
 gh workflow run money-historical-corrections-ib13-14.yml -f apply=false
 gh workflow run money-historical-corrections-ib13-14.yml -f apply=true
 
-# Read-only SQL (Actions — recommended)
-gh workflow run readonly-sql-reports.yml -f report=ib13-cancel-refund-classify
-gh workflow run readonly-sql-reports.yml -f report=ib14-orphan-payment-classify
-gh workflow run readonly-sql-reports.yml -f report=ib47-season-residual-shortfall
+# Production dry-run (app DB — recommended)
+gh workflow run money-repair-dry-run.yml
+gh workflow run money-historical-corrections-ib13-14.yml -f apply=false
+# Same JSON includes `moneyRepairInventory` when:
+#   POST /api/admin/money-audit/historical-money-corrections?inventory=1
+
+# Optional local SQL (replica / dump only — GitHub `readonly-sql-reports` cannot reach Liara inbox-db hostname)
+# psql … -f scripts/sql/ib13-cancel-refund-classify-dry-run.sql
 
 # Local apply runners (after dry-run review + DB backup — not part of deploy)
 node --import tsx scripts/repair/ib13-cancel-refund-apply.ts

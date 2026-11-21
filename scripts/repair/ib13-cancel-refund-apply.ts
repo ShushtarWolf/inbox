@@ -1,41 +1,64 @@
 /**
- * IB-13 — apply wallet credits only for rows the app classifies as credit (idempotent).
- * Uses the same REFUND_CREDIT + RefundReconciliation path as live repairs.
+ * IB-13 apply — only rows classified applyEligible by ib13ClassifiedInventory.
+ * Never credits IB-47 canonical residuals or rows with active season sessions.
  *
- * Dry-run (default) mirrors production API dry-run buckets:
- *   node --import tsx scripts/repair/ib13-cancel-refund-apply.ts
- *
- * Apply after reviewing scripts/sql/ib13-cancel-refund-classify-dry-run.sql:
  *   APPLY=yes node --import tsx scripts/repair/ib13-cancel-refund-apply.ts
- *
- * Never credits desk CASH. Does not force reviewPaymentId — use historical-money-corrections API for reviewed rows.
  */
-import { runHistoricalCancelRefundRepair } from '../../server/utils/historicalCancelRefundRepair.ts'
+import { inventoryIb13Classified } from '../../server/utils/ib13ClassifiedInventory.ts'
+import { applyHistoricalCancelCredit } from '../../server/utils/historicalCancelRefundRepair.ts'
+import { historicalRefundIdempotencyKey } from '#shared/historicalRefundRepair.ts'
 
 const APPLY = process.env.APPLY === 'yes'
-const TRACKING = (process.env.TRACKING || '').trim()
+const inventory = await inventoryIb13Classified()
+const eligible = inventory.rows.filter((row) => row.applyEligible)
 
-const report = await runHistoricalCancelRefundRepair({
-  apply: APPLY,
-  tracking: TRACKING || undefined,
-})
+const dryRunLines = eligible.map((row) => ({
+  paymentId: row.paymentId,
+  bookingId: row.bookingId,
+  class: row.ib13Class,
+  proposedWalletCredit: row.proposedWalletCredit,
+  repairKey: row.repairIdempotencyKey,
+}))
 
-const creditLines = report.credits || []
-const onlyClearRefundable = creditLines.filter((row) =>
-  row.reason === 'wallet_path_shortfall'
-  || row.reason === 'wallet_spend_shortfall'
-  || row.reason === 'split_wallet_rail_after_card_reverse',
-)
+const applied: Array<{ paymentId: string, bookingId: string | null, amount: number, ok: boolean }> = []
+
+if (APPLY) {
+  for (const row of eligible) {
+    const fresh = await inventoryIb13Classified({ paymentId: row.paymentId })
+    const still = fresh.rows.find((r) => r.paymentId === row.paymentId && r.bookingId === row.bookingId)
+    if (!still?.applyEligible || still.proposedWalletCredit !== row.proposedWalletCredit) {
+      applied.push({ paymentId: row.paymentId, bookingId: row.bookingId, amount: 0, ok: false })
+      continue
+    }
+    const ok = await applyHistoricalCancelCredit({
+      paymentId: row.paymentId,
+      bookingId: row.bookingId,
+      decision: {
+        action: 'credit',
+        amount: row.proposedWalletCredit,
+        reason: row.ib13Class === 'refundable_now' ? 'wallet_path_shortfall' : 'wallet_spend_shortfall',
+      },
+      bucket: 'credit',
+    }, { trustDecision: true })
+    applied.push({
+      paymentId: row.paymentId,
+      bookingId: row.bookingId,
+      amount: row.proposedWalletCredit,
+      ok,
+    })
+    console.info('[ib13-apply]', JSON.stringify({
+      paymentId: row.paymentId,
+      bookingId: row.bookingId,
+      amount: row.proposedWalletCredit,
+      key: historicalRefundIdempotencyKey(row.paymentId, row.bookingId),
+    }))
+  }
+}
 
 console.log(JSON.stringify({
   mode: APPLY ? 'apply' : 'dry-run',
-  buckets: report.buckets,
-  counts: report.counts,
-  creditCount: report.creditCount,
-  creditToman: report.creditToman,
-  appliedCount: report.appliedCount,
-  refundableNowSample: onlyClearRefundable.slice(0, 50),
-  reviewSample: report.samples?.review?.slice(0, 30) ?? [],
-  seriesGaps: report.seriesGaps?.slice(0, 30) ?? [],
-  applyErrors: report.applyErrors,
+  applyEligibleCount: eligible.length,
+  applyEligibleToman: eligible.reduce((s, r) => s + r.proposedWalletCredit, 0),
+  dryRunLines,
+  applied,
 }, null, 2))

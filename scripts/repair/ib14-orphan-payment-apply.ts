@@ -6,9 +6,12 @@
  */
 import { runHistoricalOrphanPaymentRepair } from '../../server/utils/historicalOrphanPayments.ts'
 
-const APPLY = process.env.APPLY === 'yes'
+if (process.env.APPLY !== 'yes') {
+  console.error('[ib14-apply] Use scripts/repair/ib14-orphan-payment-dry-run.ts for dry-run.')
+  process.exit(1)
+}
 
-const report = await runHistoricalOrphanPaymentRepair({ apply: APPLY })
+const report = await runHistoricalOrphanPaymentRepair({ apply: true })
 
 const proposed = report.rows.filter((row) => row.proposal === 'wallet_credit' && row.creditAmount > 0)
 

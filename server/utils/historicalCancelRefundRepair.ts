@@ -11,6 +11,13 @@ import {
   type HistoricalRefundDecision,
   type HistoricalRepairBucket,
 } from '#shared/historicalRefundRepair.ts'
+import { isIb47ResidualCanonicalPrimary } from '#shared/moneyRepairGuards.ts'
+import {
+  capCreditToRefundHeadroom,
+  countActiveSeasonSessions,
+  shouldBlockIb13ForIb47Primary,
+} from './moneyRepairGuards.ts'
+import { resolvePaymentClubId } from './staleBooking.ts'
 import { cancelWalletCreditAmount } from '#shared/owedCancelRefund.ts'
 import { prisma } from './prisma'
 
@@ -322,6 +329,7 @@ export async function inventoryHistoricalCancelRefunds(tracking?: string): Promi
     let alreadyRefundedOnPrimary: number | null = null
     let remainingSessionsIncludingCancelled: number | null = null
     let refundCreditSum = sums.get(row.id) || 0
+    let seriesPrimaryRow: Candidate | null = null
     let alreadyReconciled = keys.has(historicalRefundIdempotencyKey(row.id))
       || (row.bookingId ? keys.has(historicalRefundIdempotencyKey(row.id, row.bookingId)) : false)
 
@@ -338,6 +346,7 @@ export async function inventoryHistoricalCancelRefunds(tracking?: string): Promi
       if (primaryBookingId) {
         const primary = paymentByBookingId.get(primaryBookingId)
         if (primary) {
+          seriesPrimaryRow = primary
           decidePaymentId = primary.id
           primaryAmount = primary.amount
           paymentAmount = row.amount > 0 ? row.amount : 0
@@ -357,11 +366,26 @@ export async function inventoryHistoricalCancelRefunds(tracking?: string): Promi
           else {
             refundCreditSum = sums.get(primary.id) || 0
           }
+          const pMeta = parseSeriesPaymentMeta(primary.metadataJson)
+          if (pMeta.seasonBookingId) {
+            const clubPayment = await prisma.payment.findUnique({
+              where: { id: primary.id },
+              select: {
+                metadataJson: true,
+                booking: { select: { slot: { select: { court: { select: { clubId: true } } } } } },
+              },
+            })
+            const clubId = clubPayment ? resolvePaymentClubId(clubPayment) || clubPayment.booking?.slot?.court?.clubId || null : null
+            if (clubId) {
+              const liveActive = await countActiveSeasonSessions(clubId, pMeta.seasonBookingId)
+              remainingSessionsIncludingCancelled = liveActive + 1
+            }
+          }
         }
       }
     }
 
-    const decision = decideHistoricalCancelRefund({
+    let decision: HistoricalRefundDecision = decideHistoricalCancelRefund({
       method: row.method,
       bookingPaymentMethod: row.booking?.paymentMethod,
       paymentStatus: row.status,
@@ -369,7 +393,7 @@ export async function inventoryHistoricalCancelRefunds(tracking?: string): Promi
       amount: paymentAmount,
       userId: row.userId || row.booking?.userId || null,
       debitedWalletUserId: debits.payer.get(decidePaymentId) || debits.payer.get(row.id) || null,
-      walletDebitAbs: debits.abs.get(decidePaymentId) || debits.abs.get(row.id) || 0,
+      walletDebitAbs: debits.abs.get(decidePaymentId) || debits.payer.get(row.id) || 0,
       metadata: meta,
       refundCreditSum,
       alreadyReconciled,
@@ -379,6 +403,49 @@ export async function inventoryHistoricalCancelRefunds(tracking?: string): Promi
       remainingSessionsIncludingCancelled,
       treatAsSeries: series || undefined,
     })
+
+    if (decision.action === 'credit') {
+      const target = seriesPrimaryRow || (decidePaymentId === row.id ? row : null)
+      const primaryLike = target && isIb47ResidualCanonicalPrimary({
+        method: target.method,
+        status: target.status,
+        amount: target.amount,
+        metadataJson: target.metadataJson,
+      }) ? target : (isIb47ResidualCanonicalPrimary({
+        method: row.method,
+        status: row.status,
+        amount: row.amount,
+        metadataJson: row.metadataJson,
+      }) ? row : null)
+      if (primaryLike) {
+        const pMeta = parseSeriesPaymentMeta(primaryLike.metadataJson)
+        const clubId = pMeta.seasonBookingId
+          ? await prisma.payment.findUnique({
+              where: { id: primaryLike.id },
+              select: {
+                booking: { select: { slot: { select: { court: { select: { clubId: true } } } } } },
+                metadataJson: true,
+              },
+            }).then((p) => p ? resolvePaymentClubId(p) || p.booking?.slot?.court?.clubId || null : null)
+          : null
+        const block = await shouldBlockIb13ForIb47Primary({
+          primaryPaymentId: primaryLike.id,
+          primaryAmount: primaryAmount ?? primaryLike.amount,
+          alreadyRefundedOnPrimary: alreadyRefundedOnPrimary ?? 0,
+          proposedCredit: decision.amount,
+          seasonBookingId: pMeta.seasonBookingId,
+          clubId,
+        })
+        if (block.block) {
+          decision = {
+            action: 'skip',
+            reason: block.reason === 'season_has_active_sessions'
+              ? 'season_has_active_sessions'
+              : 'deferred_ib47_residual',
+          }
+        }
+      }
+    }
 
     const bucket = series && decision.action === 'credit'
       ? 'series_gap' as const
@@ -561,6 +628,22 @@ export async function applyHistoricalCancelCredit(line: HistoricalCancelRefundLi
         again = { action: 'credit', amount: gap, reason: 'series_session_shortfall' }
       }
     }
+    if (again.action === 'credit' && isIb47ResidualCanonicalPrimary(payment)) {
+      const clubId = resolvePaymentClubId(payment) || payment.booking?.slot?.court?.clubId || null
+      const block = await shouldBlockIb13ForIb47Primary({
+        primaryPaymentId: payment.id,
+        primaryAmount: payment.amount,
+        alreadyRefundedOnPrimary: Math.max(
+          0,
+          Math.floor(Number(parseMeta(payment.metadataJson).sessionRefundsTotal) || 0),
+        ),
+        proposedCredit: again.amount,
+        seasonBookingId: seriesMeta.seasonBookingId,
+        clubId,
+      })
+      if (block.block) return
+    }
+
     if (again.action !== 'credit' || !userId) {
       if (liveCredited > 0 && userId) {
         const existingRecon = await tx.refundReconciliation.findUnique({ where: { idempotencyKey: key } })
@@ -591,7 +674,15 @@ export async function applyHistoricalCancelCredit(line: HistoricalCancelRefundLi
       return
     }
 
-    const creditAmount = again.amount
+    const totalPaidCredited = await tx.walletTransaction.aggregate({
+      where: { paymentId: payment.id, type: 'REFUND_CREDIT' },
+      _sum: { amount: true },
+    })
+    const creditAmount = Math.min(
+      again.amount,
+      Math.max(0, payment.amount - Math.max(0, totalPaidCredited._sum.amount || 0)),
+    )
+    if (creditAmount <= 0) return
     const creditBookingId = line.bookingId || payment.bookingId || key
     // Unique (paymentId, type, bookingId) allows only one REFUND_CREDIT per session.
     // Live cancel may have written a partial share — top up that row instead of inserting.

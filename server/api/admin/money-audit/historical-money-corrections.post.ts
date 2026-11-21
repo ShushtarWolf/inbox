@@ -1,5 +1,6 @@
 import { runHistoricalCancelRefundRepair } from '../../../utils/historicalCancelRefundRepair'
 import { runHistoricalOrphanPaymentRepair } from '../../../utils/historicalOrphanPayments'
+import { runMoneyRepairDryRun } from '../../../utils/moneyRepairDryRun.ts'
 
 /**
  * IB-13 / IB-14 historical money corrections.
@@ -27,6 +28,11 @@ export default defineEventHandler(async (event) => {
 
   const orphanPayments = await runHistoricalOrphanPaymentRepair({ apply })
 
+  const includeInventory = query.inventory === '1' || query.scope === 'all'
+  const moneyRepairInventory = (!apply && includeInventory)
+    ? await runMoneyRepairDryRun()
+    : undefined
+
   const appliedChanges = [
     ...(apply
       ? (cancelRefunds.credits || []).map((row) => ({
@@ -49,6 +55,7 @@ export default defineEventHandler(async (event) => {
   return {
     applied: apply,
     mode: apply ? 'apply' : 'dry-run',
+    moneyRepairInventory,
     cancelRefunds,
     orphanPayments: {
       ...orphanPayments,

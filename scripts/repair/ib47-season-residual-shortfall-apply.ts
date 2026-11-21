@@ -9,7 +9,17 @@
 import { sweepSeasonPrimaryResidualIfFullyCancelled } from '../../server/utils/ownerSeriesCancel.ts'
 import { prisma } from '../../server/utils/prisma.ts'
 
-const APPLY = process.env.APPLY === 'yes'
+if (process.env.APPLY !== 'yes') {
+  console.error('[ib47-apply] Dry-run only via scripts/repair/ib47-season-residual-dry-run.ts (APPLY blocked).')
+  const { inventoryIb47SeasonResidualShortfall } = await import('../../server/utils/ib47SeasonResidualInventory.ts')
+  const report = await inventoryIb47SeasonResidualShortfall({
+    paymentId: (process.env.PAYMENT_ID || '').trim() || undefined,
+  })
+  console.log(JSON.stringify(report, null, 2))
+  process.exit(0)
+}
+
+const APPLY = true
 const PAYMENT_ID = (process.env.PAYMENT_ID || '').trim()
 
 type Candidate = {
