@@ -37,6 +37,7 @@ import {
   resolveLinkedGuestDisplayName,
 } from '#shared/guestName.ts'
 import { guestSearchHitToFormPair, type GuestSearchHit } from '#shared/guestSearch.ts'
+import { OWNER_SEASON_LIST_DEFAULT_LIMIT } from '#shared/ownerSeasonList.ts'
 import { normalizeIranPhone } from '#shared/phone.ts'
 import { parseDeskPercent, resolveDeskCharge } from '#shared/deskCharge.ts'
 import {
@@ -4109,16 +4110,37 @@ type SeasonListRow = {
 const seasonDeleteTarget = ref<SeasonListRow | null>(null)
 const seasonDeletePending = ref(false)
 const seasonDeleteError = ref('')
+const seasonListSearch = ref('')
+let seasonListSearchDebounce: ReturnType<typeof setTimeout> | undefined
 
-const { data: seasonListData, pending: seasonListPending, refresh: refreshSeasonList } = await useAuthedFetch<{ seasons: SeasonListRow[] }>(
+const seasonListQueryParams = computed(() => {
+  const q = seasonListSearch.value.trim()
+  return {
+    limit: OWNER_SEASON_LIST_DEFAULT_LIMIT,
+    ...(q ? { q } : {}),
+  }
+})
+
+const { data: seasonListData, pending: seasonListPending, refresh: refreshSeasonList } = await useAuthedFetch<{
+  seasons: SeasonListRow[]
+  total?: number
+  truncated?: boolean
+}>(
   '/api/owner/seasons',
-  { immediate: false, watch: false },
+  { query: seasonListQueryParams, immediate: false, watch: false },
 )
 
 const seasonListRows = computed(() => seasonListData.value?.seasons || [])
+const seasonListTruncated = computed(() => Boolean(seasonListData.value?.truncated))
 
 watch(calendarView, (view) => {
   if (view === 'season' && canShowSeasonReserve()) void refreshSeasonList()
+})
+
+watch(seasonListSearch, () => {
+  if (calendarView.value !== 'season') return
+  if (seasonListSearchDebounce) clearTimeout(seasonListSearchDebounce)
+  seasonListSearchDebounce = setTimeout(() => void refreshSeasonList(), 300)
 })
 
 function seasonBookingQuery(row: SeasonListRow, mode: 'repeat' | 'edit'): Record<string, string> {
@@ -4258,6 +4280,22 @@ watch(pilotNoCoach, (off) => {
         <button type="button" class="canva-cal-fab canva-cal-fab-reserve" @click="openNewSeasonBooking">
           {{ t('owner.seasonTabNew') }}
         </button>
+      </div>
+      <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div class="block w-full max-w-md">
+          <input
+            id="owner-season-list-search"
+            v-model="seasonListSearch"
+            type="search"
+            class="w-full border border-[rgba(44,44,42,.12)] bg-white px-3 py-2 text-start text-xs text-brand-navy"
+            :placeholder="t('owner.seasonTabSearch')"
+            :aria-label="t('owner.seasonTabSearch')"
+            autocomplete="off"
+          />
+        </div>
+        <p v-if="seasonListTruncated" class="text-start text-xs text-[#b68a3b]">
+          {{ t('owner.seasonTabTruncated') }}
+        </p>
       </div>
       <AppVenusSpinner v-if="seasonListPending" size="sm" />
       <CanvaEmptyState
