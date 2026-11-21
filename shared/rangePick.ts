@@ -7,6 +7,37 @@
  */
 export type RangePickState = { start: string; end: string }
 
+/**
+ * Season wizard: always two explicit taps — start, then end — before pickRangeDay adjustment kicks in.
+ */
+export type SequentialRangePhase = 'pick-start' | 'pick-end' | 'adjust'
+
+export function initialSequentialRangePhase(state: RangePickState): SequentialRangePhase {
+  return state.start && state.end ? 'adjust' : 'pick-start'
+}
+
+export function pickSequentialRangeTap(
+  state: RangePickState,
+  iso: string,
+  phase: SequentialRangePhase,
+  opts: { minDate?: string; lockStart?: boolean } = {},
+): { state: RangePickState; phase: SequentialRangePhase } {
+  if (opts.minDate && iso < opts.minDate) return { state, phase }
+  if (opts.lockStart && state.start) {
+    const next = pickRangeDay(state, iso, opts)
+    return { state: next, phase: 'adjust' }
+  }
+  if (phase === 'pick-start') {
+    return { state: { start: iso, end: '' }, phase: 'pick-end' }
+  }
+  if (phase === 'pick-end') {
+    const next = pickRangeDay({ start: state.start, end: '' }, iso, opts)
+    return { state: next, phase: next.end ? 'adjust' : 'pick-end' }
+  }
+  const next = pickRangeDay(state, iso, opts)
+  return { state: next, phase: 'adjust' }
+}
+
 export function pickRangeDay(
   state: RangePickState,
   iso: string,
