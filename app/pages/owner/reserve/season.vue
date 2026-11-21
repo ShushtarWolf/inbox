@@ -659,7 +659,10 @@ async function confirmReserve(mode: 'cash' | 'unpaid') {
     successOpen.value = true
   }
   catch (error) {
-    formError.value = fetchErrorMessage(error, t('common.error'))
+    formError.value = fetchErrorMessage(error, t('owner.seasonPage.reserveFailed'))
+    if (import.meta.client) {
+      nextTick(() => document.getElementById('season-wizard-error')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }))
+    }
   }
   finally {
     saving.value = false
@@ -901,7 +904,7 @@ const phoneSmsHint = computed(() => t('owner.seasonPage.phoneSmsHint'))
         </li>
       </ol>
 
-      <p v-if="formError" class="venus-alert-error mb-4">{{ formError }}</p>
+      <p v-if="formError" id="season-wizard-error" role="alert" class="venus-alert-error mb-4">{{ formError }}</p>
 
       <!-- Step 1 -->
       <div v-show="step === 1">

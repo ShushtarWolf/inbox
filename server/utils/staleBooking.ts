@@ -8,8 +8,10 @@ import { parsePaymentMetadata } from '#shared/cancelRefund.ts'
  * (PAID kept-on-cancel, REFUNDED, late IPG callbacks) survives the delete.
  */
 export async function deleteStaleCancelledBooking(tx: Prisma.TransactionClient, bookingId: string) {
+  const id = String(bookingId || '').trim()
+  if (!id) return
   const booking = await tx.booking.findUnique({
-    where: { id: bookingId },
+    where: { id },
     select: {
       id: true,
       status: true,
