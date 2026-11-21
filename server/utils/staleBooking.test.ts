@@ -40,6 +40,12 @@ describe('deleteStaleCancelledBooking', () => {
     expect(updateOrder).toBeLessThan(deleteOrder)
   })
 
+  it('no-ops when booking id is missing', async () => {
+    const tx = makeTx(null)
+    await deleteStaleCancelledBooking(tx as never, '')
+    expect(tx.booking.findUnique).not.toHaveBeenCalled()
+  })
+
   it('refuses to delete an active booking', async () => {
     const tx = makeTx({ ...cancelled, status: 'CONFIRMED' })
     await expect(deleteStaleCancelledBooking(tx as never, 'b1')).rejects.toMatchObject({ statusCode: 409 })

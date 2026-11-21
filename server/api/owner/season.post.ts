@@ -243,62 +243,68 @@ export default defineEventHandler(async (event) => {
   }
 
   let smsSent = false
+  // Bookings are already committed — notifications must never fail the HTTP response.
   if (result.slotsCreated > 0) {
-    const first = result.willCreate[0]
-    const last = result.willCreate[result.willCreate.length - 1]
-    const courtIds = [...new Set(result.willCreate.map((s) => s.courtId))]
-    const courts = await prisma.court.findMany({
-      where: { id: { in: courtIds }, clubId: club.id },
-      select: { id: true, nameFa: true, nameEn: true },
-    })
-    const courtById = new Map(courts.map((c) => [c.id, c]))
-    const guestName = personNotifyName(guest.guestName, guest.guestFamily)
-    const notifyOpts = {
-      phone: guestMobile || null,
-      kind: 'court' as const,
-      clubName: clubNotifyName(club),
-      clubId: club.id,
-      bookingId: result.primaryBookingId || result.seasonBookingId,
-      date: first?.date || body.startDate,
-      finishDate: last?.date || body.finishDate,
-      startTime: first?.startTime || '',
-      endTime: first?.endTime || '',
-      sessionCount: result.slotsCreated,
-      sessions: result.willCreate.map((s) => ({
-        courtName: courtNotifyName(courtById.get(s.courtId) || { nameFa: s.courtId }),
-        date: s.date,
-        startTime: s.startTime,
-        endTime: s.endTime,
-      })),
-      paymentPaid: paymentStatus === 'PAID',
-      guestName,
-      payPin: paymentStatus === 'PAID' ? undefined : payPin,
-      payUrl: paymentStatus === 'PAID' ? undefined : payUrl,
-      // New season from the owner wizard: the athlete mobile the owner typed gets the
-      // confirmation (paid) or pay-link (unpaid) SMS — the wizard promises this
-      // (owner.seasonPage.phoneSmsHint / successCashBody). Club side is notified as before.
-      skipGuest: !guestMobile,
-      ...clubNotifyLocation(club),
-    }
-    await notifyBookingConfirmed(notifyOpts)
-    if (paymentStatus === 'PAID') {
-      smsSent = (await notifyBookingPaid(notifyOpts)).smsSent
-      if (guestMobile && !smsSent) {
-        console.warn('[owner:season:sms] athlete BOOKING_PAID not sent', maskPhone(guestMobile), club.id, notifyOpts.bookingId)
-      }
-      await notifyOwnerBookingPaid({
-        ownerPhone: ownerNotifyPhone(club),
+    try {
+      const first = result.willCreate[0]
+      const last = result.willCreate[result.willCreate.length - 1]
+      const courtIds = [...new Set(result.willCreate.map((s) => s.courtId))]
+      const courts = await prisma.court.findMany({
+        where: { id: { in: courtIds }, clubId: club.id },
+        select: { id: true, nameFa: true, nameEn: true },
+      })
+      const courtById = new Map(courts.map((c) => [c.id, c]))
+      const guestName = personNotifyName(guest.guestName, guest.guestFamily)
+      const notifyOpts = {
+        phone: guestMobile || null,
+        kind: 'court' as const,
         clubName: clubNotifyName(club),
         clubId: club.id,
-        bookingId: notifyOpts.bookingId,
-        date: notifyOpts.date,
-        startTime: notifyOpts.startTime,
-        endTime: notifyOpts.endTime,
-        sessions: notifyOpts.sessions,
+        bookingId: result.primaryBookingId || result.seasonBookingId,
+        date: first?.date || body.startDate,
+        finishDate: last?.date || body.finishDate,
+        startTime: first?.startTime || '',
+        endTime: first?.endTime || '',
+        sessionCount: result.slotsCreated,
+        sessions: result.willCreate.map((s) => ({
+          courtName: courtNotifyName(courtById.get(s.courtId) || { nameFa: s.courtId }),
+          date: s.date,
+          startTime: s.startTime,
+          endTime: s.endTime,
+        })),
+        paymentPaid: paymentStatus === 'PAID',
         guestName,
-        guestPhone: guestMobile || null,
-        amountPaid: result.totalAmount,
-      })
+        payPin: paymentStatus === 'PAID' ? undefined : payPin,
+        payUrl: paymentStatus === 'PAID' ? undefined : payUrl,
+        // New season from the owner wizard: the athlete mobile the owner typed gets the
+        // confirmation (paid) or pay-link (unpaid) SMS — the wizard promises this
+        // (owner.seasonPage.phoneSmsHint / successCashBody). Club side is notified as before.
+        skipGuest: !guestMobile,
+        ...clubNotifyLocation(club),
+      }
+      await notifyBookingConfirmed(notifyOpts)
+      if (paymentStatus === 'PAID') {
+        smsSent = (await notifyBookingPaid(notifyOpts)).smsSent
+        if (guestMobile && !smsSent) {
+          console.warn('[owner:season:sms] athlete BOOKING_PAID not sent', maskPhone(guestMobile), club.id, notifyOpts.bookingId)
+        }
+        await notifyOwnerBookingPaid({
+          ownerPhone: ownerNotifyPhone(club),
+          clubName: clubNotifyName(club),
+          clubId: club.id,
+          bookingId: notifyOpts.bookingId,
+          date: notifyOpts.date,
+          startTime: notifyOpts.startTime,
+          endTime: notifyOpts.endTime,
+          sessions: notifyOpts.sessions,
+          guestName,
+          guestPhone: guestMobile || null,
+          amountPaid: result.totalAmount,
+        })
+      }
+    }
+    catch (err) {
+      console.error('[owner:season:notify]', club.id, result.seasonBookingId, err)
     }
   }
 

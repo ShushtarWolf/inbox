@@ -32,6 +32,13 @@ describe('fetchErrorMessage settings PATCH', () => {
   })
 })
 
+describe('fetchErrorMessage season reserve', () => {
+  it('maps RECURRING_NO_FREE_SLOTS to season copy', () => {
+    expect(fetchErrorMessage(err('RECURRING_NO_FREE_SLOTS'), 'مشکلی پیش آمد', t))
+      .toBe('i18n:owner.seasonPage.noFreeSlots')
+  })
+})
+
 describe('fetchErrorMessage desk reserve conflicts', () => {
   it('maps past and taken slot 409s to booking error keys', () => {
     expect(fetchErrorMessage(err('SLOT_IN_PAST'), 'مشکلی پیش آمد', t))
