@@ -1,16 +1,36 @@
 import { normalizeIranPhone } from '#shared/phone.ts'
 import { resolveSeasonGuestFields } from '#shared/seasonFormHydrate.ts'
+import {
+  ownerSeasonListOrderBy,
+  parseOwnerSeasonListLimit,
+} from '#shared/ownerSeasonList.ts'
 import { findUsersByPhones } from '../../../utils/phoneAuth'
 
 export default defineEventHandler(async (event) => {
   const { club } = await requireOwnerClub(event, 'calendar')
   const query = getQuery(event)
-  const limitRaw = Number(query.limit)
-  const limit = Number.isFinite(limitRaw) && limitRaw > 0 ? Math.min(Math.floor(limitRaw), 100) : 50
+  const limit = parseOwnerSeasonListLimit(query.limit)
+  const guestQuery = typeof query.q === 'string' ? query.q.trim() : ''
 
-  const rows = await prisma.seasonBooking.findMany({
-    where: { clubId: club.id },
-    orderBy: { createdAt: 'desc' },
+  const where = {
+    clubId: club.id,
+    ...(guestQuery
+      ? {
+          OR: [
+            { guestName: { contains: guestQuery } },
+            { guestFamily: { contains: guestQuery } },
+            { guestMobile: { contains: guestQuery } },
+            { comments: { contains: guestQuery } },
+          ],
+        }
+      : {}),
+  }
+
+  const [total, rows] = await Promise.all([
+    prisma.seasonBooking.count({ where }),
+    prisma.seasonBooking.findMany({
+    where,
+    orderBy: ownerSeasonListOrderBy,
     take: limit,
     select: {
       id: true,
@@ -25,11 +45,15 @@ export default defineEventHandler(async (event) => {
       createdAt: true,
       cancelledAt: true,
     },
-  })
+  }),
+  ])
 
   const usersByPhone = await findUsersByPhones(rows.map((row) => row.guestMobile))
 
   return {
+    total,
+    limit,
+    truncated: total > rows.length,
     seasons: rows.map((row) => {
       const phone = normalizeIranPhone(row.guestMobile)
       const linked = phone ? usersByPhone.get(phone) : undefined
