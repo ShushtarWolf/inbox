@@ -58,6 +58,7 @@ type ClubCourt = {
   price?: number
   pricingJson?: string | null
   audience?: string | null
+  description?: string | null
   sport?: { slug?: string; nameFa?: string; nameEn?: string }
 }
 
@@ -661,6 +662,11 @@ function toThousand(value: number) {
 const selectedCourt = computed(() => {
   if (!focusedCourtId.value) return courts.value[0]
   return courts.value.find((c) => c.id === focusedCourtId.value) || courts.value[0]
+})
+
+const selectedCourtDescription = computed(() => {
+  const text = selectedCourt.value?.description?.trim()
+  return text || ''
 })
 
 /**
@@ -1400,6 +1406,14 @@ async function shareClub() {
               >
                 {{ audienceWarnText }}
               </p>
+              <div
+                v-if="selectedCourtDescription"
+                class="mb-3 text-start"
+                data-testid="court-description"
+              >
+                <p class="mb-1 text-xs font-bold text-brand-gray-600">{{ t('clubs.courtDescriptionTitle') }}</p>
+                <p class="whitespace-pre-wrap text-sm leading-relaxed text-brand-navy">{{ selectedCourtDescription }}</p>
+              </div>
               <p
                 v-if="selectedCourtIds.length > 1 || courtIdsFromSlots(selectedSlots).length > 1"
                 class="mb-2 text-start text-[11px] leading-snug text-brand-gray-600"

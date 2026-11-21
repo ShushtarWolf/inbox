@@ -1,4 +1,5 @@
 import { parseCourtAudience } from '#shared/courtAudience.ts'
+import { normalizeCourtDescription } from '#shared/courtDescription.ts'
 import { normalizeCourtPricingForSave } from '#shared/courtPricing.ts'
 import { repriceFreeSlotsForCourts } from '../../../utils/slots'
 import { syncClubCatalogPrices } from '../../../utils/clubCatalogPrices'
@@ -20,6 +21,7 @@ export default defineEventHandler(async (event) => {
     pricingJson?: string | null
     audience?: string
     notifyFutureBookings?: boolean
+    description?: string | null
   }>(event)
   const court = await prisma.court.findFirst({ where: { id, clubId: club.id } })
   if (!court) throw createError({ statusCode: 404, statusMessage: 'Not found' })
@@ -44,6 +46,17 @@ export default defineEventHandler(async (event) => {
     const audience = parseCourtAudience(body.audience)
     if (!audience) throw createError({ statusCode: 400, statusMessage: 'Invalid audience' })
     data.audience = audience
+  }
+  if (body.description !== undefined) {
+    try {
+      data.description = normalizeCourtDescription(body.description)
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : ''
+      throw createError({
+        statusCode: 400,
+        statusMessage: msg.includes('too long') ? 'description too long' : 'Invalid description',
+      })
+    }
   }
   if (body.sportSlug) {
     const sport = await prisma.sport.findFirst({
