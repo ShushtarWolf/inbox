@@ -21,7 +21,7 @@ const tx = {
     findUniqueOrThrow: vi.fn(),
     update: vi.fn(),
   },
-  walletTransaction: { findFirst: vi.fn() },
+  walletTransaction: { findFirst: vi.fn(), aggregate: vi.fn() },
   clubWalletTransaction: { findFirst: vi.fn() },
 }
 
@@ -40,6 +40,7 @@ describe('refundAfterSeriesSessionCancel residual (IB-47)', () => {
     vi.clearAllMocks()
     tx.$queryRaw.mockResolvedValue(undefined)
     tx.walletTransaction.findFirst.mockResolvedValue(null)
+    tx.walletTransaction.aggregate.mockResolvedValue({ _sum: { amount: 144_000 } })
     tx.clubWalletTransaction.findFirst.mockResolvedValue(null)
     clawbackOwnerPartialForPayment.mockResolvedValue(undefined)
     creditWallet.mockResolvedValue(undefined)
@@ -99,5 +100,58 @@ describe('refundAfterSeriesSessionCancel residual (IB-47)', () => {
     )
     const updateArg = tx.payment.update.mock.calls[0]?.[0]
     expect(updateArg?.data?.status).toBe('REFUNDED')
+  })
+
+  it('caps residual sweep credit when extra REFUND_CREDIT rows exceed session refunds', async () => {
+    const primaryBookingId = 'primary-1'
+    const primaryPaymentId = 'pay-primary'
+    const meta = {
+      groupPrimaryBookingId: primaryBookingId,
+      groupSiblingBookingIds: ['sib-1'],
+      sessionPrice: 12000,
+      sessionRefundsTotal: 144000,
+      sessionRefundedBookingIds: [primaryBookingId, 'sib-1'],
+    }
+
+    const { prisma } = await import('./prisma')
+    vi.mocked(prisma.payment.findUnique).mockImplementation(async (args: { where: { bookingId?: string } }) => {
+      if (args.where.bookingId === primaryBookingId) {
+        return {
+          id: primaryPaymentId,
+          bookingId: primaryBookingId,
+          amount: 360000,
+          status: 'PAID',
+          method: 'IPG',
+          metadataJson: JSON.stringify(meta),
+        } as never
+      }
+      return null
+    })
+    vi.mocked(prisma.booking.count).mockResolvedValue(0)
+    vi.mocked(prisma.booking.findUnique).mockResolvedValue({ paymentMethod: 'IPG' } as never)
+
+    tx.payment.findUniqueOrThrow.mockResolvedValue({
+      id: primaryPaymentId,
+      amount: 360000,
+      status: 'PAID',
+      method: 'IPG',
+      metadataJson: JSON.stringify(meta),
+    })
+    tx.walletTransaction.aggregate.mockResolvedValue({ _sum: { amount: 200_000 } })
+
+    const result = await refundAfterSeriesSessionCancel({
+      cancelledBookingId: primaryBookingId,
+      userId: 'user-1',
+      reason: 'series-primary-residual-sweep',
+      moneyOutcome: 'full_wallet_refund',
+    })
+
+    expect(result?.amount).toBe(160_000)
+    expect(creditWallet).toHaveBeenCalledWith(
+      'user-1',
+      160_000,
+      expect.objectContaining({ note: `series-primary-residual:${primaryPaymentId}` }),
+      tx,
+    )
   })
 })

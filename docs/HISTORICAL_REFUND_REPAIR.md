@@ -39,8 +39,20 @@ APPLY=yes npm run db:historical-money-corrections
 gh workflow run money-historical-corrections-ib13-14.yml -f apply=false
 gh workflow run money-historical-corrections-ib13-14.yml -f apply=true
 
-# Read-only SQL (replica)
-# BEGIN TRANSACTION READ ONLY; \\i scripts/sql/ib13-14-historical-corrections-dry-run.sql; ROLLBACK;
+# Production dry-run (app DB — recommended)
+gh workflow run money-repair-dry-run.yml
+gh workflow run money-historical-corrections-ib13-14.yml -f apply=false
+# Same JSON includes `moneyRepairInventory` when:
+#   POST /api/admin/money-audit/historical-money-corrections?inventory=1
+
+# Optional local SQL (replica / dump only — GitHub `readonly-sql-reports` cannot reach Liara inbox-db hostname)
+# psql … -f scripts/sql/ib13-cancel-refund-classify-dry-run.sql
+
+# Local apply runners (after dry-run review + DB backup — not part of deploy)
+node --import tsx scripts/repair/ib13-cancel-refund-apply.ts
+APPLY=yes node --import tsx scripts/repair/ib13-cancel-refund-apply.ts
+node --import tsx scripts/repair/ib14-orphan-payment-apply.ts
+node --import tsx scripts/repair/ib47-season-residual-shortfall-apply.ts
 ```
 
 `APPLY=yes` / `apply=true` is **not** part of deploy. Run it only after a dry-run has been reviewed, and only against a database you intend to change. Re-run the dry-run afterward. `creditCount` should be 0.
