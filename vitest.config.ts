@@ -12,6 +12,7 @@ export default defineConfig({
       'shared/**/*.test.ts',
       'server/**/*.test.ts',
       'app/composables/*.test.ts',
+      'app/components/**/*.test.ts',
       'modules/**/*.test.ts',
     ],
     environment: 'node',

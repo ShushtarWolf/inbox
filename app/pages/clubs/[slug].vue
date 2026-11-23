@@ -23,7 +23,7 @@ import {
 } from '#shared/courtSlotSelection.ts'
 import { courtDisplayNumber, sortCourtsByOrdinal } from '#shared/courtDisplay.ts'
 import {
-  courtAudienceShowsTag,
+  courtAudienceDisplayKey,
   firstAudienceBlockForCourtIds,
   parseCourtAudience,
   restrictedAudiencesInBasket,
@@ -302,8 +302,7 @@ function courtAudienceOf(court: ClubCourt | null | undefined): CourtAudience {
 
 function courtAudienceTag(court: ClubCourt) {
   const audience = courtAudienceOf(court)
-  if (!courtAudienceShowsTag(audience)) return ''
-  return t(`clubs.audience.${audience}`)
+  return t(`clubs.audience.${courtAudienceDisplayKey(audience)}`)
 }
 
 watch(
@@ -1395,7 +1394,7 @@ async function shareClub() {
                   <span
                     v-if="courtAudienceTag(court)"
                     class="canva-court-audience-tag"
-                    :class="`canva-court-audience-${courtAudienceOf(court)}`"
+                    :class="`canva-court-audience-${courtAudienceDisplayKey(courtAudienceOf(court))}`"
                   >{{ courtAudienceTag(court) }}</span>
                 </button>
               </div>

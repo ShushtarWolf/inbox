@@ -5,20 +5,55 @@ export type CourtAudience = 'MIXED' | 'MEN' | 'WOMEN' | 'FAMILY'
 
 export const COURT_AUDIENCE_VALUES: CourtAudience[] = ['MIXED', 'MEN', 'WOMEN', 'FAMILY']
 
+/** Owner court form: men / women toggles only (maps to stored enum). */
+export const COURT_AUDIENCE_UI_SEGMENTS = ['MEN', 'WOMEN'] as const
+export type CourtAudienceUiSegment = (typeof COURT_AUDIENCE_UI_SEGMENTS)[number]
+
+export type CourtAudienceSelection = { men: boolean; women: boolean }
+
+export type CourtAudienceDisplayKey = CourtAudienceUiSegment | 'MEN_AND_WOMEN'
+
 export function parseCourtAudience(raw: unknown): CourtAudience | null {
   if (raw === 'MIXED' || raw === 'MEN' || raw === 'WOMEN' || raw === 'FAMILY') return raw
   if (typeof raw !== 'string') return null
-  const normalized = raw.trim().toUpperCase()
-  if (normalized === 'MIXED' || normalized === 'OPEN' || normalized === 'ALL') return 'MIXED'
+  const trimmed = raw.trim()
+  if (trimmed === 'عمومی') return 'MIXED'
+  const normalized = trimmed.toUpperCase()
+  if (normalized === 'MIXED' || normalized === 'OPEN' || normalized === 'ALL' || normalized === 'PUBLIC') return 'MIXED'
   if (normalized === 'MEN' || normalized === 'MALE' || normalized === 'آقایان') return 'MEN'
   if (normalized === 'WOMEN' || normalized === 'FEMALE' || normalized === 'بانوان') return 'WOMEN'
   if (normalized === 'FAMILY' || normalized === 'خانوادگی') return 'FAMILY'
   return null
 }
 
+/** Map stored enum → owner UI toggles (MIXED / FAMILY / legacy «عمومی» = both on). */
+export function courtAudienceToSelection(audience: CourtAudience | null | undefined): CourtAudienceSelection {
+  const policy = audience || 'MIXED'
+  if (policy === 'MEN') return { men: true, women: false }
+  if (policy === 'WOMEN') return { men: false, women: true }
+  return { men: true, women: true }
+}
+
+/** Map owner toggles → stored enum; null when neither is selected. */
+export function selectionToCourtAudience(selection: CourtAudienceSelection): CourtAudience | null {
+  const { men, women } = selection
+  if (men && women) return 'MIXED'
+  if (men) return 'MEN'
+  if (women) return 'WOMEN'
+  return null
+}
+
+/** i18n key suffix under `*.audience.*` for list / booking chips. */
+export function courtAudienceDisplayKey(audience: CourtAudience | null | undefined): CourtAudienceDisplayKey {
+  const policy = audience || 'MIXED'
+  if (policy === 'MEN') return 'MEN'
+  if (policy === 'WOMEN') return 'WOMEN'
+  return 'MEN_AND_WOMEN'
+}
+
 /** True when this audience should show a public chip (not the quiet MIXED default). */
 export function courtAudienceShowsTag(audience: CourtAudience | null | undefined): boolean {
-  return audience === 'MEN' || audience === 'WOMEN' || audience === 'FAMILY'
+  return true
 }
 
 /**

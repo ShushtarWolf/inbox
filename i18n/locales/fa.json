@@ -245,6 +245,7 @@
     "audience": {
       "MEN": "آقایان",
       "WOMEN": "بانوان",
+      "MEN_AND_WOMEN": "آقایان و بانوان",
       "FAMILY": "خانوادگی"
     },
     "audienceWarningWomen": "این زمین ویژه بانوان است و آقایان اجازه ورود ندارند.",
@@ -3166,11 +3167,11 @@
       "courtPrice": "قیمت زمین",
       "courtSport": "ورزش",
       "courtAudience": "مخاطب زمین",
+      "courtAudienceRequired": "حداقل یکی از «آقایان» یا «بانوان» را انتخاب کنید.",
       "audience": {
-        "MIXED": "عمومی",
         "MEN": "آقایان",
         "WOMEN": "بانوان",
-        "FAMILY": "خانوادگی"
+        "MEN_AND_WOMEN": "آقایان و بانوان"
       },
       "notifyFutureBookings": "ارسال پیامک اطلاع‌رسانی به بازیکنانی که روی این زمین رزرو آینده دارند",
       "courtImage": "تصویر زمین",

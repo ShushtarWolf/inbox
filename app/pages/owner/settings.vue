@@ -13,7 +13,7 @@ import {
   clampBookingHorizonDays,
 } from '#shared/bookingHorizon.ts'
 import { COURT_FACILITY_OPTIONS, DEFAULT_SESSION_DURATIONS, parseFacilitiesJson, parseSessionDurationsJson } from '#shared/courtFacilities.ts'
-import { courtAudienceShowsTag, parseCourtAudience } from '#shared/courtAudience.ts'
+import { courtAudienceDisplayKey, parseCourtAudience } from '#shared/courtAudience.ts'
 import { summarizeCourtPricing, type CourtPricingSummary } from '#shared/courtPricing.ts'
 definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN', ssr: false })
 
@@ -574,8 +574,7 @@ function courtHoursLabel(court: Pick<OwnerCourtListItem, 'openHour' | 'closeHour
 
 function courtAudienceLabel(court: Pick<OwnerCourtListItem, 'audience'>) {
   const audience = parseCourtAudience(court.audience) || 'MIXED'
-  if (!courtAudienceShowsTag(audience)) return ''
-  return t(`owner.settingsPage.audience.${audience}`)
+  return t(`owner.settingsPage.audience.${courtAudienceDisplayKey(audience)}`)
 }
 
 const editingCourt = computed(() => {
@@ -786,7 +785,7 @@ const courtFormTitle = computed(() => {
                   <span
                     v-if="courtAudienceLabel(court)"
                     class="canva-court-audience-tag ms-2"
-                    :class="`canva-court-audience-${parseCourtAudience(court.audience) || 'MIXED'}`"
+                    :class="`canva-court-audience-${courtAudienceDisplayKey(parseCourtAudience(court.audience) || 'MIXED')}`"
                   >{{ courtAudienceLabel(court) }}</span>
                 </p>
                 <p class="text-xs text-brand-gray-600">
