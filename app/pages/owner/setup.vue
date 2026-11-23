@@ -179,14 +179,7 @@ async function finish() {
         <AppFormField :label="t('owner.phone')" numeric>
           <input v-model="profile.phone" dir="ltr" class="neo-input tabular-nums" />
         </AppFormField>
-        <div class="grid grid-cols-2 gap-3">
-          <AppFormField :label="t('owner.settingsPage.openHour')" numeric>
-            <AppNumericInput v-model="profile.openHour" :min="0" :max="23" />
-          </AppFormField>
-          <AppFormField :label="t('owner.settingsPage.closeHour')" numeric>
-            <AppNumericInput v-model="profile.closeHour" :min="1" :max="24" />
-          </AppFormField>
-        </div>
+        <OwnerClubHoursFields v-model:open-hour="profile.openHour" v-model:close-hour="profile.closeHour" />
         <button type="button" class="canva-gate-btn-primary w-full" :disabled="saving || !profileValid" @click="saveProfile">
           {{ t('common.next') }}
         </button>
@@ -197,7 +190,11 @@ async function finish() {
         <p class="text-xs text-brand-gray-500">{{ t('owner.setupCourtsHint') }}</p>
         <ul class="space-y-2 text-sm">
           <li v-for="court in courts" :key="court.id" class="canva-settings-court-row">
-            <span class="font-bold">{{ formatFaDigits(court.nameFa) }} / {{ court.nameEn }}</span>
+            <span class="font-bold">
+              {{ formatFaDigits(court.nameFa) }}
+              <span class="mx-1 text-brand-gray-400" aria-hidden="true">·</span>
+              <bdi dir="ltr" class="font-bold text-brand-navy">{{ court.nameEn }}</bdi>
+            </span>
             <span class="tabular-nums text-brand-gray-600" dir="ltr">{{ formatCurrency(court.price) }}</span>
           </li>
         </ul>

@@ -93,9 +93,6 @@ const showLayoutClubSwitcher = computed(
     && !route.path.includes('/owner/finance'),
 )
 
-/** Settings has its own «+ افزودن باشگاه» CTA — hide the switcher duplicate. */
-const layoutClubSwitcherShowAddClub = computed(() => !route.path.includes('/owner/settings'))
-
 watchEffect(() => {
   if (!memberships.value.length) return
   const next = pickDefaultOwnerClubId(memberships.value, selectedClubId.value)
@@ -156,11 +153,7 @@ const showPendingBanner = computed(() => {
         {{ activeClubStatus === 'SUSPENDED' ? t('owner.pendingBannerRejected') : t('owner.pendingBanner') }}
       </NuxtLink>
     </div>
-    <OwnerClubSwitcher
-      v-if="showLayoutClubSwitcher"
-      class="canva-club-switcher"
-      :show-add-club="layoutClubSwitcherShowAddClub"
-    />
+    <OwnerClubSwitcher v-if="showLayoutClubSwitcher" class="canva-club-switcher" />
     <slot />
     <OwnerMoreSheet :open="moreOpen" @close="closeMore" />
   </DashboardShell>

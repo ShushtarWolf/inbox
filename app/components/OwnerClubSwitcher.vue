@@ -1,10 +1,8 @@
 <script setup lang="ts">
 const props = withDefaults(defineProps<{
   compact?: boolean
-  showAddClub?: boolean
 }>(), {
   compact: false,
-  showAddClub: true,
 })
 
 const { t } = useI18n()
@@ -15,39 +13,27 @@ const {
   showSwitcher,
   clubOptionLabel,
   onSelectChange,
-  addClubPath,
 } = useOwnerClubSwitcher()
-
-const canShow = computed(() => showSwitcher.value || props.showAddClub)
 </script>
 
 <template>
-  <div v-if="canShow" class="owner-club-switcher" :class="compact ? 'owner-club-switcher--compact' : ''">
+  <div v-if="showSwitcher" class="owner-club-switcher" :class="compact ? 'owner-club-switcher--compact' : ''">
     <span class="venus-icon-wrap venus-icon-wrap-sm bg-brand-primary-soft text-brand-primary shrink-0">
       <AppIcon name="storefront" size="sm" />
     </span>
     <div class="flex min-w-0 flex-1 flex-col gap-1 text-xs font-bold text-brand-gray-600">
-      <template v-if="showSwitcher">
-        <label :for="compact ? 'owner-club-switcher-compact' : 'owner-club-switcher'">{{ t('owner.activeClub') }}</label>
-        <select
-          :id="compact ? 'owner-club-switcher-compact' : 'owner-club-switcher'"
-          :value="selectedClubId || ''"
-          class="neo-select"
-          :disabled="switching"
-          @change="onSelectChange(($event.target as HTMLSelectElement).value)"
-        >
-          <option v-for="item in memberships" :key="item.club.id" :value="item.club.id">
-            {{ clubOptionLabel(item) }}
-          </option>
-        </select>
-      </template>
-      <NuxtLink
-        v-if="showAddClub"
-        :to="addClubPath"
-        class="text-start text-xs font-bold text-brand-primary no-underline"
+      <label :for="compact ? 'owner-club-switcher-compact' : 'owner-club-switcher'">{{ t('owner.activeClub') }}</label>
+      <select
+        :id="compact ? 'owner-club-switcher-compact' : 'owner-club-switcher'"
+        :value="selectedClubId || ''"
+        class="neo-select"
+        :disabled="switching"
+        @change="onSelectChange(($event.target as HTMLSelectElement).value)"
       >
-        {{ t('owner.addClubCta') }}
-      </NuxtLink>
+        <option v-for="item in memberships" :key="item.club.id" :value="item.club.id">
+          {{ clubOptionLabel(item) }}
+        </option>
+      </select>
     </div>
   </div>
 </template>
