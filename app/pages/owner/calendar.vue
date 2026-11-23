@@ -2407,24 +2407,6 @@ function openNoteFromReserve() {
   activePanel.value = 'comments'
 }
 
-function openFabBlock() {
-  if (!canBatchBlock.value) return
-  openSelectionBlock()
-}
-
-/** Canva (9) date-row FAB — same path as the bottom selection-bar primary. */
-function openFabReserve() {
-  if (!selectedSlotsFull.value.length) {
-    actionError.value = t('owner.selectionBar.pickSlotFirst')
-    return
-  }
-  if (!canBatchReserve.value) {
-    setSelectionReserveError()
-    return
-  }
-  openSelectionReserve()
-}
-
 function syncPackageFormFromWalkIn() {
   packageForm.comments = form.comments.trim()
   packageForm.coachId = pilotNoCoach.value ? '' : (form.coachId || '')
@@ -4463,7 +4445,7 @@ watch(pilotNoCoach, (off) => {
     </section>
 
     <section v-else-if="calendarView === 'today'" class="space-y-3" :class="String(locale) === 'en' ? 'calendar-latin' : ''">
-      <!-- Canva closed Today (9): legend · centered date + left FABs · multi-court GRID -->
+      <!-- Canva closed Today (9): legend · centered date nav · multi-court GRID (bulk رزرو/مسدود via selection bar) -->
       <div v-if="!pilotNoCoach" class="space-y-2">
         <div class="canva-session-filter-row" role="group" :aria-label="t('owner.sessionTypeFilterHint')">
           <button
@@ -4522,24 +4504,6 @@ watch(pilotNoCoach, (off) => {
             </button>
             <button type="button" class="canva-cal-date-nav-btn" :aria-label="t('calendar.nextMonth')" @click="shiftDate(1)">
               <AppIcon name="chevron_left" size="sm" />
-            </button>
-          </div>
-          <div class="canva-cal-date-fabs" role="group" :aria-label="t('owner.selectionBar.title')">
-            <button
-              type="button"
-              class="canva-cal-fab canva-cal-fab-block"
-              :disabled="!canBatchBlock"
-              @click="openFabBlock"
-            >
-              {{ t('owner.block') }}
-            </button>
-            <button
-              type="button"
-              class="canva-cal-fab canva-cal-fab-reserve"
-              :disabled="!canBatchReserve"
-              @click="openFabReserve"
-            >
-              {{ t('owner.reserve') }}
             </button>
           </div>
         </div>
@@ -4669,7 +4633,7 @@ watch(pilotNoCoach, (off) => {
               <span class="tabular-nums text-brand-navy">({{ selectedSlotIds.length }})</span>
             </p>
             <p v-if="selectionCourtsLabel" class="mt-0.5 truncate text-start text-sm font-bold text-brand-navy">
-              {{ selectionCourtsLabel }} · {{ formattedDate }}
+              <bdi>{{ selectionCourtsLabel }}</bdi><span class="px-1 text-brand-gray-500" aria-hidden="true">·</span><bdi>{{ formattedDate }}</bdi>
             </p>
             <div class="canva-selection-bar-chips">
               <span

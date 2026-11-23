@@ -10,44 +10,34 @@ async function loginOwnerPassword(page: Page) {
 }
 
 /**
- * IB-31: mobile owner calendar day toolbar (مسدود / رزرو) must stay inside the phone shell.
+ * Owner calendar day view: bulk مسدود / رزرو live in the selection bar (not disabled date-row FABs).
  */
 test.describe('owner calendar mobile toolbar', () => {
   test.use({ viewport: { width: 390, height: 844 } })
 
   test.beforeEach(async ({ page }) => {
     await loginOwnerPassword(page)
-    await expect(page.locator('.canva-cal-date-fabs')).toBeVisible({ timeout: 20_000 })
     await expect(page.locator('.canva-cal-grid-cell').first()).toBeVisible({ timeout: 20_000 })
   })
 
-  test('block and reserve FABs are fully visible in RTL phone shell', async ({ page }) => {
+  test('reserve and block actions appear in selection bar after picking a slot', async ({ page }) => {
+    await expect(page.locator('.canva-cal-date-fabs')).toHaveCount(0)
+
+    const freeCell = page.locator('.canva-cal-grid-cell:has(.canva-cal-grid-check)').first()
+    await expect(freeCell).toBeVisible({ timeout: 20_000 })
+    await freeCell.click()
+
+    const bar = page.locator('.canva-selection-bar')
+    await expect(bar).toBeVisible()
+    await expect(bar.getByRole('button', { name: 'رزرو', exact: true })).toBeVisible()
+    await expect(bar.getByRole('button', { name: 'مسدود', exact: true })).toBeVisible()
+
     const shell = page.locator('main').first()
-    const blockBtn = page.locator('.canva-cal-fab-block')
-    const reserveBtn = page.locator('.canva-cal-fab-reserve')
-
-    await expect(blockBtn).toBeVisible()
-    await expect(reserveBtn).toBeVisible()
-
     const shellBox = await shell.boundingBox()
-    const blockBox = await blockBtn.boundingBox()
-    const reserveBox = await reserveBtn.boundingBox()
+    const reserveBox = await bar.getByRole('button', { name: 'رزرو', exact: true }).boundingBox()
     expect(shellBox).toBeTruthy()
-    expect(blockBox).toBeTruthy()
     expect(reserveBox).toBeTruthy()
-
-    const shellLeft = shellBox!.x
-    const shellRight = shellBox!.x + shellBox!.width
-
-    for (const box of [blockBox!, reserveBox!]) {
-      expect(box.x).toBeGreaterThanOrEqual(shellLeft - 1)
-      expect(box.x + box.width).toBeLessThanOrEqual(shellRight + 1)
-    }
-
-    const clipRatio = await reserveBtn.evaluate((el) => {
-      const rect = el.getBoundingClientRect()
-      return rect.width / (el as HTMLElement).offsetWidth
-    })
-    expect(clipRatio).toBeGreaterThan(0.95)
+    expect(reserveBox!.x).toBeGreaterThanOrEqual(shellBox!.x - 1)
+    expect(reserveBox!.x + reserveBox!.width).toBeLessThanOrEqual(shellBox!.x + shellBox!.width + 1)
   })
 })
