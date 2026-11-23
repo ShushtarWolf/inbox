@@ -11,12 +11,12 @@ const { fetchErrorMessage } = useFetchError()
 const sportFilter = ref('all')
 const paymentFilter = ref('all')
 
-const { data: skills } = await useAuthedFetch<Array<{ sportId: string, rating: number, labelFa: string }>>(
+const { data: skills } = useAuthedFetch<Array<{ sportId: string, rating: number, labelFa: string }>>(
   '/api/athlete/skill-ratings',
-  { immediate: openMatchEnabled.value },
+  { immediate: openMatchEnabled.value, lazy: true },
 )
 
-const { data, pending, error, refresh } = await useAuthedFetch<Array<{
+const { data, pending, error, refresh } = useAuthedFetch<Array<{
   id: string
   status: string
   paymentMode: string
@@ -31,7 +31,7 @@ const { data, pending, error, refresh } = await useAuthedFetch<Array<{
   sport: { id: string, nameFa: string, nameEn?: string }
   slot: { date: string, startTime: string, endTime: string }
   participants: Array<{ user: { id: string, name: string, nameFamily?: string | null } }>
-}>>('/api/open-matches', { immediate: openMatchEnabled.value })
+}>>('/api/open-matches', { immediate: openMatchEnabled.value, lazy: true })
 
 const showPending = useHeldPending(pending, { forceRelease: () => Boolean(error.value) })
 

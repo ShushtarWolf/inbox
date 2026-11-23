@@ -12,7 +12,7 @@ const { startCheckout } = useCheckout()
 
 const id = computed(() => String(route.params.id || ''))
 
-const { data, pending, error, refresh } = await useAuthedFetch<{
+type OpenMatchDetailPayload = {
   match: {
     id: string
     status: string
@@ -21,6 +21,9 @@ const { data, pending, error, refresh } = await useAuthedFetch<{
     note: string | null
     sportId: string
     slotTotalPrice: number
+    club: { nameFa: string, nameEn?: string, slug: string }
+    sport: { nameFa: string, nameEn?: string }
+    slot: { date: string, startTime: string, endTime: string }
   }
   pricePerPlayer: number
   openSpots: number
@@ -34,12 +37,18 @@ const { data, pending, error, refresh } = await useAuthedFetch<{
     skill: { rating: number, assessmentStatus: string } | null
     user: { id: string, name: string, nameFamily?: string | null }
   }>
-  match: {
-    club: { nameFa: string, nameEn?: string, slug: string }
-    sport: { nameFa: string, nameEn?: string }
-    slot: { date: string, startTime: string, endTime: string }
-  }
-}>(`/api/open-matches/${id.value}`, { immediate: openMatchEnabled.value })
+}
+
+const { data, pending, error, refresh } = useAuthedFetch<OpenMatchDetailPayload>(
+  () => `/api/open-matches/${id.value}`,
+  { immediate: openMatchEnabled.value, lazy: true },
+)
+
+const detail = computed(() => {
+  const raw = data.value
+  if (!raw || Array.isArray(raw) || !raw.match) return null
+  return raw
+})
 
 const actionError = ref('')
 const actionPending = ref(false)
@@ -86,14 +95,14 @@ async function joinMatch() {
 }
 
 async function submitAssessment() {
-  if (!data.value?.match.sportId) return
+  if (!detail.value?.match.sportId) return
   assessPending.value = true
   actionError.value = ''
   try {
     await $fetch('/api/athlete/skill-ratings/assess', {
       method: 'POST',
       body: {
-        sportId: data.value.match.sportId,
+        sportId: detail.value.match.sportId,
         answers: { ...assessForm },
       },
     })
@@ -107,13 +116,13 @@ async function submitAssessment() {
   }
 }
 
-watch(data, (val) => {
+watch(detail, (val) => {
   const other = val?.participants.find((p) => !p.isHost)
   if (other) peerForm.targetUserId = other.userId
 }, { immediate: true })
 
 async function submitPostMatch() {
-  if (!data.value) return
+  if (!detail.value) return
   postMatchPending.value = true
   actionError.value = ''
   try {
@@ -165,26 +174,26 @@ async function leaveMatch() {
       icon="groups"
     />
 
-    <template v-else-if="data">
+    <template v-else-if="detail">
       <section class="border border-line bg-white p-4 space-y-2">
         <h1 class="text-lg font-bold text-charcoal">
-          {{ localizedField(data.match.club, 'name') }}
+          {{ localizedField(detail.match.club, 'name') }}
         </h1>
         <p class="text-sm text-silver">
-          {{ localizedField(data.match.sport, 'name') }}
+          {{ localizedField(detail.match.sport, 'name') }}
           ·
-          <bdi dir="ltr" class="tabular-nums">{{ formatIsoDate(data.match.slot.date) }}</bdi>
-          <bdi dir="ltr" class="tabular-nums">{{ data.match.slot.startTime }}</bdi>
+          <bdi dir="ltr" class="tabular-nums">{{ formatIsoDate(detail.match.slot.date) }}</bdi>
+          <bdi dir="ltr" class="tabular-nums">{{ detail.match.slot.startTime }}</bdi>
         </p>
         <p class="text-sm">
-          {{ t('openMatch.openSpots', { count: formatFaDigits(String(data.openSpots)) }) }}
+          {{ t('openMatch.openSpots', { count: formatFaDigits(String(detail.openSpots)) }) }}
         </p>
-        <p v-if="data.match.paymentMode === 'SPLIT_ONLINE'" class="tabular-nums text-sm">
-          {{ t('openMatch.pricePerPlayer') }}: {{ formatCurrency(data.pricePerPlayer) }}
+        <p v-if="detail.match.paymentMode === 'SPLIT_ONLINE'" class="tabular-nums text-sm">
+          {{ t('openMatch.pricePerPlayer') }}: {{ formatCurrency(detail.pricePerPlayer) }}
         </p>
-        <p v-if="data.viewerSkill.rating != null" class="text-sm text-silver">
+        <p v-if="detail.viewerSkill.rating != null" class="text-sm text-silver">
           {{ t('openMatch.yourLevel') }}:
-          <span class="tabular-nums text-charcoal">{{ formatFaDigits(String(data.viewerSkill.rating)) }}</span>
+          <span class="tabular-nums text-charcoal">{{ formatFaDigits(String(detail.viewerSkill.rating)) }}</span>
         </p>
       </section>
 
@@ -193,7 +202,7 @@ async function leaveMatch() {
           {{ t('openMatch.participants') }}
         </h2>
         <ul class="space-y-2 text-sm">
-          <li v-for="p in data.participants" :key="p.id" class="flex justify-between gap-2">
+          <li v-for="p in detail.participants" :key="p.id" class="flex justify-between gap-2">
             <span>{{ p.user.name }} {{ p.user.nameFamily || '' }}</span>
             <span v-if="p.skill" class="tabular-nums text-silver">
               {{ formatFaDigits(String(p.skill.rating)) }}
@@ -207,7 +216,7 @@ async function leaveMatch() {
       </p>
 
       <section
-        v-if="data.match.status === 'COMPLETED'"
+        v-if="detail.match.status === 'COMPLETED'"
         class="space-y-3 border border-line bg-white p-4"
       >
         <h2 class="font-semibold text-charcoal">
@@ -245,7 +254,7 @@ async function leaveMatch() {
         <button
           type="button"
           class="bg-crimson px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-          :disabled="actionPending || data.openSpots <= 0"
+          :disabled="actionPending || detail.openSpots <= 0"
           @click="joinMatch"
         >
           {{ t('openMatch.join') }}

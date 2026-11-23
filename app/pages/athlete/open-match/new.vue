@@ -10,7 +10,7 @@ const { fetchErrorMessage } = useFetchError()
 
 const clubSlug = computed(() => String(route.query.club || 'padel-zone-tehran'))
 
-const { data: clubData, pending } = await useFetch<{
+const { data: clubData, pending } = useFetch<{
   courts: Array<{
     id: string
     nameFa: string
@@ -23,7 +23,7 @@ const { data: clubData, pending } = await useFetch<{
     endTime: string
     courtNameFa: string
   }>
-}>(`/api/clubs/${clubSlug.value}`, { immediate: openMatchEnabled.value })
+}>(`/api/clubs/${clubSlug.value}`, { immediate: openMatchEnabled.value, lazy: true })
 
 const form = reactive({
   slotId: '',
