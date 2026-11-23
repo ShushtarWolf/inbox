@@ -111,6 +111,35 @@ const commissionPercent = ref('')
 const commissionError = ref('')
 const savingCommission = ref(false)
 
+const deleteOpen = ref(false)
+const deletePending = ref(false)
+const deleteError = ref('')
+
+const deleteConfirmBody = computed(() =>
+  club.value ? t('admin.deleteClubConfirmBody', { name: localizedField(club.value, 'nameFa', 'nameEn') }) : '',
+)
+
+async function confirmDeleteClub() {
+  if (!club.value) return
+  deleteError.value = ''
+  deletePending.value = true
+  try {
+    await adminFetch(`/api/admin/clubs/${club.value.id}`, { method: 'DELETE' })
+    deleteOpen.value = false
+    await navigateTo(localePath('/admin/clubs'))
+  } catch (err: unknown) {
+    const status = (err as { statusCode?: number; statusMessage?: string })?.statusCode
+    const message = (err as { statusMessage?: string })?.statusMessage
+    if (status === 409 && message) {
+      deleteError.value = message
+    } else {
+      deleteError.value = t('common.error')
+    }
+  } finally {
+    deletePending.value = false
+  }
+}
+
 watch(club, (value) => {
   const bps = value?.commission.clubBps
   commissionPercent.value = bps == null ? '' : String(bps / 100)
@@ -399,7 +428,35 @@ function walletTxLabel(type: string) {
           </ul>
           <p v-else class="text-sm text-brand-gray-500">{{ t('common.empty') }}</p>
         </div>
+
+        <div class="tail-card border border-red-200">
+          <h2 class="tail-section-title mb-2 text-red-800">{{ t('admin.deleteClub') }}</h2>
+          <p class="text-xs text-brand-gray-600">{{ t('admin.deleteClubConfirmBody', { name: localizedField(club, 'nameFa', 'nameEn') }) }}</p>
+          <button
+            type="button"
+            class="mt-3 border border-red-300 bg-white px-4 py-2 text-xs font-bold text-red-800 transition hover:border-red-400 disabled:cursor-not-allowed disabled:opacity-60"
+            style="border-radius: 0;"
+            :disabled="deletePending"
+            @click="deleteOpen = true"
+          >
+            {{ t('admin.deleteClub') }}
+          </button>
+        </div>
       </div>
     </AppAsyncState>
+
+    <CanvaConfirmSheet
+      :open="deleteOpen"
+      :title="t('admin.deleteClubConfirmTitle')"
+      :body="deleteConfirmBody"
+      :confirm-label="t('admin.deleteClub')"
+      :dismiss-label="t('common.close')"
+      :pending="deletePending"
+      danger
+      @confirm="confirmDeleteClub"
+      @close="deleteOpen = false; deleteError = ''"
+    >
+      <p v-if="deleteError" class="venus-alert-error text-start text-xs" role="alert">{{ deleteError }}</p>
+    </CanvaConfirmSheet>
   </div>
 </template>
