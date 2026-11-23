@@ -1,5 +1,11 @@
-import { describe, expect, it } from 'vitest'
-import { permissionNeedsActiveClub, postLoginRedirectPath, toSessionUser } from './auth'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { permissionNeedsActiveClub, postLoginRedirectPath, pathForPlatformRole, toSessionUser } from './auth'
+
+const findMany = vi.fn()
+vi.stubGlobal('prisma', {
+  staffMembership: { findMany: (...args: unknown[]) => findMany(...args) },
+  coach: { findFirst: vi.fn() },
+})
 
 describe('postLoginRedirectPath', () => {
   it('uses sanitized returnTo for athlete', () => {
@@ -26,6 +32,27 @@ describe('permissionNeedsActiveClub', () => {
     expect(permissionNeedsActiveClub('calendar')).toBe(true)
     expect(permissionNeedsActiveClub('crm')).toBe(true)
     expect(permissionNeedsActiveClub('finance:view')).toBe(true)
+  })
+})
+
+describe('pathForPlatformRole CLUB_ADMIN multi-club', () => {
+  beforeEach(() => {
+    findMany.mockReset()
+  })
+
+  it('routes to calendar when any club is ACTIVE', async () => {
+    findMany.mockResolvedValue([
+      { club: { id: 'c1', status: 'PENDING' }, isPrimary: true },
+      { club: { id: 'c2', status: 'ACTIVE' }, isPrimary: false },
+    ])
+    await expect(pathForPlatformRole({ id: 'u1', role: 'CLUB_ADMIN' }, 'CLUB_ADMIN')).resolves.toBe('/owner')
+  })
+
+  it('routes to pending when no ACTIVE club', async () => {
+    findMany.mockResolvedValue([
+      { club: { id: 'c1', status: 'PENDING' }, isPrimary: true },
+    ])
+    await expect(pathForPlatformRole({ id: 'u1', role: 'CLUB_ADMIN' }, 'CLUB_ADMIN')).resolves.toBe('/owner/pending')
   })
 })
 

@@ -66,6 +66,8 @@ onMounted(() => {
         </p>
       </div>
 
+      <OwnerClubSwitcher v-if="(user?.memberships?.length || 0) > 1" compact class="px-1" />
+
       <div class="flex flex-col gap-2">
         <NuxtLink
           :to="localePath('/owner/setup')"
