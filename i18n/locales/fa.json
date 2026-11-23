@@ -119,6 +119,27 @@
     "assessSkillCta": "تعیین سطح مهارت",
     "reassessSkill": "ارزیابی مجدد سطح"
   },
+  "athleteSportProfile": {
+    "title": "پروفایل ورزشی",
+    "unassessedHint": "هنوز سطح مهارت شما ثبت نشده. با ارزیابی ۶ سوالی، سطح واقعی‌تان را ببینید.",
+    "addSport": "+ تعیین سطح رشته جدید",
+    "levelNumeric": "سطح عددی",
+    "progressLabel": "درصد پیشرفت تا سطح بعد",
+    "reliabilityLabel": "اطمینان سطح",
+    "matchesPlayed": "تعداد بازی",
+    "winLoss": "برد / باخت",
+    "winRate": "درصد برد",
+    "recentForm": "۵ بازی اخیر",
+    "progressionChart": "نمودار پیشرفت سطح",
+    "singlePointHint": "بعد از چند هم‌بازی، منحنی پیشرفت شکل می‌گیرد.",
+    "recentMatches": "هم‌بازی‌های اخیر",
+    "noMatches": "هنوز هم‌بازی ثبت نشده.",
+    "findOpenMatch": "پیدا کردن هم‌بازی",
+    "win": "برد",
+    "loss": "باخت",
+    "draw": "مساوی",
+    "pending": "در انتظار"
+  },
   "skillAssess": {
     "title": "ارزیابی سطح {sport}",
     "resultTitle": "نتیجه ارزیابی سطح",

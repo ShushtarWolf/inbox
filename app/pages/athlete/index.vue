@@ -12,7 +12,7 @@ const { t } = useI18n()
 const { displayName, avatarUrl, initials, firstName, user, logout } = useAuth()
 const { formatCurrency, formatNumber, formatPhone } = useFormatters()
 const { smsLive } = useSmsCapability()
-const { pilotNoCoach, competitionsEnabled } = usePilotFlags()
+const { pilotNoCoach, competitionsEnabled, openMatchEnabled } = usePilotFlags()
 
 const { data: myCompetitions } = useAuthedFetch<Array<{ status: string }>>('/api/athlete/competitions', {
   immediate: competitionsEnabled.value,
@@ -82,10 +82,62 @@ const spendUnit = computed(() => {
   return t('athlete.statSpend')
 })
 
-/** Rating aggregate API does not exist yet — show em dash, never invent a score. */
-const ratingDisplay = computed(() => '—')
+const { data: skillProfile, pending: skillProfilePending, refresh: refreshSkillProfile } = useAuthedFetch<{
+  sports: Array<{ sportId: string, rating: number, assessmentStatus: string }>
+  recentMatches: unknown[]
+  hasAssessedSport: boolean
+}>('/api/athlete/skill-profile', { immediate: openMatchEnabled.value, lazy: true })
+
+const { data: sportCatalog } = useFetch<Array<{ id: string, slug: string, nameFa: string }>>(
+  '/api/sports',
+  { lazy: true, immediate: openMatchEnabled.value },
+)
+
+const showAssess = ref(false)
+const showSportPick = ref(false)
+const assessSport = ref<{ id: string, slug: string, nameFa: string } | null>(null)
+
+function openAssessFromProfile(sport: { id: string, slug: string, nameFa: string } | null) {
+  if (sport) {
+    assessSport.value = sport
+    showAssess.value = true
+    return
+  }
+  const catalog = sportCatalog.value || []
+  if (catalog.length <= 1) {
+    assessSport.value = catalog[0] || null
+    showAssess.value = Boolean(assessSport.value)
+    return
+  }
+  showSportPick.value = true
+}
+
+function pickAssessSport(sport: { id: string, slug: string, nameFa: string }) {
+  assessSport.value = sport
+  showSportPick.value = false
+  showAssess.value = true
+}
+
+async function onAssessDone() {
+  showAssess.value = false
+  await refreshSkillProfile()
+}
+
+const ratingDisplay = computed(() => {
+  const assessed = skillProfile.value?.sports?.find((s) => s.assessmentStatus === 'ASSESSED')
+  if (!assessed) return '—'
+  return formatNumber(Math.round(assessed.rating * 100) / 100)
+})
 
 const menu = computed(() => [
+  ...(openMatchEnabled.value
+    ? [{
+        to: localePath('/athlete/open-match'),
+        label: t('openMatch.nav'),
+        icon: 'groups',
+        danger: false,
+      }]
+    : []),
   ...(competitionsEnabled.value
     ? [{
         to: localePath('/athlete/competitions'),
@@ -116,6 +168,14 @@ async function handleLogout() {
       <h2 class="ath-hub-title">{{ t('nav.profile') }}</h2>
       <p class="ath-hub-sub">{{ t('athlete.hubSubtitle') }}</p>
     </header>
+
+    <AthleteSportProfileSection
+      :sports="skillProfile?.sports || []"
+      :recent-matches="skillProfile?.recentMatches || []"
+      :pending="skillProfilePending"
+      @assess="openAssessFromProfile"
+    />
+
     <section class="canva-dash-hero">
       <div class="flex items-center gap-4">
         <div class="ath-hub-avatar flex h-16 w-16 items-center justify-center overflow-hidden rounded-full border-2 border-white/40 bg-white/15 text-lg font-bold">
@@ -185,6 +245,34 @@ async function handleLogout() {
       <RoleDashboardSwitcher current="ATHLETE" />
     </div>
     </div>
+
+    <AppModal
+      :open="showSportPick"
+      :title="t('skillAssess.pickSport')"
+      @close="showSportPick = false"
+    >
+      <ul class="space-y-2">
+        <li v-for="sport in sportCatalog || []" :key="sport.id">
+          <button
+            type="button"
+            class="w-full border border-brand-gray-200 px-3 py-2 text-start text-sm font-bold text-brand-navy hover:border-brand-primary"
+            @click="pickAssessSport(sport)"
+          >
+            {{ sport.nameFa }}
+          </button>
+        </li>
+      </ul>
+    </AppModal>
+
+    <SkillAssessmentWizard
+      v-if="assessSport"
+      :open="showAssess"
+      :sport-id="assessSport.id"
+      :sport-slug="assessSport.slug"
+      :sport-name-fa="assessSport.nameFa"
+      @close="showAssess = false"
+      @done="onAssessDone"
+    />
 
     <p class="sr-only">{{ formatCurrency(spendTotal) }}</p>
   </div>
