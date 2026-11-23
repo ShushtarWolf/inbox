@@ -8,7 +8,14 @@ import {
   parseCourtBulkCount,
   type BulkCourtFields,
 } from '#shared/courtBulk.ts'
-import { COURT_AUDIENCE_VALUES, parseCourtAudience, type CourtAudience } from '#shared/courtAudience.ts'
+import {
+  COURT_AUDIENCE_UI_SEGMENTS,
+  courtAudienceToSelection,
+  parseCourtAudience,
+  selectionToCourtAudience,
+  type CourtAudience,
+  type CourtAudienceUiSegment,
+} from '#shared/courtAudience.ts'
 import { COURT_DESCRIPTION_MAX, parseCourtDescriptionInput } from '#shared/courtDescription.ts'
 
 const props = defineProps<{
@@ -45,6 +52,9 @@ const { t } = useI18n()
 const { formatNumber } = useFormatters()
 
 const descriptionError = ref('')
+const audienceError = ref('')
+const audienceMen = ref(true)
+const audienceWomen = ref(true)
 
 const form = reactive({
   nameFa: '',
@@ -77,7 +87,31 @@ function currentBulkFields(): BulkCourtFields {
   }
 }
 
-const audienceOptions = COURT_AUDIENCE_VALUES
+function syncAudienceFromToggles() {
+  const mapped = selectionToCourtAudience({ men: audienceMen.value, women: audienceWomen.value })
+  if (mapped) form.audience = mapped
+}
+
+function applyAudienceSelection(selection: { men: boolean; women: boolean }) {
+  audienceMen.value = selection.men
+  audienceWomen.value = selection.women
+  syncAudienceFromToggles()
+}
+
+function isAudienceSegmentOn(segment: CourtAudienceUiSegment) {
+  return segment === 'MEN' ? audienceMen.value : audienceWomen.value
+}
+
+function toggleAudienceSegment(segment: CourtAudienceUiSegment) {
+  if (segment === 'MEN') {
+    if (audienceMen.value && !audienceWomen.value) return
+    audienceMen.value = !audienceMen.value
+  } else {
+    if (audienceWomen.value && !audienceMen.value) return
+    audienceWomen.value = !audienceWomen.value
+  }
+  syncAudienceFromToggles()
+}
 
 const submitLabel = computed(() => {
   if (props.bulkEdit) {
@@ -97,6 +131,7 @@ watch([() => props.court, () => props.bulkEdit], ([court]) => {
   form.applyPricingToAll = false
   bulkInitial = null
   descriptionError.value = ''
+  audienceError.value = ''
   if (!court) {
     form.nameFa = ''
     form.nameEn = ''
@@ -109,6 +144,7 @@ watch([() => props.court, () => props.bulkEdit], ([court]) => {
     form.useClubHours = true
     form.pricingJson = null
     form.audience = 'MIXED'
+    applyAudienceSelection(courtAudienceToSelection('MIXED'))
     form.notifyFutureBookings = false
     form.count = 1
     return
@@ -123,7 +159,9 @@ watch([() => props.court, () => props.bulkEdit], ([court]) => {
   form.closeHour = court.closeHour ?? null
   form.useClubHours = court.openHour == null && court.closeHour == null
   form.pricingJson = court.pricingJson ?? null
-  form.audience = parseCourtAudience(court.audience) || 'MIXED'
+  const audience = parseCourtAudience(court.audience) || 'MIXED'
+  form.audience = audience
+  applyAudienceSelection(courtAudienceToSelection(audience))
   form.notifyFutureBookings = false
   form.count = 1
   if (props.bulkEdit) {
@@ -136,6 +174,14 @@ watch([() => props.court, () => props.bulkEdit], ([court]) => {
 
 function submit() {
   descriptionError.value = ''
+  audienceError.value = ''
+  const mappedAudience = selectionToCourtAudience({ men: audienceMen.value, women: audienceWomen.value })
+  if (!mappedAudience) {
+    audienceError.value = t('owner.settingsPage.courtAudienceRequired')
+    return
+  }
+  form.audience = mappedAudience
+
   if (props.bulkEdit) {
     const patch = buildBulkCourtPatch({
       initial: bulkInitial ?? currentBulkFields(),
@@ -241,20 +287,20 @@ watch(() => form.useClubHours, (useClub) => {
 
     <div>
       <p class="mb-1.5 text-sm font-bold">{{ t('owner.settingsPage.courtAudience') }}</p>
-      <div class="canva-audience-seg" role="radiogroup" :aria-label="t('owner.settingsPage.courtAudience')">
+      <div class="canva-audience-seg" role="group" :aria-label="t('owner.settingsPage.courtAudience')">
         <button
-          v-for="option in audienceOptions"
+          v-for="option in COURT_AUDIENCE_UI_SEGMENTS"
           :key="option"
           type="button"
-          role="radio"
           class="canva-audience-seg-btn"
-          :class="{ 'canva-audience-seg-btn-on': form.audience === option }"
-          :aria-checked="form.audience === option"
-          @click="form.audience = option"
+          :class="{ 'canva-audience-seg-btn-on': isAudienceSegmentOn(option) }"
+          :aria-pressed="isAudienceSegmentOn(option)"
+          @click="toggleAudienceSegment(option)"
         >
           {{ t(`owner.settingsPage.audience.${option}`) }}
         </button>
       </div>
+      <span v-if="audienceError" class="mt-1 block text-xs text-red-700" role="alert">{{ audienceError }}</span>
     </div>
 
     <label v-if="!court" class="block text-sm">

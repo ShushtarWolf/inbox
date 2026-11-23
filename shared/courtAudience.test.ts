@@ -2,10 +2,13 @@ import { describe, expect, it } from 'vitest'
 import {
   courtAudienceAllowsGender,
   courtAudienceBlockReason,
+  courtAudienceDisplayKey,
   courtAudienceShowsTag,
+  courtAudienceToSelection,
   firstAudienceBlockForCourtIds,
   parseCourtAudience,
   restrictedAudiencesInBasket,
+  selectionToCourtAudience,
 } from './courtAudience.ts'
 
 describe('parseCourtAudience', () => {
@@ -15,7 +18,30 @@ describe('parseCourtAudience', () => {
     expect(parseCourtAudience('آقایان')).toBe('MEN')
     expect(parseCourtAudience('خانوادگی')).toBe('FAMILY')
     expect(parseCourtAudience('OPEN')).toBe('MIXED')
+    expect(parseCourtAudience('PUBLIC')).toBe('MIXED')
+    expect(parseCourtAudience('عمومی')).toBe('MIXED')
     expect(parseCourtAudience('nope')).toBeNull()
+  })
+})
+
+describe('courtAudience selection mapping', () => {
+  it('round-trips men / women / both', () => {
+    expect(courtAudienceToSelection('MEN')).toEqual({ men: true, women: false })
+    expect(courtAudienceToSelection('WOMEN')).toEqual({ men: false, women: true })
+    expect(courtAudienceToSelection('MIXED')).toEqual({ men: true, women: true })
+    expect(courtAudienceToSelection('FAMILY')).toEqual({ men: true, women: true })
+
+    expect(selectionToCourtAudience({ men: true, women: false })).toBe('MEN')
+    expect(selectionToCourtAudience({ men: false, women: true })).toBe('WOMEN')
+    expect(selectionToCourtAudience({ men: true, women: true })).toBe('MIXED')
+    expect(selectionToCourtAudience({ men: false, women: false })).toBeNull()
+  })
+
+  it('maps display keys for chips', () => {
+    expect(courtAudienceDisplayKey('MEN')).toBe('MEN')
+    expect(courtAudienceDisplayKey('WOMEN')).toBe('WOMEN')
+    expect(courtAudienceDisplayKey('MIXED')).toBe('MEN_AND_WOMEN')
+    expect(courtAudienceDisplayKey('FAMILY')).toBe('MEN_AND_WOMEN')
   })
 })
 
@@ -40,7 +66,7 @@ describe('courtAudienceBlockReason / showsTag', () => {
     expect(courtAudienceBlockReason('WOMEN', 'MALE')).toBe('women_only')
     expect(courtAudienceBlockReason('MEN', null)).toBe('gender_required')
     expect(courtAudienceBlockReason('FAMILY', 'MALE')).toBeNull()
-    expect(courtAudienceShowsTag('MIXED')).toBe(false)
+    expect(courtAudienceShowsTag('MIXED')).toBe(true)
     expect(courtAudienceShowsTag('WOMEN')).toBe(true)
   })
 })
