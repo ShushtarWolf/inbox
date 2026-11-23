@@ -104,6 +104,7 @@ jobs:
   deploy-iran:
     name: Deploy staging Iran full-source
     needs: [gate, smoke]
+  continue-on-error: true ### Liara Iran apk/TLS flakes are common; Germany fallback is the real gate
     if: >-
       always()
       && needs.gate.result == 'success'
