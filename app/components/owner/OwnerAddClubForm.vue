@@ -7,13 +7,10 @@ const emit = defineEmits<{
 const { t } = useI18n()
 const localePath = useLocalePath()
 const { fetch: fetchAuth } = useAuth()
-const { formatNumber } = useFormatters()
-
 const clubNameFa = ref('')
 const city = ref('تهران')
 const addressFa = ref('')
 const sport = ref<'padel' | 'tennis' | 'both'>('padel')
-const courtCount = ref<1 | 2 | 3>(1)
 const credentialUrls = ref<string[]>([])
 const pending = ref(false)
 const error = ref('')
@@ -22,12 +19,6 @@ const sportOptions = [
   { value: 'tennis' as const, labelKey: 'auth.sportTennis' },
   { value: 'padel' as const, labelKey: 'auth.sportPadel' },
   { value: 'both' as const, labelKey: 'auth.sportBoth' },
-]
-
-const courtCountOptions = [
-  { value: 1 as const, labelKey: 'auth.courtCount1' },
-  { value: 2 as const, labelKey: 'auth.courtCount2' },
-  { value: 3 as const, labelKey: 'auth.courtCount3Plus' },
 ]
 
 const {
@@ -78,7 +69,6 @@ async function submit() {
         city: city.value.trim() || undefined,
         addressFa: addressFa.value.trim() || undefined,
         sport: sport.value,
-        courtCount: courtCount.value,
         credentialUrls: credentialUrls.value.length ? credentialUrls.value : undefined,
         switchToNew: true,
       },
@@ -124,17 +114,6 @@ async function submit() {
         </option>
       </select>
     </AppFormField>
-    <AppFormField field-id="owner-new-club-courts" :label="t('auth.courtCount')">
-      <select id="owner-new-club-courts" v-model.number="courtCount" class="neo-select">
-        <option v-for="opt in courtCountOptions" :key="opt.value" :value="opt.value">
-          {{ t(opt.labelKey) }}
-        </option>
-      </select>
-    </AppFormField>
-    <p class="text-start text-[10px] text-brand-gray-500">
-      {{ t('owner.addClub.courtCountHint', { n: formatNumber(courtCount) }) }}
-    </p>
-
     <div class="canva-auth-upload">
       <div class="min-w-0 flex-1 text-start">
         <p class="text-xs font-bold text-brand-navy">{{ t('auth.licenseUpload') }}</p>

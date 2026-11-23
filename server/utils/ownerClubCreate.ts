@@ -1,12 +1,9 @@
 import type { Prisma } from '@prisma/client'
 import { ALL_OWNER_PERMISSIONS } from '#shared/ownerPermissions.ts'
-import { toFaDigits } from '#shared/courtBulk.ts'
 import { uniqueClubSlug } from './slug'
 import {
-  normalizeOwnerCourtCount,
   normalizeOwnerSport,
   ownerSetupHandoff,
-  sportSlugsForOwner,
 } from './ownerOnboarding'
 import { createPendingOwnerApplication } from './ownerSignupApplication'
 
@@ -35,19 +32,7 @@ export async function createOwnerClubForUser(tx: Tx, userId: string, input: Crea
   const addressFa = input.addressFa?.trim() || city
   const addressEn = input.addressEn?.trim() || addressFa
   const sportKey = normalizeOwnerSport(input.sport || undefined)
-  const courtCount = normalizeOwnerCourtCount(input.courtCount ?? undefined, sportKey)
-  const setupHandoff = ownerSetupHandoff(sportKey, courtCount)
-
-  const sportSlugs = sportSlugsForOwner(sportKey)
-  const sports = await tx.sport.findMany({
-    where: { slug: { in: sportSlugs } },
-  })
-  const sportBySlug = Object.fromEntries(sports.map((s) => [s.slug, s]))
-  for (const slug of sportSlugs) {
-    if (!sportBySlug[slug]) {
-      throw createError({ statusCode: 500, statusMessage: `Sport missing: ${slug}` })
-    }
-  }
+  const setupHandoff = ownerSetupHandoff(sportKey)
 
   const clubSlug = await uniqueClubSlug(clubNameEn || clubNameFa)
   const phone = input.contactPhone?.trim() || null
@@ -67,19 +52,6 @@ export async function createOwnerClubForUser(tx: Tx, userId: string, input: Crea
       phone,
     },
   })
-
-  for (let index = 0; index < courtCount; index++) {
-    const slug = sportSlugs[index % sportSlugs.length]!
-    const sport = sportBySlug[slug]!
-    await tx.court.create({
-      data: {
-        nameFa: `زمین ${toFaDigits(index + 1)}`,
-        nameEn: `Court ${index + 1}`,
-        clubId: club.id,
-        sportId: sport.id,
-      },
-    })
-  }
 
   const hasMembership = await tx.staffMembership.findFirst({
     where: { userId, active: true },

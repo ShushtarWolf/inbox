@@ -2,13 +2,10 @@ import { ALL_OWNER_PERMISSIONS } from '#shared/ownerPermissions.ts'
 import { parseGender } from '#shared/gender.ts'
 import { isPasswordLongEnough, resolvePasswordRegisterIdentity } from '#shared/passwordAuth.ts'
 import { assignAddedRole, canAddRole } from '#shared/roles.ts'
-import { toFaDigits } from '#shared/courtBulk.ts'
 import { uniqueClubSlug } from '../../utils/slug'
 import {
-  normalizeOwnerCourtCount,
   normalizeOwnerSport,
   ownerSetupHandoff,
-  sportSlugsForOwner,
 } from '../../utils/ownerOnboarding'
 import { createPendingOwnerApplication } from '../../utils/ownerSignupApplication'
 import { notifyAdminClubApplication } from '../../utils/adminNotify'
@@ -58,8 +55,7 @@ export default defineEventHandler(async (event) => {
   const addressFa = body.addressFa?.trim() || city
   const addressEn = body.addressEn?.trim() || addressFa
   const sportKey = normalizeOwnerSport(body.sport)
-  const courtCount = normalizeOwnerCourtCount(body.courtCount, sportKey)
-  const setupHandoff = ownerSetupHandoff(sportKey, courtCount)
+  const setupHandoff = ownerSetupHandoff(sportKey)
 
   if (!nameParts.name.trim() || !email || !isPasswordLongEnough(password) || !clubNameFa || !gender) {
     throw createError({ statusCode: 400, statusMessage: 'Invalid input' })
@@ -79,17 +75,6 @@ export default defineEventHandler(async (event) => {
       statusCode: 409,
       statusMessage: existingByEmail ? 'Email already registered' : 'Phone already registered',
     })
-  }
-
-  const sportSlugs = sportSlugsForOwner(sportKey)
-  const sports = await prisma.sport.findMany({
-    where: { slug: { in: sportSlugs } },
-  })
-  const sportBySlug = Object.fromEntries(sports.map((s) => [s.slug, s]))
-  for (const slug of sportSlugs) {
-    if (!sportBySlug[slug]) {
-      throw createError({ statusCode: 500, statusMessage: `Sport missing: ${slug}` })
-    }
   }
 
   const clubSlug = await uniqueClubSlug(clubNameEn || clubNameFa!)
@@ -147,19 +132,6 @@ export default defineEventHandler(async (event) => {
         phone,
       },
     })
-
-    for (let index = 0; index < courtCount; index++) {
-      const slug = sportSlugs[index % sportSlugs.length]!
-      const sport = sportBySlug[slug]!
-      await tx.court.create({
-        data: {
-          nameFa: `زمین ${toFaDigits(index + 1)}`,
-          nameEn: `Court ${index + 1}`,
-          clubId: club.id,
-          sportId: sport.id,
-        },
-      })
-    }
 
     const hasMembership = await tx.staffMembership.findFirst({
       where: { userId: user.id, active: true },
