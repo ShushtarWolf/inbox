@@ -8,6 +8,14 @@ const { localizedField } = useLocalizedField()
 const { openMatchEnabled } = usePilotFlags()
 const { fetchErrorMessage } = useFetchError()
 
+const sportFilter = ref('all')
+const paymentFilter = ref('all')
+
+const { data: skills } = await useAuthedFetch<Array<{ sportId: string, rating: number, labelFa: string }>>(
+  '/api/athlete/skill-ratings',
+  { immediate: openMatchEnabled.value },
+)
+
 const { data, pending, error, refresh } = await useAuthedFetch<Array<{
   id: string
   status: string
@@ -20,19 +28,52 @@ const { data, pending, error, refresh } = await useAuthedFetch<Array<{
   pricePerPlayer: number
   note: string | null
   club: { slug: string, nameFa: string, nameEn?: string, city: string }
-  sport: { nameFa: string, nameEn?: string }
+  sport: { id: string, nameFa: string, nameEn?: string }
   slot: { date: string, startTime: string, endTime: string }
   participants: Array<{ user: { id: string, name: string, nameFamily?: string | null } }>
 }>>('/api/open-matches', { immediate: openMatchEnabled.value })
 
 const showPending = useHeldPending(pending, { forceRelease: () => Boolean(error.value) })
+
+const sports = computed(() => {
+  const rows = data.value || []
+  const map = new Map<string, string>()
+  for (const row of rows) map.set(row.sport.id, row.sport.nameFa)
+  return [...map.entries()].map(([id, nameFa]) => ({ id, nameFa }))
+})
+
+const filtered = computed(() => {
+  let rows = data.value || []
+  if (sportFilter.value !== 'all') rows = rows.filter((r) => r.sport.id === sportFilter.value)
+  if (paymentFilter.value !== 'all') rows = rows.filter((r) => r.paymentMode === paymentFilter.value)
+  return rows
+})
+
+const headlineSkill = computed(() => skills.value?.[0])
 </script>
 
 <template>
   <div class="space-y-4">
-    <h1 class="text-lg font-bold text-gray-900">
-      {{ t('openMatch.title') }}
-    </h1>
+    <div class="flex flex-wrap items-center justify-between gap-2">
+      <h1 class="text-lg font-bold text-charcoal">
+        {{ t('openMatch.title') }}
+      </h1>
+      <NuxtLink
+        :to="localePath('/athlete/open-match/new')"
+        class="bg-crimson px-3 py-2 text-sm font-medium text-white"
+      >
+        {{ t('openMatch.createCta') }}
+      </NuxtLink>
+    </div>
+
+    <div
+      v-if="headlineSkill"
+      class="flex items-center gap-2 border border-line bg-mustard-soft px-3 py-2 text-sm text-charcoal"
+    >
+      <span>{{ t('openMatch.yourLevel') }}</span>
+      <span class="bg-white px-2 py-0.5 tabular-nums">{{ formatFaDigits(String(headlineSkill.rating)) }}</span>
+      <span class="text-silver">({{ headlineSkill.labelFa }})</span>
+    </div>
 
     <CanvaEmptyState
       v-if="!openMatchEnabled"
@@ -41,12 +82,59 @@ const showPending = useHeldPending(pending, { forceRelease: () => Boolean(error.
     />
 
     <template v-else>
+      <div class="flex flex-wrap gap-2 text-sm">
+        <button
+          type="button"
+          class="border border-line px-3 py-1"
+          :class="sportFilter === 'all' ? 'bg-mustard-soft text-charcoal' : 'bg-white text-silver'"
+          @click="sportFilter = 'all'"
+        >
+          {{ t('openMatch.filterSportAll') }}
+        </button>
+        <button
+          v-for="s in sports"
+          :key="s.id"
+          type="button"
+          class="border border-line px-3 py-1"
+          :class="sportFilter === s.id ? 'bg-mustard-soft text-charcoal' : 'bg-white text-silver'"
+          @click="sportFilter = s.id"
+        >
+          {{ s.nameFa }}
+        </button>
+      </div>
+      <div class="flex flex-wrap gap-2 text-sm">
+        <button
+          type="button"
+          class="border border-line px-3 py-1"
+          :class="paymentFilter === 'all' ? 'bg-mustard-soft text-charcoal' : 'bg-white text-silver'"
+          @click="paymentFilter = 'all'"
+        >
+          {{ t('openMatch.filterPaymentAll') }}
+        </button>
+        <button
+          type="button"
+          class="border border-line px-3 py-1"
+          :class="paymentFilter === 'HOST_PAYS' ? 'bg-mustard-soft text-charcoal' : 'bg-white text-silver'"
+          @click="paymentFilter = 'HOST_PAYS'"
+        >
+          {{ t('openMatch.paymentHost') }}
+        </button>
+        <button
+          type="button"
+          class="border border-line px-3 py-1"
+          :class="paymentFilter === 'SPLIT_ONLINE' ? 'bg-mustard-soft text-charcoal' : 'bg-white text-silver'"
+          @click="paymentFilter = 'SPLIT_ONLINE'"
+        >
+          {{ t('openMatch.paymentSplit') }}
+        </button>
+      </div>
+
       <p v-if="error" class="text-sm text-crimson">
         {{ fetchErrorMessage(error) }}
       </p>
 
       <CanvaEmptyState
-        v-if="!showPending && !(data?.length)"
+        v-if="!showPending && !(filtered?.length)"
         :title="t('openMatch.noMatches')"
         icon="groups"
       />
@@ -57,7 +145,7 @@ const showPending = useHeldPending(pending, { forceRelease: () => Boolean(error.
 
       <div v-else class="space-y-3">
         <article
-          v-for="row in data || []"
+          v-for="row in filtered || []"
           :key="row.id"
           class="border border-line bg-white p-4"
         >
@@ -66,9 +154,10 @@ const showPending = useHeldPending(pending, { forceRelease: () => Boolean(error.
               <h2 class="font-semibold text-charcoal">
                 {{ localizedField(row.club, 'name') }}
               </h2>
-              <p class="text-sm text-silver">
+              <span class="inline-block bg-mustard-soft px-2 py-0.5 text-xs text-charcoal">
                 {{ localizedField(row.sport, 'name') }}
-                ·
+              </span>
+              <p class="text-sm text-silver">
                 <bdi dir="ltr" class="tabular-nums">{{ formatIsoDate(row.slot.date) }}</bdi>
                 <bdi dir="ltr" class="tabular-nums">{{ row.slot.startTime }}</bdi>
               </p>
