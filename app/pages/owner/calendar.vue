@@ -193,6 +193,10 @@ const selectedSlotIds = ref<string[]>([])
 const bookedSiblingIds = ref<string[]>([])
 const selectionCourtId = ref<string | null>(null)
 const multiSelectMode = ref(false)
+/** Teleported selection bar — measured so grid cells below it stay scrollable/tappable on phone. */
+const selectionBarRef = ref<HTMLElement | null>(null)
+const selectionBarClearancePx = ref(0)
+let selectionBarResizeObserver: ResizeObserver | null = null
 /** Bottom-left toggle: multi-select booked hours on this day to block together. */
 const bookedSelectMode = ref(false)
 const showMenu = ref(false)
@@ -1490,6 +1494,63 @@ const packageBillableSessionCount = computed(() => {
   return packageSessionCount.value
 })
 
+function measureSelectionBarClearance() {
+  if (typeof window === 'undefined') return
+  const bar = selectionBarRef.value
+  if (!bar || !selectedSlotIds.value.length || showMenu.value) {
+    selectionBarClearancePx.value = 0
+    return
+  }
+  const styles = getComputedStyle(bar)
+  const marginBottom = Number.parseFloat(styles.marginBottom || '0') || 0
+  // Bar is fixed above bottom nav; page padding must clear the whole overlay stack.
+  selectionBarClearancePx.value = Math.ceil(bar.getBoundingClientRect().height + marginBottom + 12)
+}
+
+function stopSelectionBarClearanceObserver() {
+  selectionBarResizeObserver?.disconnect()
+  selectionBarResizeObserver = null
+}
+
+function startSelectionBarClearanceObserver() {
+  stopSelectionBarClearanceObserver()
+  if (typeof window === 'undefined' || !selectionBarRef.value) return
+  measureSelectionBarClearance()
+  selectionBarResizeObserver = new ResizeObserver(() => measureSelectionBarClearance())
+  selectionBarResizeObserver.observe(selectionBarRef.value)
+}
+
+function scrollOwnerCalSlotIntoTapZone(slotId: string) {
+  if (typeof window === 'undefined' || !selectionBarRef.value) return
+  const el = document.querySelector(`[data-owner-cal-slot="${slotId}"]`) as HTMLElement | null
+  if (!el) return
+  const barTop = selectionBarRef.value.getBoundingClientRect().top
+  const safeBottom = barTop - 10
+  const rect = el.getBoundingClientRect()
+  if (rect.bottom > safeBottom || rect.top < 72) {
+    el.scrollIntoView({ block: 'center', behavior: 'smooth' })
+  }
+}
+
+watch(
+  () => [selectedSlotIds.value.length, showMenu.value, calendarView.value] as const,
+  async () => {
+    await nextTick()
+    await nextTick()
+    if (selectedSlotIds.value.length && !showMenu.value && calendarView.value === 'today') {
+      startSelectionBarClearanceObserver()
+    }
+    else {
+      stopSelectionBarClearanceObserver()
+      selectionBarClearancePx.value = 0
+    }
+  },
+)
+
+onBeforeUnmount(() => {
+  stopSelectionBarClearanceObserver()
+})
+
 function clearSelection() {
   selectedSlotIds.value = []
   bookedSiblingIds.value = []
@@ -1550,6 +1611,10 @@ function toggleFreeSlot(slot: OwnerCalendarSlot) {
   }
   selectionCourtId.value = slot.courtId
   selectedSlotIds.value = [...selectedSlotIds.value, slot.id]
+  nextTick(() => {
+    measureSelectionBarClearance()
+    scrollOwnerCalSlotIntoTapZone(slot.id)
+  })
 }
 
 function toggleBookedSlot(slot: OwnerCalendarSlot) {
@@ -4212,7 +4277,13 @@ watch(pilotNoCoach, (off) => {
 </script>
 
 <template>
-  <div class="venus-page-stack owner-cal-page" :class="{ 'calendar-page-has-selection': selectedSlotIds.length && !showMenu }">
+  <div
+    class="venus-page-stack owner-cal-page"
+    :class="{ 'calendar-page-has-selection': selectedSlotIds.length && !showMenu }"
+    :style="selectionBarClearancePx
+      ? { '--owner-cal-selection-clearance': `${selectionBarClearancePx}px` }
+      : undefined"
+  >
     <p v-if="flashMessage" class="mx-4 mb-2 bg-brand-lavender px-3 py-2 text-start text-sm font-bold text-brand-navy" style="border-radius: var(--sz-canva-radius);">
       {{ flashMessage }}
       <button type="button" class="ms-2 text-xs font-bold text-brand-primary" @click="flashMessage = ''">{{ t('common.close') }}</button>
@@ -4506,6 +4577,7 @@ watch(pilotNoCoach, (off) => {
                   :title="slotCellTitle(cellSlot(court.id, hour))"
                   :aria-pressed="gridSlotShowsSelectCheck(cellSlot(court.id, hour)) ? isSlotSelected(cellSlot(court.id, hour)!) : undefined"
                   :disabled="!cellSlot(court.id, hour)"
+                  :data-owner-cal-slot="cellSlot(court.id, hour)?.id"
                   @pointerdown="cellSlot(court.id, hour) && onSlotPointerDown(cellSlot(court.id, hour)!)"
                   @pointerup="onSlotPointerEnd"
                   @pointerleave="onSlotPointerEnd"
@@ -4585,6 +4657,7 @@ watch(pilotNoCoach, (off) => {
     <Teleport to="body">
       <div
         v-if="calendarView === 'today' && selectedSlotIds.length && !showMenu"
+        ref="selectionBarRef"
         class="canva-selection-bar"
         role="region"
         :aria-label="t('owner.selectionBar.title')"
@@ -6292,16 +6365,23 @@ watch(pilotNoCoach, (off) => {
 }
 
 .calendar-page-has-selection {
-  padding-bottom: calc(10rem + var(--sz-tab-bar-height) + var(--sz-safe-bottom));
+  --owner-cal-selection-clearance: 10rem;
+  padding-bottom: calc(
+    var(--owner-cal-selection-clearance, 10rem)
+    + var(--sz-tab-bar-height)
+    + var(--sz-safe-bottom)
+    + 0.75rem
+  );
 }
 
 .calendar-page-has-selection :deep(.canva-cal-grid-scroll) {
-  padding-bottom: 1.25rem;
+  padding-bottom: max(1.25rem, calc(var(--owner-cal-selection-clearance, 10rem) * 0.35));
+  scroll-padding-bottom: var(--owner-cal-selection-clearance, 10rem);
 }
 
 @media (min-width: 431px) {
   .calendar-page-has-selection {
-    padding-bottom: 12rem;
+    --owner-cal-selection-clearance: 12rem;
   }
 }
 
@@ -6328,7 +6408,13 @@ watch(pilotNoCoach, (off) => {
   }
 
   .calendar-page-has-selection {
-    padding-bottom: 8rem;
+    --owner-cal-selection-clearance: 8rem;
+    padding-bottom: calc(
+      var(--owner-cal-selection-clearance, 8rem)
+      + var(--sz-tab-bar-height)
+      + var(--sz-safe-bottom)
+      + 0.75rem
+    );
   }
 }
 
