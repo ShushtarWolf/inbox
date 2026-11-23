@@ -22,7 +22,7 @@ type OpenMatchDetailPayload = {
     sportId: string
     slotTotalPrice: number
     club: { nameFa: string, nameEn?: string, slug: string }
-    sport: { nameFa: string, nameEn?: string }
+    sport: { slug: string, nameFa: string, nameEn?: string }
     slot: { date: string, startTime: string, endTime: string }
   }
   pricePerPlayer: number
@@ -53,7 +53,6 @@ const detail = computed(() => {
 const actionError = ref('')
 const actionPending = ref(false)
 const showAssess = ref(false)
-const assessPending = ref(false)
 
 onMounted(() => {
   if (route.query.previewAssess === '1') showAssess.value = true
@@ -63,11 +62,14 @@ const scoreForm = reactive({ home: 6, away: 4 })
 const peerForm = reactive({ level: 4, fairPlay: 5, targetUserId: '' })
 const postMatchPending = ref(false)
 
-const assessForm = reactive({
-  experienceYears: 2,
-  matchesPerMonth: 8,
-  techniqueSelf: 3,
-  tacticsSelf: 3,
+const assessSport = computed(() => {
+  const m = detail.value?.match
+  if (!m?.sportId || !m.sport) return null
+  return {
+    id: m.sportId,
+    slug: m.sport.slug || 'general',
+    nameFa: m.sport.nameFa,
+  }
 })
 
 async function joinMatch() {
@@ -94,26 +96,10 @@ async function joinMatch() {
   }
 }
 
-async function submitAssessment() {
-  if (!detail.value?.match.sportId) return
-  assessPending.value = true
-  actionError.value = ''
-  try {
-    await $fetch('/api/athlete/skill-ratings/assess', {
-      method: 'POST',
-      body: {
-        sportId: detail.value.match.sportId,
-        answers: { ...assessForm },
-      },
-    })
-    showAssess.value = false
-    await refresh()
-    await joinMatch()
-  } catch (err) {
-    actionError.value = fetchErrorMessage(err)
-  } finally {
-    assessPending.value = false
-  }
+async function onAssessDone() {
+  showAssess.value = false
+  await refresh()
+  await joinMatch()
 }
 
 watch(detail, (val) => {
@@ -175,11 +161,11 @@ async function leaveMatch() {
     />
 
     <template v-else-if="detail">
-      <section class="border border-line bg-white p-4 space-y-2">
-        <h1 class="text-lg font-bold text-charcoal">
+      <section class="border border-brand-gray-200 bg-white p-4 space-y-2">
+        <h1 class="text-lg font-bold text-brand-navy">
           {{ localizedField(detail.match.club, 'name') }}
         </h1>
-        <p class="text-sm text-silver">
+        <p class="text-sm text-brand-gray-500">
           {{ localizedField(detail.match.sport, 'name') }}
           ·
           <bdi dir="ltr" class="tabular-nums">{{ formatIsoDate(detail.match.slot.date) }}</bdi>
@@ -191,58 +177,58 @@ async function leaveMatch() {
         <p v-if="detail.match.paymentMode === 'SPLIT_ONLINE'" class="tabular-nums text-sm">
           {{ t('openMatch.pricePerPlayer') }}: {{ formatCurrency(detail.pricePerPlayer) }}
         </p>
-        <p v-if="detail.viewerSkill.rating != null" class="text-sm text-silver">
+        <p v-if="detail.viewerSkill.rating != null" class="text-sm text-brand-gray-500">
           {{ t('openMatch.yourLevel') }}:
-          <span class="tabular-nums text-charcoal">{{ formatFaDigits(String(detail.viewerSkill.rating)) }}</span>
+          <span class="tabular-nums text-brand-navy">{{ formatFaDigits(String(detail.viewerSkill.rating)) }}</span>
         </p>
       </section>
 
-      <section class="border border-line bg-white p-4">
-        <h2 class="mb-2 font-semibold text-charcoal">
+      <section class="border border-brand-gray-200 bg-white p-4">
+        <h2 class="mb-2 font-semibold text-brand-navy">
           {{ t('openMatch.participants') }}
         </h2>
         <ul class="space-y-2 text-sm">
           <li v-for="p in detail.participants" :key="p.id" class="flex justify-between gap-2">
             <span>{{ p.user.name }} {{ p.user.nameFamily || '' }}</span>
-            <span v-if="p.skill" class="tabular-nums text-silver">
+            <span v-if="p.skill" class="tabular-nums text-brand-gray-500">
               {{ formatFaDigits(String(p.skill.rating)) }}
             </span>
           </li>
         </ul>
       </section>
 
-      <p v-if="actionError" class="text-sm text-crimson">
+      <p v-if="actionError" class="text-sm text-brand-primary">
         {{ actionError }}
       </p>
 
       <section
         v-if="detail.match.status === 'COMPLETED'"
-        class="space-y-3 border border-line bg-white p-4"
+        class="space-y-3 border border-brand-gray-200 bg-white p-4"
       >
-        <h2 class="font-semibold text-charcoal">
+        <h2 class="font-semibold text-brand-navy">
           {{ t('openMatch.postMatchTitle') }}
         </h2>
         <div class="grid grid-cols-2 gap-3 text-sm">
           <label class="block">
             {{ t('openMatch.scoreHome') }}
-            <input v-model.number="scoreForm.home" type="number" min="0" class="mt-1 w-full border border-line p-2" dir="ltr">
+            <input v-model.number="scoreForm.home" type="number" min="0" class="mt-1 w-full border border-brand-gray-200 p-2" dir="ltr">
           </label>
           <label class="block">
             {{ t('openMatch.scoreAway') }}
-            <input v-model.number="scoreForm.away" type="number" min="0" class="mt-1 w-full border border-line p-2" dir="ltr">
+            <input v-model.number="scoreForm.away" type="number" min="0" class="mt-1 w-full border border-brand-gray-200 p-2" dir="ltr">
           </label>
         </div>
         <label class="block text-sm">
           {{ t('openMatch.peerLevel') }}
-          <input v-model.number="peerForm.level" type="number" min="1" max="7" step="0.1" class="mt-1 w-full border border-line p-2" dir="ltr">
+          <input v-model.number="peerForm.level" type="number" min="1" max="7" step="0.1" class="mt-1 w-full border border-brand-gray-200 p-2" dir="ltr">
         </label>
         <label class="block text-sm">
           {{ t('openMatch.fairPlay') }}
-          <input v-model.number="peerForm.fairPlay" type="number" min="1" max="5" class="mt-1 w-full border border-line p-2" dir="ltr">
+          <input v-model.number="peerForm.fairPlay" type="number" min="1" max="5" class="mt-1 w-full border border-brand-gray-200 p-2" dir="ltr">
         </label>
         <button
           type="button"
-          class="w-full bg-crimson py-2 text-sm text-white disabled:opacity-50"
+          class="w-full bg-brand-primary py-2 text-sm text-white disabled:opacity-50"
           :disabled="postMatchPending"
           @click="submitPostMatch"
         >
@@ -252,8 +238,16 @@ async function leaveMatch() {
 
       <div v-else class="flex flex-wrap gap-2">
         <button
+          v-if="detail.viewerSkill.assessmentStatus === 'UNASSESSED'"
           type="button"
-          class="bg-crimson px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+          class="border border-brand-primary bg-white px-4 py-2 text-sm font-bold text-brand-primary"
+          @click="showAssess = true"
+        >
+          {{ t('openMatch.assessSkillCta') }}
+        </button>
+        <button
+          type="button"
+          class="bg-brand-primary px-4 py-2 text-sm font-bold text-white disabled:opacity-50"
           :disabled="actionPending || detail.openSpots <= 0"
           @click="joinMatch"
         >
@@ -261,7 +255,7 @@ async function leaveMatch() {
         </button>
         <button
           type="button"
-          class="border border-line px-4 py-2 text-sm text-charcoal disabled:opacity-50"
+          class="border border-brand-gray-200 px-4 py-2 text-sm text-brand-navy disabled:opacity-50"
           :disabled="actionPending"
           @click="leaveMatch"
         >
@@ -269,40 +263,21 @@ async function leaveMatch() {
         </button>
       </div>
 
-      <AppModal :open="showAssess" :title="t('openMatch.assessTitle')" @close="showAssess = false">
-        <div class="space-y-3 text-sm">
-          <label class="block">
-            {{ t('openMatch.experienceYears') }}
-            <input v-model.number="assessForm.experienceYears" type="number" min="0" class="mt-1 w-full border border-line p-2" dir="ltr">
-          </label>
-          <label class="block">
-            {{ t('openMatch.matchesPerMonth') }}
-            <input v-model.number="assessForm.matchesPerMonth" type="number" min="0" class="mt-1 w-full border border-line p-2" dir="ltr">
-          </label>
-          <label class="block">
-            {{ t('openMatch.techniqueSelf') }}
-            <input v-model.number="assessForm.techniqueSelf" type="number" min="1" max="5" class="mt-1 w-full border border-line p-2" dir="ltr">
-          </label>
-          <label class="block">
-            {{ t('openMatch.tacticsSelf') }}
-            <input v-model.number="assessForm.tacticsSelf" type="number" min="1" max="5" class="mt-1 w-full border border-line p-2" dir="ltr">
-          </label>
-          <button
-            type="button"
-            class="w-full bg-crimson py-2 text-white disabled:opacity-50"
-            :disabled="assessPending"
-            @click="submitAssessment"
-          >
-            {{ t('openMatch.assessCta') }}
-          </button>
-        </div>
-      </AppModal>
+      <SkillAssessmentWizard
+        v-if="assessSport"
+        :open="showAssess"
+        :sport-id="assessSport.id"
+        :sport-slug="assessSport.slug"
+        :sport-name-fa="assessSport.nameFa"
+        @close="showAssess = false"
+        @done="onAssessDone"
+      />
     </template>
 
-    <p v-else-if="error" class="text-sm text-crimson">
+    <p v-else-if="error" class="text-sm text-brand-primary">
       {{ fetchErrorMessage(error) }}
     </p>
-    <p v-else-if="pending" class="text-sm text-silver">
+    <p v-else-if="pending" class="text-sm text-brand-gray-500">
       …
     </p>
   </div>

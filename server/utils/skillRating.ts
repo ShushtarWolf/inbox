@@ -1,4 +1,5 @@
 import type { Prisma } from '@prisma/client'
+import { computeRatingFromWizard } from '#shared/skillAssessment.ts'
 import {
   applySkillRatingUpdate,
   clampSkillRating,
@@ -31,7 +32,9 @@ export async function submitSkillAssessment(opts: {
   db?: DbClient
 }) {
   const db = opts.db || prisma
-  const { rating, confidence } = computeInitialSkillRating(opts.answers)
+  const { rating, confidence } = opts.answers.wizard?.version === 2
+    ? computeRatingFromWizard(opts.answers.wizard.sportSlug, opts.answers.wizard.choices)
+    : computeInitialSkillRating(opts.answers)
   const row = await getOrCreateUserSportSkill(opts.userId, opts.sportId, db)
   const previousRating = row.rating
   const previousConfidence = row.confidence

@@ -115,7 +115,20 @@
     "scoreAway": "امتیاز حریف",
     "fairPlay": "فیرپلی (۱–۵)",
     "peerLevel": "سطح تشخیصی",
-    "savePostMatch": "ثبت"
+    "savePostMatch": "ثبت",
+    "assessSkillCta": "تعیین سطح مهارت",
+    "reassessSkill": "ارزیابی مجدد سطح"
+  },
+  "skillAssess": {
+    "title": "ارزیابی سطح {sport}",
+    "resultTitle": "نتیجه ارزیابی سطح",
+    "stepProgress": "سوال {current} از ۶",
+    "next": "بعدی",
+    "finish": "محاسبه سطح",
+    "yourLevel": "سطح شما",
+    "confidenceNote": "اطمینان اولیه — بعد از چند بازی واقعی و امتیاز هم‌بازی‌ها دقیق‌تر می‌شود.",
+    "backToOpenMatch": "بازگشت به هم‌بازی",
+    "pickSport": "ورزش را برای ارزیابی انتخاب کنید"
   },
   "home": {
     "title": "اینباکس | رزرو آنلاین زمین پدل و تنیس — inboxs.ir",

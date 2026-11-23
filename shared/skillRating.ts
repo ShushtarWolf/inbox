@@ -2,11 +2,19 @@
 export const SKILL_RATING_MIN = 1
 export const SKILL_RATING_MAX = 7
 
+export type SkillWizardAnswers = {
+  version: 2
+  sportSlug: string
+  choices: number[]
+}
+
 export type SkillQuestionnaireAnswers = {
   experienceYears: number
   matchesPerMonth: number
   techniqueSelf: number
   tacticsSelf: number
+  /** Playtomic-style 6-step wizard payload (stored in rating history). */
+  wizard?: SkillWizardAnswers
 }
 
 export type SkillRatingLevelLabelFa = {

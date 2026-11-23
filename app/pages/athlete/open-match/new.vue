@@ -98,10 +98,10 @@ async function publish() {
       …
     </section>
 
-    <form v-else class="space-y-4 border border-line bg-white p-4" @submit.prevent="publish">
+    <form v-else class="space-y-4 border border-brand-gray-200 bg-white p-4" @submit.prevent="publish">
       <label class="block text-sm">
         {{ t('openMatch.selectSlot') }}
-        <select v-model="form.slotId" class="mt-1 w-full border border-line p-2 bg-white text-sm" dir="rtl">
+        <select v-model="form.slotId" class="mt-1 w-full border border-brand-gray-200 p-2 bg-white text-sm" dir="rtl">
           <option v-for="s in slots" :key="s.id" :value="s.id">
             {{ s.courtName }} —
             <bdi dir="ltr">{{ s.date }} {{ s.startTime }}</bdi>
@@ -111,7 +111,7 @@ async function publish() {
 
       <label class="block text-sm">
         {{ t('openMatch.selectPaymentMode') }}
-        <select v-model="form.paymentMode" class="mt-1 w-full border border-line p-2 bg-white text-sm">
+        <select v-model="form.paymentMode" class="mt-1 w-full border border-brand-gray-200 p-2 bg-white text-sm">
           <option value="HOST_PAYS">
             {{ t('openMatch.paymentHost') }}
           </option>
@@ -123,7 +123,7 @@ async function publish() {
 
       <label class="block text-sm">
         {{ t('openMatch.matchType') }}
-        <select v-model="form.matchType" class="mt-1 w-full border border-line p-2 bg-white text-sm">
+        <select v-model="form.matchType" class="mt-1 w-full border border-brand-gray-200 p-2 bg-white text-sm">
           <option value="FRIENDLY">
             {{ t('openMatch.friendly') }}
           </option>
@@ -135,23 +135,23 @@ async function publish() {
 
       <label class="block text-sm">
         {{ t('openMatch.maxPlayersLabel') }}
-        <input v-model.number="form.maxPlayers" type="number" min="2" max="8" class="mt-1 w-full border border-line p-2" dir="ltr">
+        <input v-model.number="form.maxPlayers" type="number" min="2" max="8" class="mt-1 w-full border border-brand-gray-200 p-2" dir="ltr">
       </label>
 
       <div class="grid grid-cols-2 gap-3">
         <label class="block text-sm">
           {{ t('openMatch.minLevelLabel') }}
-          <input v-model.number="form.minLevel" type="number" min="1" max="7" step="0.1" class="mt-1 w-full border border-line p-2" dir="ltr">
+          <input v-model.number="form.minLevel" type="number" min="1" max="7" step="0.1" class="mt-1 w-full border border-brand-gray-200 p-2" dir="ltr">
         </label>
         <label class="block text-sm">
           {{ t('openMatch.maxLevelLabel') }}
-          <input v-model.number="form.maxLevel" type="number" min="1" max="7" step="0.1" class="mt-1 w-full border border-line p-2" dir="ltr">
+          <input v-model.number="form.maxLevel" type="number" min="1" max="7" step="0.1" class="mt-1 w-full border border-brand-gray-200 p-2" dir="ltr">
         </label>
       </div>
 
       <label class="block text-sm">
         یادداشت
-        <textarea v-model="form.note" rows="2" class="mt-1 w-full border border-line p-2 text-sm" />
+        <textarea v-model="form.note" rows="2" class="mt-1 w-full border border-brand-gray-200 p-2 text-sm" />
       </label>
 
       <p v-if="actionError" class="text-sm text-crimson">
@@ -160,7 +160,7 @@ async function publish() {
 
       <button
         type="submit"
-        class="w-full bg-crimson py-2 text-sm font-medium text-white disabled:opacity-50"
+        class="w-full bg-brand-primary py-2 text-sm font-medium text-white disabled:opacity-50"
         :disabled="actionPending || !form.slotId"
       >
         {{ t('openMatch.publishMatch') }}
