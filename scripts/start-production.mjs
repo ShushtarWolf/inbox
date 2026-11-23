@@ -1,5 +1,10 @@
 import { execSync } from 'node:child_process'
-import { PrismaClient } from '@prisma/client'
+import { existsSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { allowSeedOnEmpty } from '../shared/stagingBoot.ts'
+
+const appRoot = join(dirname(fileURLToPath(import.meta.url)), '..')
 
 const dbUrl = process.env.DATABASE_URL
 if (!dbUrl) {
@@ -11,12 +16,40 @@ const env = { ...process.env, DATABASE_URL: dbUrl }
 
 function run(command, label) {
   console.log(`[start-production] ${label}`)
-  execSync(command, { stdio: 'inherit', env })
+  execSync(command, { stdio: 'inherit', env, cwd: appRoot })
+}
+
+function prismaClientGenerated() {
+  const generated = join(appRoot, 'node_modules', '.prisma', 'client')
+  return (
+    existsSync(join(generated, 'index.js'))
+    || existsSync(join(generated, 'default.js'))
+    || existsSync(join(generated, 'index.mjs'))
+  )
+}
+
+function ensurePrismaClientGenerated() {
+  if (process.env.SKIP_PRISMA_GENERATE === 'true') {
+    console.log('[start-production] SKIP_PRISMA_GENERATE=true — skipping prisma generate')
+    return
+  }
+  if (prismaClientGenerated()) {
+    console.log('[start-production] Prisma Client already present — running prisma generate to sync schema…')
+  } else {
+    console.log('[start-production] Prisma Client missing — running prisma generate…')
+  }
+  run('npx prisma generate', 'Generating Prisma Client…')
+  if (!prismaClientGenerated()) {
+    console.error(
+      '[start-production] prisma generate finished but node_modules/.prisma/client is still missing',
+    )
+    process.exit(1)
+  }
 }
 
 // Recover only if that migration is marked failed (ignore P3012 when it is already applied).
 try {
-  const status = execSync('npx prisma migrate status', { encoding: 'utf8', env })
+  const status = execSync('npx prisma migrate status', { encoding: 'utf8', env, cwd: appRoot })
   if (status.includes('20250711160000_slot_unique_constraint') && /failed/i.test(status)) {
     run(
       'npx prisma migrate resolve --rolled-back 20250711160000_slot_unique_constraint',
@@ -32,6 +65,10 @@ if (process.env.SKIP_MIGRATE !== 'true') {
 } else {
   console.log('[start-production] SKIP_MIGRATE=true — skipping migrations')
 }
+
+ensurePrismaClientGenerated()
+
+const { PrismaClient } = await import('@prisma/client')
 
 async function upsertSportsOnly(prisma) {
   // Keep boot alive when full prisma seed cannot resolve Nuxt aliases in the slim image.
@@ -70,25 +107,23 @@ async function ensureCatalog() {
 
 await ensureCatalog()
 
-if (process.env.SEED_ON_EMPTY === 'true') {
-  if (process.env.NODE_ENV === 'production') {
-    console.log(
-      '[start-production] SEED_ON_EMPTY=true ignored in production — leave unset/false after catalog exists. Use /api/admin/reset-pilot for Behnaz.',
-    )
-  } else {
-    const prisma = new PrismaClient({ datasourceUrl: dbUrl })
-    try {
-      const userCount = await prisma.user.count()
-      if (userCount === 0) {
-        console.log('[start-production] Empty database — running full seed (SEED_ON_EMPTY=true)')
-        run('npx prisma db seed', 'Seeding empty database…')
-      } else {
-        console.log('[start-production] Database has users — skipping full seed')
-      }
-    } finally {
-      await prisma.$disconnect()
+if (allowSeedOnEmpty()) {
+  const prisma = new PrismaClient({ datasourceUrl: dbUrl })
+  try {
+    const userCount = await prisma.user.count()
+    if (userCount === 0) {
+      console.log('[start-production] Empty database — running full seed (SEED_ON_EMPTY=true)')
+      run('npx prisma db seed', 'Seeding empty database…')
+    } else {
+      console.log('[start-production] Database has users — skipping full seed')
     }
+  } finally {
+    await prisma.$disconnect()
   }
+} else if (process.env.SEED_ON_EMPTY === 'true') {
+  console.log(
+    '[start-production] SEED_ON_EMPTY=true ignored on production — unset on inbox or use staging (SENTRY_ENVIRONMENT=staging).',
+  )
 }
 
 {

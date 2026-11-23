@@ -41,18 +41,20 @@ WORKDIR /app
 # Minimal manifest first — npm arborist crashes when --no-save targets are added
 # on top of the full app package.json without a lockfile in this stage.
 RUN echo '{"name":"inbox-runtime","private":true}' > package.json \
-  && npm install --omit=dev --no-save --ignore-scripts --no-audit --no-fund --prefer-offline \
+  && npm install --omit=dev --no-save --ignore-scripts --no-audit --no-fund --prefer-offline --legacy-peer-deps \
     prisma@6.19.3 \
     @prisma/client@6.19.3 \
     tsx@4.22.4 \
   && npx prisma generate \
+  && test -d node_modules/.prisma/client \
   && mkdir -p .output/server/node_modules \
   && rm -rf .output/server/node_modules/.prisma .output/server/node_modules/@prisma \
   && cp -a node_modules/.prisma .output/server/node_modules/ \
   && cp -a node_modules/@prisma .output/server/node_modules/ \
+  && test -d .output/server/node_modules/.prisma/client \
   && npm cache clean --force
 
 COPY --from=builder /app/package.json ./package.json
 
 EXPOSE 3000
-CMD ["node", "scripts/start-production.mjs"]
+CMD ["node", "--import", "tsx", "scripts/start-production.mjs"]

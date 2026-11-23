@@ -27,8 +27,24 @@ jobs:
           echo '=== db status ==='
           curl -sS -H "$AUTH" "$API/v1/databases" | jq -c '.databases[]? | select(.hostname=="inbox-staging-db") | {hostname,status,scale,network,internalPort,publicNetwork}'
 
-          echo '=== env keys (no values) ==='
-          liara env list --app inbox-staging --api-token="$LIARA_TOKEN" 2>&1 | head -80 || true
+          echo '=== env keys (names only — values never logged) ==='
+          liara env list --app inbox-staging --api-token="$LIARA_TOKEN" --output=json 2>/dev/null \
+            | node -e '
+              const fs = require("node:fs");
+              let raw = "";
+              process.stdin.on("data", (d) => { raw += d; });
+              process.stdin.on("end", () => {
+                const i = raw.indexOf("[");
+                if (i < 0) return;
+                let rows;
+                try { rows = JSON.parse(raw.slice(i)); } catch { return; }
+                if (!Array.isArray(rows)) return;
+                for (const r of rows) {
+                  const key = r.key ?? r.name ?? (typeof r === "string" ? r : null);
+                  if (key) console.log(key);
+                }
+              });
+            ' || echo "(env list unavailable)"
 
           echo '=== recent logs ==='
           timeout 45s liara logs --app inbox-staging --api-token="$LIARA_TOKEN" 2>&1 | tail -120 || true
