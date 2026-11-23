@@ -3,7 +3,8 @@
 # Used by the deploy-fallback job (full-source Liara Iran build).
 # Primary deploy uses Dockerfile.runtime + prebuilt nitro-output instead.
 # Do not add RUN --mount=type=cache — Liara's builder rejects BuildKit mounts.
-FROM node:22-alpine AS builder
+# public.ecr.aws mirror: Liara Iran builders often cannot pull docker.io/library/node (RBAC denied).
+FROM public.ecr.aws/docker/library/node:22-alpine AS builder
 WORKDIR /app
 RUN apk add --no-cache openssl ca-certificates libc6-compat
 
@@ -14,7 +15,7 @@ COPY prisma ./prisma
 RUN npm ci --ignore-scripts --no-audit --no-fund --prefer-offline
 COPY . .
 RUN npm run build
-FROM node:22-alpine AS runner
+FROM public.ecr.aws/docker/library/node:22-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 ENV HOST=0.0.0.0
@@ -41,18 +42,20 @@ WORKDIR /app
 # Minimal manifest first — npm arborist crashes when --no-save targets are added
 # on top of the full app package.json without a lockfile in this stage.
 RUN echo '{"name":"inbox-runtime","private":true}' > package.json \
-  && npm install --omit=dev --no-save --ignore-scripts --no-audit --no-fund --prefer-offline \
+  && npm install --omit=dev --no-save --ignore-scripts --no-audit --no-fund --prefer-offline --legacy-peer-deps \
     prisma@6.19.3 \
     @prisma/client@6.19.3 \
     tsx@4.22.4 \
   && npx prisma generate \
+  && test -d node_modules/.prisma/client \
   && mkdir -p .output/server/node_modules \
   && rm -rf .output/server/node_modules/.prisma .output/server/node_modules/@prisma \
   && cp -a node_modules/.prisma .output/server/node_modules/ \
   && cp -a node_modules/@prisma .output/server/node_modules/ \
+  && test -d .output/server/node_modules/.prisma/client \
   && npm cache clean --force
 
 COPY --from=builder /app/package.json ./package.json
 
 EXPOSE 3000
-CMD ["node", "scripts/start-production.mjs"]
+CMD ["node", "--import", "tsx", "scripts/start-production.mjs"]

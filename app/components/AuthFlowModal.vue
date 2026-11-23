@@ -82,7 +82,7 @@ const selectedRole = ref<AuthFlowRole>('ATHLETE')
 /** When adding a role on an existing session, keep phone on this account. */
 const phoneLocked = ref(false)
 
-const { smsMode, smsPhase, smsLive } = useSmsCapability()
+const { smsMode, smsPhase, smsLive, stagingPhoneLoginEnabled } = useSmsCapability()
 const {
   uploading: licenseUploading,
   error: licenseUploadError,
@@ -647,6 +647,37 @@ async function requestOtp() {
   }
 }
 
+async function stagingPhoneLogin() {
+  error.value = ''
+  const phoneError = phoneValidationError()
+  if (phoneError) {
+    error.value = phoneError
+    return
+  }
+  pending.value = true
+  try {
+    const data = await $fetch<{ redirectTo?: string }>('/api/auth/staging-phone-login', {
+      method: 'POST',
+      body: {
+        phone: phone.value,
+        returnTo: safeReturnTo.value,
+      },
+    })
+    await fetchAuth()
+    handleClose()
+    const target = data.redirectTo || localePath('/athlete/open-match')
+    await navigateTo(target)
+  } catch (err: unknown) {
+    const status = (err as { statusCode?: number })?.statusCode
+    if (status === 400) error.value = t('auth.invalidPhone')
+    else if (status === 403) error.value = t('auth.accountDisabled')
+    else if (status === 404) error.value = t('auth.stagingQuickLoginUnavailable')
+    else error.value = t('auth.loginFailed')
+  } finally {
+    pending.value = false
+  }
+}
+
 function otpVerifyErrorText(err: unknown): string {
   const { statusCode, statusMessage } = extractHttpError(err)
   if (statusCode === 403 && /password/i.test(statusMessage)) return t('auth.usePasswordNotOtp')
@@ -847,6 +878,38 @@ onMounted(() => {
           <button type="button" class="canva-gate-btn-secondary" @click="goLogin">
             {{ t('auth.login') }}
           </button>
+          <div
+            v-if="stagingPhoneLoginEnabled"
+            class="space-y-3 border border-emerald-400 bg-emerald-50 p-4"
+            style="border-radius: var(--sz-canva-radius);"
+          >
+            <p class="text-start text-sm font-bold text-emerald-950">
+              {{ t('auth.stagingQuickLoginTitle') }}
+            </p>
+            <p class="text-start text-xs font-bold text-emerald-900">
+              {{ t('auth.stagingQuickLoginHint') }}
+            </p>
+            <AppFormField field-id="staging-gate-phone" :label="t('common.mobile')" numeric>
+              <input
+                id="staging-gate-phone"
+                v-model="phone"
+                dir="ltr"
+                inputmode="tel"
+                class="neo-input bg-white/95"
+                :placeholder="t('auth.phonePlaceholder')"
+                autocomplete="tel"
+              />
+            </AppFormField>
+            <p v-if="error" role="alert" aria-live="assertive" class="venus-alert-error text-start">{{ error }}</p>
+            <button
+              type="button"
+              class="canva-gate-btn-primary"
+              :disabled="pending"
+              @click="stagingPhoneLogin"
+            >
+              {{ pending ? t('common.loading') : t('auth.stagingQuickLoginButton') }}
+            </button>
+          </div>
           <p
             v-if="!smsLive"
             class="border border-amber-200 bg-amber-50 px-3 py-2 text-start text-xs font-bold text-amber-900"
@@ -1385,6 +1448,26 @@ onMounted(() => {
           <p v-else class="text-start text-xs text-brand-gray-600">
             {{ smsLive ? t('auth.phoneLoginHintMulti') : t('auth.otpLogModeBanner') }}
           </p>
+          <div
+            v-if="stagingPhoneLoginEnabled"
+            class="space-y-3 border border-emerald-400 bg-emerald-50 p-4"
+            style="border-radius: var(--sz-canva-radius);"
+          >
+            <p class="text-start text-sm font-bold text-emerald-950">
+              {{ t('auth.stagingQuickLoginTitle') }}
+            </p>
+            <p class="text-start text-xs font-bold text-emerald-900">
+              {{ t('auth.stagingQuickLoginHint') }}
+            </p>
+            <button
+              type="button"
+              class="canva-gate-btn-primary"
+              :disabled="pending"
+              @click="stagingPhoneLogin"
+            >
+              {{ pending ? t('common.loading') : t('auth.stagingQuickLoginButton') }}
+            </button>
+          </div>
           <AppFormField field-id="login-phone" :label="t('common.mobile')" numeric>
             <input
               id="login-phone"

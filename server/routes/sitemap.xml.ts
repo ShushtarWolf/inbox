@@ -1,5 +1,6 @@
 import { PUBLIC_CLUB_DIRECTORY_WHERE } from '#shared/clubDirectory.ts'
 import { listGeoSportHubPaths } from '#shared/geoSportHubs.ts'
+import { PUBLIC_SKILL_ASSESSMENT_SLUGS } from '#shared/skillAssessment.ts'
 import { slugify } from '../utils/slug'
 
 function siteUrl() {
@@ -39,6 +40,12 @@ export default defineEventHandler(async (event) => {
     { path: '/cancellation', priority: '0.3', changefreq: 'yearly' },
     { path: '/privacy', priority: '0.3', changefreq: 'yearly' },
     { path: '/terms', priority: '0.3', changefreq: 'yearly' },
+    { path: '/skill-assessment', priority: '0.9', changefreq: 'weekly' },
+    ...PUBLIC_SKILL_ASSESSMENT_SLUGS.map((slug) => ({
+      path: `/skill-assessment/${slug}`,
+      priority: '0.85',
+      changefreq: 'weekly',
+    })),
   ]
 
   const clubs = await prisma.club.findMany({

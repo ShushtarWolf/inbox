@@ -38,6 +38,7 @@ export function useCheckout() {
     coachSessionId?: string
     packageBookingId?: string
     competitionEntryId?: string
+    openMatchParticipantId?: string
     useWallet?: boolean | 'full' | 'partial'
   }) {
     const result = await $fetch<{

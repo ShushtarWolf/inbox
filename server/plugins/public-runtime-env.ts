@@ -29,6 +29,14 @@ export default defineNitroPlugin(() => {
     }
   }
 
+  if (process.env.NUXT_PUBLIC_OPEN_MATCH_ENABLED === 'true' || process.env.OPEN_MATCH_ENABLED === 'true') {
+    try {
+      publicConfig.openMatchEnabled = true
+    } catch {
+      // Frozen runtimeConfig — set NUXT_PUBLIC_OPEN_MATCH_ENABLED instead.
+    }
+  }
+
   if (process.env.NUXT_PUBLIC_COMPETITIONS_ENABLED === 'true' || process.env.COMPETITIONS_ENABLED === 'true') {
     try {
       publicConfig.competitionsEnabled = true

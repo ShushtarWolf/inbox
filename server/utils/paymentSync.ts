@@ -22,6 +22,7 @@ import { creditOwnerForPaidPayment } from './settlement'
 import { creditWalletForTopUpPayment } from './wallet'
 import { syncClubContactForBooking } from './contactSync'
 import { confirmEntryFromPayment } from './competitions'
+import { confirmOpenMatchShareFromPayment, syncOpenMatchHostBookingOnPayment } from './openMatches'
 
 type DbClient = Prisma.TransactionClient | typeof prisma
 
@@ -232,6 +233,15 @@ export async function syncCompetitionEntryOnPayment(paymentId: string) {
     await confirmEntryFromPayment(paymentId)
   } catch (err) {
     console.error('[paymentSync:competitionEntry]', paymentId, err)
+  }
+}
+
+export async function syncOpenMatchShareOnPayment(paymentId: string) {
+  try {
+    await confirmOpenMatchShareFromPayment(paymentId)
+    await syncOpenMatchHostBookingOnPayment(paymentId)
+  } catch (err) {
+    console.error('[paymentSync:openMatchShare]', paymentId, err)
   }
 }
 
@@ -543,6 +553,7 @@ export async function confirmPaymentAndSync(
       const { markMoneyJobsDoneForPaidPayment } = await import('./moneyJobs')
       await markMoneyJobsDoneForPaidPayment(intent.id)
       await syncCompetitionEntryOnPayment(intent.id)
+      await syncOpenMatchShareOnPayment(intent.id)
     })
     if (before?.purpose === 'topup' && previousStatus !== 'PAID') {
       try {

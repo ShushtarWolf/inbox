@@ -5,7 +5,7 @@ Shared Liara environment so the team can verify updates **before** production `i
 | | Production | Staging |
 |--|------------|---------|
 | App | `inbox` | `inbox-staging` |
-| URL | `https://inboxs.ir` | `https://inbox-staging.liara.run` |
+| URL | `https://inboxs.ir` | **`http://staging.inboxs.ir`** (team domain; legacy `inbox-staging.liara.run` may 404 after default subdomain expiry) |
 | Database | `inbox-db` | `inbox-staging-db` |
 | Network | (prod) | `inbox-staging-net` |
 | Deploy workflow | `deploy.yml` | `deploy-staging.yml` |
@@ -38,7 +38,7 @@ gh run watch "$(gh run list --workflow=deploy-staging.yml --limit 1 --json datab
 
 Or Actions tab → **Deploy staging** → Run workflow.
 
-After green **Verify live inbox-staging.liara.run**, share **https://inbox-staging.liara.run** with the team.
+After green **Verify live staging**, share **http://staging.inboxs.ir** with the team (`/api/health` → `"ok":true`).
 
 If a deploy workflow is red but the site already answers `/api/health` with `"ok":true`, re-check with curl before assuming staging is down — Liara Iran Alpine TLS blips can fail the workflow while a previous healthy release still serves traffic.
 

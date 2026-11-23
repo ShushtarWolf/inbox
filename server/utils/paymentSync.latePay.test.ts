@@ -45,6 +45,16 @@ vi.mock('./competitions', () => ({
   findCompetitionLatePayTarget: (...args: unknown[]) => findCompetitionLatePayTarget(...args),
 }))
 
+vi.mock('./openMatches', () => ({
+  confirmOpenMatchShareFromPayment: vi.fn().mockResolvedValue({ handled: false }),
+  syncOpenMatchHostBookingOnPayment: vi.fn().mockResolvedValue({ handled: false }),
+}))
+
+vi.mock('./splitPayWallet', () => ({
+  promoteSplitPayAmountOnPaid: vi.fn().mockResolvedValue(undefined),
+  releaseSplitWalletDebit: vi.fn(),
+}))
+
 vi.mock('./onlinePaymentHold', () => ({
   promoteOnlineHoldOnPaid: vi.fn(),
 }))

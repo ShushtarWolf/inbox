@@ -28,6 +28,7 @@ const nav = computed((): NavItem[] => {
   const items: NavItem[] = [
     { to: localePath('/'), label: t('nav.home'), icon: 'home' },
     { to: localePath('/clubs'), label: t('nav.clubs'), icon: 'sports_tennis' },
+    { to: localePath('/skill-assessment'), label: t('nav.skillAssessmentFree'), icon: 'speed' },
   ]
 
   if (!pilotNoCoach.value) {
@@ -132,8 +133,12 @@ onMounted(() => {
         <NuxtLink :to="localePath('/privacy')" class="hover:text-brand-primary">{{ t('legal.privacy') }}</NuxtLink>
         <span class="text-brand-gray-300" aria-hidden="true">·</span>
         <NuxtLink :to="localePath('/terms')" class="hover:text-brand-primary">{{ t('legal.terms') }}</NuxtLink>
+        <span class="text-brand-gray-300" aria-hidden="true">·</span>
+        <NuxtLink :to="localePath('/skill-assessment')" class="hover:text-brand-primary">{{ t('nav.skillAssessmentFree') }}</NuxtLink>
       </nav>
       <div class="hidden flex-wrap items-center justify-center gap-x-1 gap-y-1 min-[431px]:flex">
+        <NuxtLink :to="localePath('/skill-assessment')" class="px-1.5 font-bold text-brand-primary hover:underline">{{ t('nav.skillAssessmentFree') }}</NuxtLink>
+        ·
         <NuxtLink :to="localePath('/about')" class="px-1.5 hover:text-brand-primary">{{ t('legal.about') }}</NuxtLink>
         ·
         <NuxtLink :to="localePath('/contact')" class="px-1.5 hover:text-brand-primary">{{ t('legal.contact') }}</NuxtLink>

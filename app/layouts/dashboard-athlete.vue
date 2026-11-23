@@ -2,7 +2,7 @@
 const { t } = useI18n()
 const localePath = useLocalePath()
 const { fetch: fetchAuth } = useAuth()
-const { competitionsEnabled } = usePilotFlags()
+const { competitionsEnabled, openMatchEnabled } = usePilotFlags()
 
 onMounted(() => {
   fetchAuth()
@@ -18,13 +18,6 @@ const activeEntryCount = computed(() => {
   return count > 0 ? count : undefined
 })
 
-/** Canva hub bottom nav — favorites page is OUT OF MVP (hide, do not build). */
-const nav = computed(() => [
-  { to: localePath('/athlete/home'), label: t('nav.home'), icon: 'home' },
-  { to: localePath('/athlete/bookings'), label: t('nav.myBookings'), icon: 'confirmation_number' },
-  { to: localePath('/athlete'), label: t('nav.profile'), icon: 'person' },
-])
-
 const competitionsNavItem = computed(() => {
   if (!competitionsEnabled.value) return null
   return {
@@ -35,10 +28,27 @@ const competitionsNavItem = computed(() => {
   }
 })
 
+const openMatchNavItem = computed(() => {
+  if (!openMatchEnabled.value) return null
+  return {
+    to: localePath('/athlete/open-match'),
+    label: t('openMatch.nav'),
+    icon: 'groups',
+  }
+})
+
+/** Canva hub bottom nav — favorites page is OUT OF MVP (hide, do not build). */
+const nav = computed(() => [
+  { to: localePath('/athlete/home'), label: t('nav.home'), icon: 'home' },
+  { to: localePath('/athlete/bookings'), label: t('nav.myBookings'), icon: 'confirmation_number' },
+  { to: localePath('/athlete'), label: t('nav.profile'), icon: 'person' },
+  ...(competitionsNavItem.value ? [competitionsNavItem.value] : []),
+  ...(openMatchNavItem.value ? [openMatchNavItem.value] : []),
+])
+
 /** Desktop/sidebar: primary tabs + same account links as athlete hub menu. */
 const sideNav = computed(() => [
   ...nav.value,
-  ...(competitionsNavItem.value ? [competitionsNavItem.value] : []),
   { to: localePath('/athlete/profile'), label: t('athlete.editProfile'), icon: 'manage_accounts' },
   { to: localePath('/athlete/wallet'), label: t('nav.wallet'), icon: 'account_balance_wallet' },
   { to: localePath('/athlete/payments'), label: t('athlete.paymentMethods'), icon: 'credit_card' },

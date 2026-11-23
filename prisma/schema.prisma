@@ -299,6 +299,12 @@ model User {
   competitionEntries        CompetitionEntry[]
   competitionPartnerEntries CompetitionEntry[] @relation("CompetitionPartner")
   competitionPrizeAwards    CompetitionPrizeAward[]
+  sportSkillRatings         UserSportSkillRating[]
+  hostedOpenMatches         OpenMatch[]              @relation("OpenMatchHost")
+  openMatchParticipants     OpenMatchParticipant[]
+  openMatchPeerRatingsGiven OpenMatchPeerRating[]    @relation("OpenMatchPeerFrom")
+  openMatchPeerRatingsReceived OpenMatchPeerRating[] @relation("OpenMatchPeerTo")
+  openMatchResultsSubmitted OpenMatchResult[]        @relation("OpenMatchResultSubmitter")
   boundDiscountCodes        DiscountCode[]       @relation("DiscountCodeBoundUser")
   discountApplications      DiscountApplication[]
   discountMemberships       DiscountMembership[]
@@ -413,6 +419,8 @@ model Sport {
   courts       Court[]
   coaches      Coach[]
   competitions Competition[]
+  skillRatings UserSportSkillRating[]
+  openMatches  OpenMatch[]
 }
 
 enum ClubStatus {
@@ -606,6 +614,7 @@ model Club {
   commissionChanges ClubCommissionChange[]
   supportTickets    SupportTicket[]
   competitions      Competition[]
+  openMatches       OpenMatch[]
   externalOccupancySnapshots ExternalOccupancySnapshot[]
   ownerExternalNotes OwnerExternalNote[]
   manualAvailabilityOverrides ManualAvailabilityOverride[]
@@ -634,6 +643,7 @@ model Court {
   slots Slot[]
   waitlistEntries WaitlistEntry[]
   packages PackageDraft[]
+  openMatches OpenMatch[]
   externalOccupancySnapshots ExternalOccupancySnapshot[]
   ownerExternalNotes OwnerExternalNote[]
   manualAvailabilityOverrides ManualAvailabilityOverride[]
@@ -650,7 +660,8 @@ model Slot {
   courtId String
   court   Court  @relation(fields: [courtId], references: [id], onDelete: Cascade)
 
-  booking Booking?
+  booking   Booking?
+  openMatch OpenMatch?
 
   @@unique([courtId, date, startTime])
   @@index([courtId, date])
@@ -761,6 +772,7 @@ model Booking {
   review  Review?
   bookingEquipments BookingEquipment[]
   coachSession CoachSession? @relation("CoachSessionCourt")
+  openMatch      OpenMatch?
 
   @@index([packageDraftId])
 }
@@ -1123,11 +1135,181 @@ model Payment {
   packageBookingId  String?          @unique
   packageBooking    PackageBooking?  @relation(fields: [packageBookingId], references: [id], onDelete: Cascade)
   competitionEntry  CompetitionEntry?
+  openMatchParticipant OpenMatchParticipant?
   moneyJobs         MoneyJob[]
   settlementLedgerEntry SettlementLedgerEntry?
 
   @@index([userId, purpose, createdAt])
   @@index([supersededByPaymentId])
+}
+
+enum SkillAssessmentStatus {
+  UNASSESSED
+  ASSESSED
+}
+
+enum OpenMatchStatus {
+  OPEN
+  FULL
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+  EXPIRED
+}
+
+enum OpenMatchPaymentMode {
+  HOST_PAYS
+  SPLIT_ONLINE
+}
+
+enum OpenMatchType {
+  FRIENDLY
+  COMPETITIVE
+}
+
+enum OpenMatchParticipantStatus {
+  JOINED
+  LEFT
+  REFUNDED
+}
+
+/** Per-sport skill level (Playtomic-style 1.0–7.0) with reliability. */
+model UserSportSkillRating {
+  id                String                @id @default(cuid())
+  rating            Float                 @default(3.0)
+  /** 0..1 — grows with assessed + peer/match feedback. */
+  confidence        Float                 @default(0)
+  assessmentStatus  SkillAssessmentStatus @default(UNASSESSED)
+  assessedAt        DateTime?
+  matchesPlayed     Int                   @default(0)
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+
+  userId  String
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sportId String
+  sport   Sport  @relation(fields: [sportId], references: [id], onDelete: Cascade)
+
+  history SkillRatingHistory[]
+
+  @@unique([userId, sportId])
+  @@index([sportId, rating])
+}
+
+/** Append-only audit of rating changes. */
+model SkillRatingHistory {
+  id              String   @id @default(cuid())
+  previousRating  Float
+  newRating       Float
+  previousConfidence Float
+  newConfidence   Float
+  reason          String
+  metadataJson    String?
+  createdAt       DateTime @default(now())
+
+  userSportSkillRatingId String
+  userSportSkillRating   UserSportSkillRating @relation(fields: [userSportSkillRatingId], references: [id], onDelete: Cascade)
+  openMatchId            String?
+  openMatch              OpenMatch?           @relation(fields: [openMatchId], references: [id], onDelete: SetNull)
+
+  @@index([userSportSkillRatingId, createdAt])
+  @@index([openMatchId])
+}
+
+/** هم‌بازی — open match on a single court slot. */
+model OpenMatch {
+  id              String               @id @default(cuid())
+  status          OpenMatchStatus      @default(OPEN)
+  paymentMode     OpenMatchPaymentMode
+  matchType       OpenMatchType        @default(FRIENDLY)
+  maxPlayers      Int
+  minPlayers      Int                  @default(2)
+  minLevel        Float?
+  maxLevel        Float?
+  slotTotalPrice  Int
+  note            String?
+  /** Do not accept joins after this instant (default: shortly before slot start). */
+  fillCutoffAt    DateTime
+  cancelledAt     DateTime?
+  cancelReason    String?
+  completedAt     DateTime?
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  hostUserId String
+  hostUser   User   @relation("OpenMatchHost", fields: [hostUserId], references: [id], onDelete: Cascade)
+  clubId     String
+  club       Club   @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  courtId    String
+  court      Court  @relation(fields: [courtId], references: [id], onDelete: Cascade)
+  sportId    String
+  sport      Sport  @relation(fields: [sportId], references: [id])
+  slotId     String @unique
+  slot       Slot   @relation(fields: [slotId], references: [id], onDelete: Cascade)
+  bookingId  String @unique
+  booking    Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  participants OpenMatchParticipant[]
+  results      OpenMatchResult[]
+  peerRatings  OpenMatchPeerRating[]
+  ratingHistory SkillRatingHistory[]
+
+  @@index([clubId, status, fillCutoffAt])
+  @@index([sportId, status, fillCutoffAt])
+  @@index([status, fillCutoffAt])
+}
+
+model OpenMatchParticipant {
+  id          String                     @id @default(cuid())
+  status      OpenMatchParticipantStatus @default(JOINED)
+  isHost      Boolean                    @default(false)
+  shareAmount Int                        @default(0)
+  joinedAt    DateTime                   @default(now())
+  leftAt      DateTime?
+
+  openMatchId String
+  openMatch   OpenMatch @relation(fields: [openMatchId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  paymentId   String?   @unique
+  payment     Payment?  @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+
+  @@unique([openMatchId, userId])
+  @@index([openMatchId, status])
+  @@index([userId, joinedAt])
+}
+
+model OpenMatchResult {
+  id                    String    @id @default(cuid())
+  scoreJson             String
+  submittedAt           DateTime  @default(now())
+  opponentConfirmedAt   DateTime?
+  opponentUserId        String?
+
+  openMatchId   String
+  openMatch     OpenMatch @relation(fields: [openMatchId], references: [id], onDelete: Cascade)
+  submittedById String
+  submittedBy   User      @relation("OpenMatchResultSubmitter", fields: [submittedById], references: [id], onDelete: Cascade)
+
+  @@index([openMatchId])
+}
+
+model OpenMatchPeerRating {
+  id              String   @id @default(cuid())
+  perceivedLevel  Float
+  fairPlayScore   Int
+  note            String?
+  createdAt       DateTime @default(now())
+
+  openMatchId String
+  openMatch   OpenMatch @relation(fields: [openMatchId], references: [id], onDelete: Cascade)
+  fromUserId  String
+  fromUser    User      @relation("OpenMatchPeerFrom", fields: [fromUserId], references: [id], onDelete: Cascade)
+  toUserId    String
+  toUser      User      @relation("OpenMatchPeerTo", fields: [toUserId], references: [id], onDelete: Cascade)
+
+  @@unique([openMatchId, fromUserId, toUserId])
+  @@index([toUserId, createdAt])
 }
 
 model MoneyJob {

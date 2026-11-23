@@ -253,6 +253,9 @@ export default defineNuxtConfig({
       athleteSeasonEnabled:
         process.env.NUXT_PUBLIC_ATHLETE_SEASON_ENABLED === 'true'
         || process.env.ATHLETE_SEASON_ENABLED === 'true',
+      openMatchEnabled:
+        process.env.NUXT_PUBLIC_OPEN_MATCH_ENABLED === 'true'
+        || process.env.OPEN_MATCH_ENABLED === 'true',
       // Prefer PAYMENTS_MODE on Liara; NUXT_PUBLIC_PAYMENTS_MODE also works (runtime sync).
       paymentsMode:
         process.env.NUXT_PUBLIC_PAYMENTS_MODE
