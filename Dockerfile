@@ -3,7 +3,8 @@
 # Used by the deploy-fallback job (full-source Liara Iran build).
 # Primary deploy uses Dockerfile.runtime + prebuilt nitro-output instead.
 # Do not add RUN --mount=type=cache — Liara's builder rejects BuildKit mounts.
-FROM node:22-alpine AS builder
+# public.ecr.aws mirror: Liara Iran builders often cannot pull docker.io/library/node (RBAC denied).
+FROM public.ecr.aws/docker/library/node:22-alpine AS builder
 WORKDIR /app
 RUN apk add --no-cache openssl ca-certificates libc6-compat
 
@@ -14,7 +15,7 @@ COPY prisma ./prisma
 RUN npm ci --ignore-scripts --no-audit --no-fund --prefer-offline
 COPY . .
 RUN npm run build
-FROM node:22-alpine AS runner
+FROM public.ecr.aws/docker/library/node:22-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 ENV HOST=0.0.0.0

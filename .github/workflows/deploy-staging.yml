@@ -215,26 +215,30 @@ jobs:
           exit 1
 
   verify-live:
-    name: Verify live inbox-staging.liara.run
+    name: Verify live staging (staging.inboxs.ir)
     needs: [deploy-ok]
     if: always() && needs.deploy-ok.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Probe https://inbox-staging.liara.run/api/health
+      - name: Probe staging health (custom domain, then legacy liara.run)
         run: |
           set -euo pipefail
+          # Liara default *.liara.run can expire; team traffic uses staging.inboxs.ir (HTTP until TLS is pinned).
+          BASE_URLS="http://staging.inboxs.ir https://staging.inboxs.ir https://inbox-staging.liara.run"
           for i in $(seq 1 12); do
-            code=$(curl -sS -o /tmp/inbox-staging-health.json -w '%{http_code}' --max-time 20 \
-              https://inbox-staging.liara.run/api/health || echo 000)
-            home=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 \
-              https://inbox-staging.liara.run || echo 000)
-            echo "try$i health=$code home=$home body=$(head -c 200 /tmp/inbox-staging-health.json 2>/dev/null || true)"
-            if [ "$code" = "200" ] && [ "$home" != "502" ] && grep -q '"ok":true' /tmp/inbox-staging-health.json; then
-              echo "Staging live probe passed"
-              exit 0
-            fi
+            for base in $BASE_URLS; do
+              code=$(curl -sS -o /tmp/inbox-staging-health.json -w '%{http_code}' --max-time 20 \
+                "${base}/api/health" 2>/dev/null || echo 000)
+              home=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 \
+                "${base}/" 2>/dev/null || echo 000)
+              echo "try$i base=${base} health=$code home=$home body=$(head -c 200 /tmp/inbox-staging-health.json 2>/dev/null || true)"
+              if [ "$code" = "200" ] && [ "$home" != "502" ] && grep -q '"ok":true' /tmp/inbox-staging-health.json; then
+                echo "Staging live probe passed (${base})"
+                exit 0
+              fi
+            done
             sleep 10
           done
-          echo "::error::Staging is DOWN after deploy (live probe failed)."
+          echo "::error::Staging is DOWN after deploy (live probe failed on all known URLs)."
           exit 1
