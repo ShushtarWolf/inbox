@@ -6,6 +6,7 @@ export function useSmsCapability() {
     multiReady?: boolean
     smsMode?: 'log' | 'live'
     resolvedProvider?: 'log' | 'live'
+    stagingPhoneLoginEnabled?: boolean
   }>('/api/auth/sms-capability', { lazy: true })
 
   const smsPhase = computed<'SINGLE' | 'MULTI'>(() =>
@@ -22,5 +23,17 @@ export function useSmsCapability() {
     Boolean(data.value?.multiReady) || smsPhase.value === 'MULTI',
   )
 
-  return { data, pending, error, refresh, smsPhase, smsMode, smsLive, multiReady }
+  const stagingPhoneLoginEnabled = computed(() => Boolean(data.value?.stagingPhoneLoginEnabled))
+
+  return {
+    data,
+    pending,
+    error,
+    refresh,
+    smsPhase,
+    smsMode,
+    smsLive,
+    multiReady,
+    stagingPhoneLoginEnabled,
+  }
 }
