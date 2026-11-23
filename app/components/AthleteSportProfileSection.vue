@@ -296,6 +296,7 @@ function openAssessCurrent() {
               stroke="#C41E1E"
               stroke-width="2.5"
             />
+            <!-- eslint-disable vuejs-accessibility/no-static-element-interactions -- SVG rating chart point hover -->
             <circle
               v-for="(c, idx) in chartGeometry.coords"
               :key="c.id"
@@ -304,9 +305,11 @@ function openAssessCurrent() {
               r="5"
               fill="#C41E1E"
               class="cursor-pointer"
+              tabindex="-1"
               @mouseenter="chartHover = idx"
               @focus="chartHover = idx"
             />
+            <!-- eslint-enable vuejs-accessibility/no-static-element-interactions -->
           </svg>
           <p v-if="activePoint" class="mt-1 text-start text-xs text-brand-gray-500">
             <bdi dir="ltr" class="tabular-nums">{{ formatIsoDate(activePoint.createdAt.slice(0, 10)) }}</bdi>
