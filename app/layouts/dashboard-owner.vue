@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import type { NavItem } from '#shared/nav.ts'
 import { canAccessOwnerNav, parsePermissions } from '#shared/ownerPermissions.ts'
+import { pickDefaultOwnerClubId } from '#shared/ownerClubSelection.ts'
 
 const { t } = useI18n()
 const localePath = useLocalePath()
 const route = useRoute()
 const router = useRouter()
 const { user, fetch: fetchAuth } = useAuth()
-const { localizedField } = useLocalizedField()
 const { competitionsEnabled, competitionsVisibleForClub, ownerStaffEnabled, packagesEnabled } = usePilotFlags()
 const selectedClubId = useCookie<string | null>('owner_club_id', { sameSite: 'lax' })
 const ownerClubVersion = ref(0)
@@ -94,9 +94,12 @@ const showLayoutClubSwitcher = computed(
 )
 
 watchEffect(() => {
-  if (!selectedClubId.value && memberships.value.length) {
-    const primary = memberships.value.find((item) => item.isPrimary) || memberships.value[0]
-    selectedClubId.value = primary?.club.id || null
+  if (!memberships.value.length) return
+  const next = pickDefaultOwnerClubId(memberships.value, selectedClubId.value)
+  if (!selectedClubId.value && next) {
+    selectedClubId.value = next
+  } else if (selectedClubId.value && !memberships.value.some((m) => m.club.id === selectedClubId.value) && next) {
+    selectedClubId.value = next
   }
 })
 
@@ -150,19 +153,7 @@ const showPendingBanner = computed(() => {
         {{ activeClubStatus === 'SUSPENDED' ? t('owner.pendingBannerRejected') : t('owner.pendingBanner') }}
       </NuxtLink>
     </div>
-    <div v-if="showLayoutClubSwitcher" class="canva-club-switcher">
-      <span class="venus-icon-wrap venus-icon-wrap-sm bg-brand-primary-soft text-brand-primary">
-        <AppIcon name="storefront" size="sm" /><!-- SoT .rclubcard uses ti-building-store on every owner page -->
-      </span>
-      <label class="flex min-w-0 flex-1 flex-col gap-1 text-xs font-bold text-brand-gray-600">
-        <span>{{ t('owner.activeClub') }}</span>
-        <select v-model="selectedClubId" class="neo-select">
-          <option v-for="item in memberships" :key="item.club.id" :value="item.club.id">
-            {{ localizedField(item.club, 'nameFa', 'nameEn') }}
-          </option>
-        </select>
-      </label>
-    </div>
+    <OwnerClubSwitcher v-if="showLayoutClubSwitcher" class="canva-club-switcher" />
     <slot />
     <OwnerMoreSheet :open="moreOpen" @close="closeMore" />
   </DashboardShell>

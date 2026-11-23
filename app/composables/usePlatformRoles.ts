@@ -1,4 +1,5 @@
 import { staffCanAccessOwnerDesk } from '#shared/ownerDeskAccess.ts'
+import { ownerHasActiveClub } from '#shared/ownerClubSelection.ts'
 import {
   canAddRole,
   hasRole,
@@ -64,6 +65,8 @@ export function usePlatformRoles() {
       return 'live'
     }
     if (role === 'CLUB_ADMIN') {
+      const memberships = user.value?.memberships || []
+      if (ownerHasActiveClub(memberships)) return 'live'
       if (ownerClubStatus.value === 'PENDING' || ownerClubStatus.value === 'SUSPENDED') return 'pending'
       return 'live'
     }

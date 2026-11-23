@@ -11,6 +11,7 @@ import {
   type RolesUser,
 } from '#shared/roles.ts'
 import { hasOwnerPermission, parsePermissions, type OwnerPermission } from '#shared/ownerPermissions.ts'
+import { ownerHasActiveClub, pickOwnerMembership } from '#shared/ownerClubSelection.ts'
 
 export async function findUserForPasswordLogin(identifier: string) {
   const trimmed = identifier.trim()
@@ -46,12 +47,19 @@ export async function pathForPlatformRole(
   role: PlatformRole,
 ): Promise<string> {
   if (role === 'CLUB_ADMIN') {
-    const membership = await prisma.staffMembership.findFirst({
-      where: { userId: user.id, active: true },
-      include: { club: { select: { status: true } } },
+    const memberships = await prisma.staffMembership.findMany({
+      where: {
+        userId: user.id,
+        active: true,
+        role: { in: ['OWNER', 'MANAGER', 'ANALYST', 'FRONT_DESK', 'COACH'] },
+      },
+      include: { club: { select: { id: true, status: true } } },
       orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
     })
-    const status = membership?.club.status
+    if (ownerHasActiveClub(memberships.map((m) => ({ club: m.club, isPrimary: m.isPrimary })))) {
+      return roleDashboardPath('CLUB_ADMIN')
+    }
+    const status = memberships[0]?.club.status
     if (status === 'PENDING' || status === 'SUSPENDED') {
       return '/owner/pending'
     }
@@ -208,7 +216,10 @@ export async function requireOwnerClub(event: H3Event, permission?: OwnerPermiss
     throw createError({ statusCode: 403, statusMessage: 'Forbidden' })
   }
   const selectedClubId = getCookie(event, 'owner_club_id')
-  const membership = memberships.find((item) => item.clubId === selectedClubId) || memberships[0]!
+  const membership = pickOwnerMembership(
+    memberships.map((m) => ({ ...m, club: m.club })),
+    selectedClubId,
+  )
   if (!selectedClubId || selectedClubId !== membership.clubId) {
     setCookie(event, 'owner_club_id', membership.clubId, { path: '/', sameSite: 'lax' })
   }

@@ -602,6 +602,7 @@ const calendarWelcomeLine = computed(() =>
 /** Keep a club switcher when the owner has more than one club (product chrome, even if Canva crop omits it). */
 const ownerMemberships = computed(() => user.value?.memberships || [])
 const showClubSwitcher = computed(() => ownerMemberships.value.length > 1)
+const { clubOptionLabel, onSelectChange, switching: clubSwitching } = useOwnerClubSwitcher()
 const occupancyMarks = ref<Record<string, 'busy' | 'soft'>>({})
 const deskDiscountInput = ref('')
 useAsciiDigits(deskDiscountInput, { digitsOnly: false })
@@ -4240,9 +4241,14 @@ watch(pilotNoCoach, (off) => {
         class="canva-cal-club-switch"
       >
         <span class="sr-only">{{ t('owner.activeClub') }}</span>
-        <select v-model="selectedClubId" class="canva-cal-club-select">
+        <select
+          :value="selectedClubId || ''"
+          class="canva-cal-club-select"
+          :disabled="clubSwitching"
+          @change="onSelectChange(($event.target as HTMLSelectElement).value)"
+        >
           <option v-for="item in ownerMemberships" :key="item.club.id" :value="item.club.id">
-            {{ localizedField(item.club, 'nameFa', 'nameEn') }}
+            {{ clubOptionLabel(item) }}
           </option>
         </select>
       </label>
