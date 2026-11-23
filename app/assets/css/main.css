@@ -2723,6 +2723,12 @@
   .canva-cal-booked-select-toggle-on {
     @apply border-brand-navy bg-brand-navy text-white hover:bg-brand-navy;
   }
+  .canva-cal-booked-select-toggle-below {
+    position: relative;
+    inset: auto;
+    z-index: 0;
+    @apply mx-1 mt-2 mb-0 max-w-full self-start;
+  }
   .canva-cal-body {
     @apply block min-w-0 max-w-full;
   }

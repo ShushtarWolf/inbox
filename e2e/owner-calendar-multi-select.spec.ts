@@ -39,6 +39,29 @@ test.describe('owner calendar multi-select', () => {
     await expect(pressed).toHaveCount(2)
   })
 
+  test('after clear + scroll, same-hour cells on other courts can be re-selected (IB-56)', async ({ page }) => {
+    const selectable = page.locator('button.canva-cal-grid-cell:has(.canva-cal-grid-check)')
+    const count = await selectable.count()
+    test.skip(count < 3, 'need at least three free/past selectable cells')
+
+    await selectable.nth(0).click()
+    await selectable.nth(1).click()
+    await expect(page.locator('.canva-selection-bar')).toContainText('(2)', { timeout: 10_000 })
+
+    await page.getByRole('button', { name: 'پاک کردن انتخاب', exact: true }).click()
+    await expect(page.locator('.canva-selection-bar')).toHaveCount(0)
+
+    const lastCell = selectable.last()
+    await lastCell.scrollIntoViewIfNeeded()
+    await lastCell.click()
+    await expect(page.locator('.canva-selection-bar')).toContainText('(1)', { timeout: 10_000 })
+
+    const firstCell = selectable.nth(0)
+    await firstCell.scrollIntoViewIfNeeded()
+    await firstCell.click()
+    await expect(page.locator('.canva-selection-bar')).toContainText('(2)', { timeout: 5_000 })
+  })
+
   test('selection bar is in document flow (not a fixed overlay on the grid)', async ({ page }) => {
     const first = page.locator('.canva-cal-grid-cell:has(.canva-cal-grid-check)').first()
     await first.click()

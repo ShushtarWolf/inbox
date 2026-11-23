@@ -1568,6 +1568,7 @@ function clearSelection() {
   selectedSlotIds.value = []
   bookedSiblingIds.value = []
   selectionCourtId.value = null
+  selectedSlot.value = null
   actionError.value = ''
   selectionBarDetailsOpen.value = false
 }
@@ -1586,7 +1587,8 @@ function exitBookedSelectMode() {
 
 function clearFreeMultiSelection() {
   clearSelection()
-  multiSelectMode.value = false
+  // Stay in free-slot multi-select so the next grid tap adds instead of opening a lone sheet.
+  multiSelectMode.value = true
 }
 
 function toggleBookedSelectMode() {
@@ -4606,17 +4608,17 @@ onMounted(() => {
                 </button>
               </template>
             </div>
-            <button
-              v-if="calendarView === 'today'"
-              type="button"
-              class="canva-cal-booked-select-toggle"
-              :class="bookedSelectMode ? 'canva-cal-booked-select-toggle-on' : ''"
-              :aria-pressed="bookedSelectMode"
-              @click="toggleBookedSelectMode"
-            >
-              {{ bookedSelectMode ? t('owner.selectionBar.bookedSelectDone') : t('owner.selectionBar.bookedSelect') }}
-            </button>
           </div>
+          <button
+            v-if="calendarView === 'today' && hours.length"
+            type="button"
+            class="canva-cal-booked-select-toggle canva-cal-booked-select-toggle-below"
+            :class="bookedSelectMode ? 'canva-cal-booked-select-toggle-on' : ''"
+            :aria-pressed="bookedSelectMode"
+            @click="toggleBookedSelectMode"
+          >
+            {{ bookedSelectMode ? t('owner.selectionBar.bookedSelectDone') : t('owner.selectionBar.bookedSelect') }}
+          </button>
         </div>
         <aside class="canva-cal-side" :aria-label="t('owner.currentBooking')">
           <template v-if="panelSlot">
