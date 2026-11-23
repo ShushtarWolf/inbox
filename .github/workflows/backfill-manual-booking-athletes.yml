@@ -1,0 +1,72 @@
+name: Backfill manual-booking athletes (prod)
+
+# Create ATHLETE users for orphan desk bookings and link userId. Default dry-run.
+on:
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: Set true to APPLY on production (after dry-run review)
+        required: true
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
+
+concurrency:
+  group: backfill-manual-booking-athletes
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Liara CLI
+        run: npm i -g @liara/cli@9
+
+      - name: Resolve production DATABASE_URL
+        env:
+          LIARA_TOKEN: ${{ secrets.LIARA_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          chmod +x scripts/sql/resolve-inbox-db-url.sh
+          # shellcheck disable=SC1091
+          source scripts/sql/resolve-inbox-db-url.sh
+          test -n "${DATABASE_URL:-}"
+
+      - name: Dry-run or APPLY backfill
+        env:
+          APPLY_INPUT: ${{ inputs.apply }}
+        run: |
+          set -euo pipefail
+          if [ "$APPLY_INPUT" = "true" ]; then
+            echo "APPLY on production"
+            npm run db:backfill-manual-booking-athletes -- --apply | tee /tmp/backfill-manual-booking-athletes.log
+          else
+            echo "Dry-run only"
+            npm run db:backfill-manual-booking-athletes | tee /tmp/backfill-manual-booking-athletes.log
+          fi
+
+      - name: Upload log artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: backfill-manual-booking-athletes-${{ github.run_id }}
+          path: /tmp/backfill-manual-booking-athletes.log
+          retention-days: 7
+          if-no-files-found: error

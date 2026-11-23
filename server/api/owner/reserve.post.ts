@@ -8,7 +8,7 @@ import {
   parseEquipmentSelections,
   syncBookingEquipments,
 } from '../../utils/bookingTotal'
-import { findUserByPhone } from '../../utils/phoneAuth'
+import { ensureAthleteUserForOwnerDesk } from '../../utils/phoneAuth'
 import {
   notifyBookingConfirmed,
   notifyBookingPaid,
@@ -73,7 +73,12 @@ export default defineEventHandler(async (event) => {
   }>(event)
   if (!body.slotId) throw createError({ statusCode: 400, statusMessage: 'slotId required' })
   const guestMobile = resolveGuestMobile(body.guestMobile)
-  const linkedUser = await findUserByPhone(guestMobile)
+  const linkedUser = guestMobile
+    ? await ensureAthleteUserForOwnerDesk(guestMobile, {
+        name: body.guestName,
+        nameFamily: body.guestFamily,
+      })
+    : null
   // Registered account name wins over desk typos for the same phone.
   const guest = linkedUser?.name?.trim()
     ? userToGuestNamePair(linkedUser)

@@ -32,7 +32,7 @@ import {
 import { cancelCourtBooking } from './cancellations'
 import { syncClubContactForBooking } from './contactSync'
 import { loadOwnerSeriesBookingsBySeasonId } from './ownerSeriesCancel'
-import { findUserByPhone } from './phoneAuth'
+import { ensureAthleteUserForOwnerDesk } from './phoneAuth'
 import { prisma } from './prisma'
 import { hourFromTime } from './seasonSlots'
 import { bookingLooksLikeSeriesPayment, loadSeriesGroupForBooking, refundAfterSeriesSessionCancel } from './seriesCancelRefund'
@@ -159,7 +159,12 @@ export async function applySeasonEdit(opts: {
   }
 
   const guest = normalizeGuestNamePair(opts.guestName, opts.guestFamily)
-  const linkedUser = await findUserByPhone(opts.guestMobile)
+  const linkedUser = opts.guestMobile?.trim()
+    ? await ensureAthleteUserForOwnerDesk(opts.guestMobile, {
+        name: opts.guestName,
+        nameFamily: opts.guestFamily,
+      })
+    : null
   const guestPair = linkedUser?.name?.trim() ? userToGuestNamePair(linkedUser) : guest
   const courts = await prisma.court.findMany({
     where: { clubId: opts.clubId, id: { in: [...new Set(desired.map((u) => u.courtId))] } },

@@ -6,7 +6,7 @@ import { initialOnlineCourtHoldDisplay } from '#shared/onlinePaymentHold.ts'
 import { canClaimExistingSlotForRecurring, type RecurringConflictRef } from '#shared/recurringReserve.ts'
 import type { SeasonSessionOccurrence } from '#shared/seasonSessions.ts'
 import { isSlotStartInPast } from '#shared/localDate.ts'
-import { findUserByPhone } from './phoneAuth'
+import { ensureAthleteUserForOwnerDesk } from './phoneAuth'
 import { assignBookingPayPin } from './payPin'
 import { payUrlForPin } from './receipt'
 import { syncClubContactForBooking } from './contactSync'
@@ -206,7 +206,12 @@ export async function createSeasonSessions(opts: CreateSeasonSessionsOpts): Prom
   const guest = normalizeGuestNamePair(opts.guestName, opts.guestFamily)
   const linkedUser = opts.forceUserId
     ? await prisma.user.findUnique({ where: { id: opts.forceUserId } })
-    : await findUserByPhone(opts.guestMobile)
+    : (!athleteMode && opts.guestMobile?.trim()
+        ? await ensureAthleteUserForOwnerDesk(opts.guestMobile, {
+            name: opts.guestName,
+            nameFamily: opts.guestFamily,
+          })
+        : null)
   if (athleteMode && !opts.forceUserId) {
     throw createError({ statusCode: 400, statusMessage: 'forceUserId required for athlete season' })
   }

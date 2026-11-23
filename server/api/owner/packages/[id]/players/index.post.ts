@@ -1,5 +1,6 @@
 import { assertPackagesEnabled } from '../../../../../utils/packagesGate'
 import { countActivePackageSeats, lockPackageRow } from '../../../../../utils/packages'
+import { ensureAthleteUserForOwnerDesk } from '../../../../../utils/phoneAuth'
 
 export default defineEventHandler(async (event) => {
   assertPackagesEnabled(event)
@@ -17,6 +18,10 @@ export default defineEventHandler(async (event) => {
   if (!body.guestName?.trim()) {
     throw createError({ statusCode: 400, statusMessage: 'guestName required' })
   }
+
+  const linkedUser = body.guestMobile?.trim() && !body.athleteId
+    ? await ensureAthleteUserForOwnerDesk(body.guestMobile, { name: body.guestName })
+    : null
 
   return prisma.$transaction(async (tx) => {
     await lockPackageRow(tx, packageId)
@@ -36,7 +41,7 @@ export default defineEventHandler(async (event) => {
         guestName: body.guestName!.trim(),
         guestMobile: body.guestMobile?.trim() || null,
         level: body.level ?? null,
-        athleteId: body.athleteId || null,
+        athleteId: body.athleteId || linkedUser?.id || null,
       },
     })
   })

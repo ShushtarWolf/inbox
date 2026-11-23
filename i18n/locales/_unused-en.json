@@ -1056,6 +1056,8 @@
     "phoneNotRegisteredLogin": "No account exists for this phone — please sign up first.",
     "goToRegisterWithPhone": "Sign up with this number",
     "phoneTaken": "This number is already registered. Please sign in.",
+    "alreadyRegisteredUseLogin": "You are already registered. Please sign in using the Login tab.",
+    "goToLoginWithPhone": "Sign in with this phone number",
     "resendOtp": "Resend code",
     "debugOtpHint": "SMS debug mode — code: {code}",
     "debugOtpDevOnly": "log/bypass/dev only — do not claim live delivery to every number.",

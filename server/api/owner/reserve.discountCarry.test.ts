@@ -72,7 +72,7 @@ vi.mock('../../utils/bookingTotal', () => ({
   parseEquipmentSelections: () => [],
   syncBookingEquipments: vi.fn(),
 }))
-vi.mock('../../utils/phoneAuth', () => ({ findUserByPhone: async () => null }))
+vi.mock('../../utils/phoneAuth', () => ({ ensureAthleteUserForOwnerDesk: async () => null }))
 vi.mock('../../utils/bookingNotify', () => ({
   notifyBookingConfirmed: vi.fn(),
   notifyBookingPaid: vi.fn(async () => ({ smsSent: false })),

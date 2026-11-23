@@ -20,7 +20,7 @@ import {
   syncBookingEquipments,
 } from './bookingTotal'
 import { syncClubContactForBooking } from './contactSync'
-import { findUserByPhone } from './phoneAuth'
+import { ensureAthleteUserForOwnerDesk } from './phoneAuth'
 
 export { mergeRecurringResults }
 export type RecurringConflict = RecurringConflictRef
@@ -152,7 +152,12 @@ export async function generateRecurringCourtSlots(opts: GenerateOpts): Promise<R
       }
 
       try {
-        const linkedUser = guest ? await findUserByPhone(guest.guestMobile) : null
+        const linkedUser = guest?.guestMobile?.trim()
+          ? await ensureAthleteUserForOwnerDesk(guest.guestMobile, {
+              name: guest.guestName,
+              nameFamily: guest.guestFamily,
+            })
+          : null
         const claimed = await prisma.$transaction(async (tx) => {
           let slotId: string
           let staleCancelledId: string | null = null

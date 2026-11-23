@@ -143,6 +143,7 @@ export function fetchErrorMessage(error: unknown, fallback: string, translate?: 
     'Use password sign-in for this account': 'auth.usePasswordNotOtp',
     'Invalid phone': 'auth.invalidPhone',
     'Phone already registered': 'auth.phoneTaken',
+    ALREADY_REGISTERED_USE_LOGIN: 'auth.alreadyRegisteredUseLogin',
     'Invalid or expired token': 'auth.resetFailed',
     'Invalid ticket body': 'contact.messageNeedBody',
     'Invalid email': 'contact.messageEmailInvalid',

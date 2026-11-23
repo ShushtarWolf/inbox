@@ -50,7 +50,7 @@ vi.mock('./prisma', () => ({
   },
 }))
 
-vi.mock('./phoneAuth', () => ({ findUserByPhone: vi.fn().mockResolvedValue(null) }))
+vi.mock('./phoneAuth', () => ({ ensureAthleteUserForOwnerDesk: vi.fn().mockResolvedValue(null) }))
 vi.mock('./slots', () => ({
   ensureSlotsForDate: vi.fn(),
   formatHour: (h: number) => `${String(h).padStart(2, '0')}:00`,
