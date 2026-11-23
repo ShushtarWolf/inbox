@@ -120,6 +120,7 @@ function closeMore() {
   }
 }
 
+useOwnerMembershipRefresh()
 onMounted(() => fetchAuth())
 
 const activeClubStatus = computed(() => activeMembership.value?.club?.status || null)
