@@ -55,4 +55,42 @@ describe('numberedCourtNames', () => {
       nameEn: 'Court 1',
     })
   })
+
+  it('increments when the base name already ends with a Latin digit', () => {
+    expect(numberedCourtNames({ nameEn: 'Court 1', index: 1, total: 3 })).toEqual({
+      nameFa: `زمین ${toFaDigits(1)}`,
+      nameEn: 'Court 1',
+    })
+    expect(numberedCourtNames({ nameEn: 'Court 1', index: 2, total: 3 })).toEqual({
+      nameFa: `زمین ${toFaDigits(2)}`,
+      nameEn: 'Court 2',
+    })
+    expect(numberedCourtNames({ nameEn: 'Court 1', index: 3, total: 3 })).toEqual({
+      nameFa: `زمین ${toFaDigits(3)}`,
+      nameEn: 'Court 3',
+    })
+  })
+
+  it('increments when the base name already ends with a Persian digit', () => {
+    expect(numberedCourtNames({ nameFa: 'زمین ۱', nameEn: 'Court 1', index: 1, total: 3 })).toEqual({
+      nameFa: 'زمین ۱',
+      nameEn: 'Court 1',
+    })
+    expect(numberedCourtNames({ nameFa: 'زمین ۱', nameEn: 'Court 1', index: 2, total: 3 })).toEqual({
+      nameFa: 'زمین ۲',
+      nameEn: 'Court 2',
+    })
+    expect(numberedCourtNames({ nameFa: 'زمین ۱', nameEn: 'Court 1', index: 3, total: 3 })).toEqual({
+      nameFa: 'زمین ۳',
+      nameEn: 'Court 3',
+    })
+  })
+
+  it('never concatenates digits into Court 11-style names', () => {
+    const names = Array.from({ length: 3 }, (_, i) =>
+      numberedCourtNames({ nameFa: 'زمین ۱', nameEn: 'Court 1', index: i + 1, total: 3 }),
+    )
+    expect(names.map((n) => n.nameEn)).toEqual(['Court 1', 'Court 2', 'Court 3'])
+    expect(names.map((n) => n.nameFa)).toEqual(['زمین ۱', 'زمین ۲', 'زمین ۳'])
+  })
 })

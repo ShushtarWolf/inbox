@@ -11,12 +11,12 @@ const clubSwitcher = readFileSync(
 )
 
 describe('owner settings add-club CTA (IB-54)', () => {
-  it('links logged-in owners to the authenticated add-club flow, not public signup', () => {
-    expect(settingsPage).toContain('useOwnerClubSwitcher')
-    expect(settingsPage).toContain(':to="addClubPath"')
-    expect(settingsPage).toContain(':show-add-club="false"')
+  it('opens the in-page add-club modal, not public signup', () => {
+    expect(settingsPage).toContain('addClubOpen')
+    expect(settingsPage).toContain('OwnerAddClubForm')
     expect(settingsPage).not.toContain("localePath('/register/owner')")
     expect(settingsPage).not.toContain('localePath("/register/owner")')
+    expect(settingsPage).not.toContain(':to="addClubPath"')
   })
 
   it('keeps add-club path on /owner/clubs/new for session-backed creation', () => {

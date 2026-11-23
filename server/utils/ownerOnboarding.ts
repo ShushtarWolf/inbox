@@ -19,7 +19,7 @@ export function sportSlugsForOwner(sport: OwnerRegisterSport): Array<'padel' | '
   return ['padel']
 }
 
-/** When sport=both but only one court was created, stage the second sport in setup. */
-export function ownerSetupHandoff(sport: OwnerRegisterSport, courtCount: number): 'sport-both' | null {
-  return sport === 'both' && courtCount < 2 ? 'sport-both' : null
+/** When sport=both, owners add padel + tennis courts manually (in setup or settings). */
+export function ownerSetupHandoff(sport: OwnerRegisterSport): 'sport-both' | null {
+  return sport === 'both' ? 'sport-both' : null
 }

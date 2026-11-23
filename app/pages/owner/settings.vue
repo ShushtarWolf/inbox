@@ -102,9 +102,9 @@ const { fetch: fetchAuth } = useAuth()
 const { data, pending, error, refresh } = await useAuthedFetch<OwnerSettingsResponse>('/api/owner/settings')
 const { data: courtsData, pending: courtsPending, refresh: refreshCourts } = await useAuthedFetch<OwnerCourtListItem[]>('/api/owner/courts')
 useOwnerClubRefresh(() => { refresh(); refreshCourts() })
-const { addClubPath } = useOwnerClubSwitcher()
 
 const isOwner = computed(() => data.value?.membership?.role === 'OWNER')
+const addClubOpen = ref(false)
 const { data: staffData, refresh: refreshStaff } = await useAuthedFetch<OwnerStaffResponse>('/api/owner/staff', {
   immediate: false,
   watch: false,
@@ -604,7 +604,6 @@ const courtFormTitle = computed(() => {
   return t('owner.settingsPage.courtDetailsTitle')
 })
 
-const hourOptions = computed(() => Array.from({ length: 25 }, (_, i) => i))
 </script>
 
 <template>
@@ -624,15 +623,16 @@ const hourOptions = computed(() => Array.from({ length: 25 }, (_, i) => i))
     </section>
     <h1 class="text-start text-2xl font-bold text-brand-navy max-[430px]:mt-1">{{ t('owner.settings') }}</h1>
     <!-- SoT owner-settings: no subtitle under h1 -->
-    <OwnerActiveClubBar class="mb-2" :show-add-club="false" />
-    <NuxtLink
+    <OwnerActiveClubBar class="mb-2" />
+    <button
       v-if="isOwner"
-      :to="addClubPath"
-      class="canva-owner-secondary-cta mb-3 flex items-center justify-center gap-2"
+      type="button"
+      class="canva-owner-secondary-cta mb-3 flex w-full items-center justify-center gap-2"
+      @click="addClubOpen = true"
     >
       <span aria-hidden="true">+</span>
       {{ t('owner.settingsPage.addClub') }}
-    </NuxtLink>
+    </button>
 
     <div class="mb-4 min-h-[2.75rem]">
       <RoleDashboardSwitcher current="CLUB_ADMIN" />
@@ -818,25 +818,7 @@ const hourOptions = computed(() => Array.from({ length: 25 }, (_, i) => i))
 
         <!-- ساعات + لغو -->
         <div class="canva-panel space-y-3">
-          <h2 class="font-bold text-brand-navy">{{ t('owner.settingsPage.clubHours') }}</h2>
-          <div class="grid grid-cols-2 gap-2">
-            <label class="block text-sm">
-              <span class="mb-1 block font-bold">{{ t('owner.settingsPage.openHour') }}</span>
-              <select v-model.number="form.openHour" class="neo-select">
-                <option v-for="h in hourOptions.filter((x) => x < 24)" :key="`o-${h}`" :value="h">
-                  {{ String(h).padStart(2, '0') }}:00
-                </option>
-              </select>
-            </label>
-            <label class="block text-sm">
-              <span class="mb-1 block font-bold">{{ t('owner.settingsPage.closeHour') }}</span>
-              <select v-model.number="form.closeHour" class="neo-select">
-                <option v-for="h in hourOptions.filter((x) => x > 0)" :key="`c-${h}`" :value="h">
-                  {{ String(h).padStart(2, '0') }}:00
-                </option>
-              </select>
-            </label>
-          </div>
+          <OwnerClubHoursFields v-model:open-hour="form.openHour" v-model:close-hour="form.closeHour" :show-heading="false" />
 
           <div>
             <h3 class="text-sm font-bold text-brand-navy">{{ t('owner.settingsPage.cancelReschedulePolicy') }}</h3>
@@ -1085,6 +1067,19 @@ const hourOptions = computed(() => Array.from({ length: 25 }, (_, i) => i))
         </div>
       </form>
     </AppAsyncState>
+
+    <AppModal
+      :open="addClubOpen"
+      :title="t('owner.addClub.title')"
+      sheet
+      patterned
+      max-width-class="canva-phone-shell max-w-sm"
+      @close="addClubOpen = false"
+    >
+      <div class="canva-auth-body px-5 pb-6 pt-2">
+        <OwnerAddClubForm @cancel="addClubOpen = false" @success="addClubOpen = false" />
+      </div>
+    </AppModal>
 
     <AppModal
       :open="showCourtForm"
