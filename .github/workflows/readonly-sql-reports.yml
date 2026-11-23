@@ -54,9 +54,10 @@ jobs:
       - name: Install Liara CLI
         run: npm i -g @liara/cli@9
 
-      - name: Resolve production DATABASE_URL (Liara API)
+      - name: Resolve production DATABASE_URL (Liara public network)
         env:
           LIARA_TOKEN: ${{ secrets.LIARA_API_TOKEN }}
+          REQUIRE_PUBLIC_DATABASE_URL: "1"
         run: |
           set -euo pipefail
           chmod +x scripts/sql/resolve-inbox-db-url.sh

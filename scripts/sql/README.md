@@ -37,7 +37,7 @@ Workflow: [`.github/workflows/readonly-sql-reports.yml`](../../.github/workflows
 
 1. Actions → **Read-only SQL reports** → **Run workflow**
 2. Choose `report` (`all` or a single script name)
-3. Uses repo secret **`LIARA_API_TOKEN`** (same as `backup-db.yml`) and Liara API to resolve `inbox-db` credentials — credentials are masked in logs (`::add-mask::`)
+3. Uses repo secret **`LIARA_API_TOKEN`** (same as `backup-db.yml`) and Liara API to resolve a **public** `inbox-db` Postgres URL (`network.node.host`); enables public network via API if the bundle plan allows it — credentials are masked in logs (`::add-mask::`)
 4. Safety: static SQL guard, `PGOPTIONS=default_transaction_read_only=on`, `BEGIN TRANSACTION READ ONLY` + `ROLLBACK`, 60s statement timeout
 5. Output: masked phones / Sheba / card numbers → job summary + artifact (7-day retention)
 
