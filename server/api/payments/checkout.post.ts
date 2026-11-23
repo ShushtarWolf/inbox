@@ -67,10 +67,11 @@ export default defineEventHandler(async (event) => {
     coachSessionId?: string
     packageBookingId?: string
     competitionEntryId?: string
+    openMatchParticipantId?: string
     useWallet?: boolean | 'full' | 'partial'
   }>(event)
   const useWalletMode = normalizeUseWallet(body.useWallet)
-  if (!body.bookingId && !body.coachSessionId && !body.packageBookingId && !body.competitionEntryId) {
+  if (!body.bookingId && !body.coachSessionId && !body.packageBookingId && !body.competitionEntryId && !body.openMatchParticipantId) {
     throw createError({ statusCode: 400, statusMessage: 'Invalid input' })
   }
 
@@ -141,6 +142,20 @@ export default defineEventHandler(async (event) => {
     // A failed retry can leave the entry pointing at a SUPERSEDED row — start a fresh payable.
     if (entry.payment && entry.payment.status !== 'SUPERSEDED') existingPayment = entry.payment
     else amount = entry.competition.entryFee
+  } else if (body.openMatchParticipantId) {
+    const participant = await prisma.openMatchParticipant.findFirst({
+      where: { id: body.openMatchParticipantId, userId: user.id },
+      include: { payment: true, openMatch: true },
+    })
+    if (!participant) throw createError({ statusCode: 404, statusMessage: 'Not found' })
+    if (participant.status !== 'JOINED') {
+      throw createError({ statusCode: 409, statusMessage: 'Participant not active' })
+    }
+    if (participant.openMatch.paymentMode !== 'SPLIT_ONLINE') {
+      throw createError({ statusCode: 400, statusMessage: 'OPEN_MATCH_NOT_SPLIT' })
+    }
+    if (participant.payment && participant.payment.status !== 'SUPERSEDED') existingPayment = participant.payment
+    else amount = participant.shareAmount
   }
 
   if (existingPayment?.status === 'PAID') {

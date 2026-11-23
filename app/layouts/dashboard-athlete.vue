@@ -2,7 +2,7 @@
 const { t } = useI18n()
 const localePath = useLocalePath()
 const { fetch: fetchAuth } = useAuth()
-const { competitionsEnabled } = usePilotFlags()
+const { competitionsEnabled, openMatchEnabled } = usePilotFlags()
 
 onMounted(() => {
   fetchAuth()
@@ -35,10 +35,20 @@ const competitionsNavItem = computed(() => {
   }
 })
 
+const openMatchNavItem = computed(() => {
+  if (!openMatchEnabled.value) return null
+  return {
+    to: localePath('/athlete/open-match'),
+    label: t('openMatch.nav'),
+    icon: 'groups',
+  }
+})
+
 /** Desktop/sidebar: primary tabs + same account links as athlete hub menu. */
 const sideNav = computed(() => [
   ...nav.value,
   ...(competitionsNavItem.value ? [competitionsNavItem.value] : []),
+  ...(openMatchNavItem.value ? [openMatchNavItem.value] : []),
   { to: localePath('/athlete/profile'), label: t('athlete.editProfile'), icon: 'manage_accounts' },
   { to: localePath('/athlete/wallet'), label: t('nav.wallet'), icon: 'account_balance_wallet' },
   { to: localePath('/athlete/payments'), label: t('athlete.paymentMethods'), icon: 'credit_card' },
