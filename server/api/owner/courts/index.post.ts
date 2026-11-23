@@ -3,6 +3,7 @@ import { parseCourtAudience } from '#shared/courtAudience.ts'
 import { normalizeCourtDescription } from '#shared/courtDescription.ts'
 import { normalizeCourtPricingForSave } from '#shared/courtPricing.ts'
 import { syncClubCatalogPrices } from '../../../utils/clubCatalogPrices'
+import { resolveOwnerCourtSportForClub } from '../../../utils/ownerCourtSport'
 
 export default defineEventHandler(async (event) => {
   const { club } = await requireOwnerClub(event, 'settings')
@@ -27,11 +28,7 @@ export default defineEventHandler(async (event) => {
   if (body.audience !== undefined && !audience) {
     throw createError({ statusCode: 400, statusMessage: 'Invalid audience' })
   }
-  const sport = await prisma.sport.findFirst({
-    where: { slug: body.sportSlug === 'tennis' ? 'tennis' : 'padel' },
-  })
-  if (!sport) throw createError({ statusCode: 400, statusMessage: 'Invalid sport' })
-  const sportId = sport.id
+  const { sportId } = await resolveOwnerCourtSportForClub(club.id, body.sportSlug)
   if (body.openHour != null && body.closeHour != null && body.openHour >= body.closeHour) {
     throw createError({ statusCode: 400, statusMessage: 'openHour must be before closeHour' })
   }
