@@ -10,6 +10,8 @@ API="https://api.liara.ir"
 API_IR="https://api.iran.liara.ir"
 AUTH="Authorization: Bearer ${LIARA_TOKEN}"
 DB_HOSTNAME="${DB_HOSTNAME:-inbox-db}"
+# Liara public Postgres (network.node.host) does not support TLS; private URLs use disable as well.
+INBOX_DB_SSLMODE="${INBOX_DB_SSLMODE:-disable}"
 RUNNER_NEEDS_PUBLIC=$([[ "${GITHUB_ACTIONS:-}" = "true" || "${REQUIRE_PUBLIC_DATABASE_URL:-}" = "1" ]] && echo 1 || echo 0)
 
 api_get() {
@@ -95,8 +97,7 @@ try_build_public_host_url() {
     pub_port=5432
   fi
   enc_pass=$(url_encode_password)
-  ssl="require"
-  DATABASE_URL="postgresql://${DB_USER}:${enc_pass}@${host}:${pub_port}/${DB_NAME_PG}?sslmode=${ssl}"
+  DATABASE_URL="postgresql://${DB_USER}:${enc_pass}@${host}:${pub_port}/${DB_NAME_PG}?sslmode=${INBOX_DB_SSLMODE}"
   echo "Constructed DATABASE_URL from Liara public network host (host redacted)"
   return 0
 }
@@ -189,7 +190,7 @@ if [ -z "$DATABASE_URL" ] && [ -n "$DB_PASS" ] && [ "$DB_PASS" != "null" ]; then
     exit 1
   fi
   enc_pass=$(url_encode_password)
-  DATABASE_URL="postgresql://${DB_USER}:${enc_pass}@${DB_HOSTNAME}:${DB_PORT}/${DB_NAME_PG}?sslmode=disable"
+  DATABASE_URL="postgresql://${DB_USER}:${enc_pass}@${DB_HOSTNAME}:${DB_PORT}/${DB_NAME_PG}?sslmode=${INBOX_DB_SSLMODE}"
   echo "Constructed DATABASE_URL from Liara API credentials (private network host)"
 fi
 
