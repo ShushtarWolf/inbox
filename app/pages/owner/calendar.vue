@@ -193,6 +193,15 @@ const selectedSlotIds = ref<string[]>([])
 const bookedSiblingIds = ref<string[]>([])
 const selectionCourtId = ref<string | null>(null)
 const multiSelectMode = ref(false)
+/** Teleported selection bar — measured so grid cells below it stay scrollable/tappable on phone. */
+const selectionBarRef = ref<HTMLElement | null>(null)
+const selectionBarClearancePx = ref(0)
+let selectionBarResizeObserver: ResizeObserver | null = null
+/** Phone: keep the in-flow bar short so the grid stays fully tappable. */
+const selectionBarDetailsOpen = ref(false)
+const showOwnerSelectionBar = computed(() =>
+  calendarView.value === 'today' && selectedSlotIds.value.length > 0 && !showMenu.value,
+)
 /** Bottom-left toggle: multi-select booked hours on this day to block together. */
 const bookedSelectMode = ref(false)
 const showMenu = ref(false)
@@ -1490,10 +1499,83 @@ const packageBillableSessionCount = computed(() => {
   return packageSessionCount.value
 })
 
+function measureSelectionBarClearance() {
+  if (typeof window === 'undefined') return
+  const bar = selectionBarRef.value
+  if (!bar || !selectedSlotIds.value.length || showMenu.value) {
+    selectionBarClearancePx.value = 0
+    return
+  }
+  const styles = getComputedStyle(bar)
+  const marginBottom = Number.parseFloat(styles.marginBottom || '0') || 0
+  // Bar is fixed above bottom nav; page padding must clear the whole overlay stack.
+  selectionBarClearancePx.value = Math.ceil(bar.getBoundingClientRect().height + marginBottom + 12)
+}
+
+function stopSelectionBarClearanceObserver() {
+  selectionBarResizeObserver?.disconnect()
+  selectionBarResizeObserver = null
+}
+
+function startSelectionBarClearanceObserver() {
+  stopSelectionBarClearanceObserver()
+  if (typeof window === 'undefined' || !selectionBarRef.value) return
+  measureSelectionBarClearance()
+  selectionBarResizeObserver = new ResizeObserver(() => measureSelectionBarClearance())
+  selectionBarResizeObserver.observe(selectionBarRef.value)
+}
+
+function scrollOwnerCalSlotIntoTapZone(slotId: string) {
+  if (typeof window === 'undefined') return
+  const el = document.querySelector(`[data-owner-cal-slot="${slotId}"]`) as HTMLElement | null
+  if (!el) return
+  const root = document.documentElement
+  const styles = getComputedStyle(root)
+  const tab = Number.parseFloat(styles.getPropertyValue('--sz-tab-bar-height') || '0') || 56
+  const safe = Number.parseFloat(styles.getPropertyValue('--sz-safe-bottom') || '0') || 0
+  const safeBottom = window.innerHeight - tab - safe - 12
+  const rect = el.getBoundingClientRect()
+  if (rect.bottom > safeBottom || rect.top < 72) {
+    el.scrollIntoView({ block: 'center', behavior: 'smooth' })
+  }
+}
+
+watch(
+  () => [selectedSlotIds.value.length, showMenu.value, calendarView.value] as const,
+  async () => {
+    await nextTick()
+    await nextTick()
+    if (selectedSlotIds.value.length && !showMenu.value && calendarView.value === 'today') {
+      startSelectionBarClearanceObserver()
+    }
+    else {
+      stopSelectionBarClearanceObserver()
+      selectionBarClearancePx.value = 0
+    }
+    if (!selectedSlotIds.value.length) selectionBarDetailsOpen.value = false
+  },
+)
+
+watch(selectedSlotIds, (ids, prev) => {
+  if (ids.length > (prev?.length || 0) && ids.length > 2) selectionBarDetailsOpen.value = true
+})
+
+onBeforeUnmount(() => {
+  stopSelectionBarClearanceObserver()
+})
+
 function clearSelection() {
   selectedSlotIds.value = []
   bookedSiblingIds.value = []
   selectionCourtId.value = null
+  selectedSlot.value = null
+  actionError.value = ''
+  selectionBarDetailsOpen.value = false
+}
+
+function returnToGridMultiSelect() {
+  showMenu.value = false
+  multiSelectMode.value = true
   actionError.value = ''
 }
 
@@ -1505,7 +1587,8 @@ function exitBookedSelectMode() {
 
 function clearFreeMultiSelection() {
   clearSelection()
-  multiSelectMode.value = false
+  // Stay in free-slot multi-select so the next grid tap adds instead of opening a lone sheet.
+  multiSelectMode.value = true
 }
 
 function toggleBookedSelectMode() {
@@ -1550,6 +1633,10 @@ function toggleFreeSlot(slot: OwnerCalendarSlot) {
   }
   selectionCourtId.value = slot.courtId
   selectedSlotIds.value = [...selectedSlotIds.value, slot.id]
+  nextTick(() => {
+    measureSelectionBarClearance()
+    scrollOwnerCalSlotIntoTapZone(slot.id)
+  })
 }
 
 function toggleBookedSlot(slot: OwnerCalendarSlot) {
@@ -2340,24 +2427,6 @@ function openNoteFromReserve() {
   actionError.value = ''
   reserveFlowReturn.value = true
   activePanel.value = 'comments'
-}
-
-function openFabBlock() {
-  if (!canBatchBlock.value) return
-  openSelectionBlock()
-}
-
-/** Canva (9) date-row FAB — same path as the bottom selection-bar primary. */
-function openFabReserve() {
-  if (!selectedSlotsFull.value.length) {
-    actionError.value = t('owner.selectionBar.pickSlotFirst')
-    return
-  }
-  if (!canBatchReserve.value) {
-    setSelectionReserveError()
-    return
-  }
-  openSelectionReserve()
 }
 
 function syncPackageFormFromWalkIn() {
@@ -4209,10 +4278,19 @@ watch(sessionType, (next) => {
 watch(pilotNoCoach, (off) => {
   if (off) sessionFilter.value = 'all'
 })
+
+onMounted(() => {
+  if (import.meta.client && window.matchMedia('(min-width: 431px)').matches) {
+    selectionBarDetailsOpen.value = true
+  }
+})
 </script>
 
 <template>
-  <div class="venus-page-stack owner-cal-page" :class="{ 'calendar-page-has-selection': selectedSlotIds.length && !showMenu }">
+  <div
+    class="venus-page-stack owner-cal-page"
+    :class="{ 'calendar-page-has-selection': selectedSlotIds.length && !showMenu }"
+  >
     <p v-if="flashMessage" class="mx-4 mb-2 bg-brand-lavender px-3 py-2 text-start text-sm font-bold text-brand-navy" style="border-radius: var(--sz-canva-radius);">
       {{ flashMessage }}
       <button type="button" class="ms-2 text-xs font-bold text-brand-primary" @click="flashMessage = ''">{{ t('common.close') }}</button>
@@ -4392,7 +4470,7 @@ watch(pilotNoCoach, (off) => {
     </section>
 
     <section v-else-if="calendarView === 'today'" class="space-y-3" :class="String(locale) === 'en' ? 'calendar-latin' : ''">
-      <!-- Canva closed Today (9): legend · centered date + left FABs · multi-court GRID -->
+      <!-- Canva closed Today (9): legend · centered date nav · multi-court GRID (bulk رزرو/مسدود via selection bar) -->
       <div v-if="!pilotNoCoach" class="space-y-2">
         <div class="canva-session-filter-row" role="group" :aria-label="t('owner.sessionTypeFilterHint')">
           <button
@@ -4453,24 +4531,6 @@ watch(pilotNoCoach, (off) => {
               <AppIcon name="chevron_left" size="sm" />
             </button>
           </div>
-          <div class="canva-cal-date-fabs" role="group" :aria-label="t('owner.selectionBar.title')">
-            <button
-              type="button"
-              class="canva-cal-fab canva-cal-fab-block"
-              :disabled="!canBatchBlock"
-              @click="openFabBlock"
-            >
-              {{ t('owner.block') }}
-            </button>
-            <button
-              type="button"
-              class="canva-cal-fab canva-cal-fab-reserve"
-              :disabled="!canBatchReserve"
-              @click="openFabReserve"
-            >
-              {{ t('owner.reserve') }}
-            </button>
-          </div>
         </div>
 
         <div class="canva-cal-split">
@@ -4506,6 +4566,7 @@ watch(pilotNoCoach, (off) => {
                   :title="slotCellTitle(cellSlot(court.id, hour))"
                   :aria-pressed="gridSlotShowsSelectCheck(cellSlot(court.id, hour)) ? isSlotSelected(cellSlot(court.id, hour)!) : undefined"
                   :disabled="!cellSlot(court.id, hour)"
+                  :data-owner-cal-slot="cellSlot(court.id, hour)?.id"
                   @pointerdown="cellSlot(court.id, hour) && onSlotPointerDown(cellSlot(court.id, hour)!)"
                   @pointerup="onSlotPointerEnd"
                   @pointerleave="onSlotPointerEnd"
@@ -4547,17 +4608,17 @@ watch(pilotNoCoach, (off) => {
                 </button>
               </template>
             </div>
-            <button
-              v-if="calendarView === 'today'"
-              type="button"
-              class="canva-cal-booked-select-toggle"
-              :class="bookedSelectMode ? 'canva-cal-booked-select-toggle-on' : ''"
-              :aria-pressed="bookedSelectMode"
-              @click="toggleBookedSelectMode"
-            >
-              {{ bookedSelectMode ? t('owner.selectionBar.bookedSelectDone') : t('owner.selectionBar.bookedSelect') }}
-            </button>
           </div>
+          <button
+            v-if="calendarView === 'today' && hours.length"
+            type="button"
+            class="canva-cal-booked-select-toggle canva-cal-booked-select-toggle-below"
+            :class="bookedSelectMode ? 'canva-cal-booked-select-toggle-on' : ''"
+            :aria-pressed="bookedSelectMode"
+            @click="toggleBookedSelectMode"
+          >
+            {{ bookedSelectMode ? t('owner.selectionBar.bookedSelectDone') : t('owner.selectionBar.bookedSelect') }}
+          </button>
         </div>
         <aside class="canva-cal-side" :aria-label="t('owner.currentBooking')">
           <template v-if="panelSlot">
@@ -4579,26 +4640,38 @@ watch(pilotNoCoach, (off) => {
           </template>
         </aside>
         </div>
-      </div>
-    </section>
 
-    <Teleport to="body">
-      <div
-        v-if="calendarView === 'today' && selectedSlotIds.length && !showMenu"
-        class="canva-selection-bar"
-        role="region"
-        :aria-label="t('owner.selectionBar.title')"
-      >
+        <div
+          v-if="showOwnerSelectionBar"
+          ref="selectionBarRef"
+          class="canva-selection-bar canva-selection-bar-inflow"
+          :class="selectionBarDetailsOpen ? 'canva-selection-bar-expanded' : 'canva-selection-bar-compact'"
+          role="region"
+          :aria-label="t('owner.selectionBar.title')"
+        >
         <div class="canva-selection-bar-inner">
           <div class="min-w-0 flex-1">
-            <p class="text-xs font-bold text-brand-gray-600">
-              {{ t('owner.selectionBar.title') }}
-              <span class="tabular-nums text-brand-navy">({{ selectedSlotIds.length }})</span>
+            <div class="canva-selection-bar-head flex items-start justify-between gap-2">
+              <p class="text-xs font-bold text-brand-gray-600">
+                {{ t('owner.selectionBar.title') }}
+                <span class="tabular-nums text-brand-navy">({{ selectedSlotIds.length }})</span>
+              </p>
+              <button
+                type="button"
+                class="canva-selection-bar-details-toggle shrink-0 text-[11px] font-bold text-brand-primary min-[431px]:hidden"
+                :aria-expanded="selectionBarDetailsOpen"
+                @click="selectionBarDetailsOpen = !selectionBarDetailsOpen"
+              >
+                {{ selectionBarDetailsOpen ? t('owner.selectionBar.hideDetails') : t('owner.selectionBar.showDetails') }}
+              </button>
+            </div>
+            <p v-if="!selectionBarDetailsOpen" class="mt-1 text-start text-[11px] leading-relaxed text-brand-gray-600 min-[431px]:hidden">
+              {{ t('owner.selectionBar.tapMoreSlotsHint') }}
             </p>
-            <p v-if="selectionCourtsLabel" class="mt-0.5 truncate text-start text-sm font-bold text-brand-navy">
-              {{ selectionCourtsLabel }} · {{ formattedDate }}
+            <p v-if="selectionBarDetailsOpen && selectionCourtsLabel" class="mt-0.5 truncate text-start text-sm font-bold text-brand-navy">
+              <bdi>{{ selectionCourtsLabel }}</bdi><span class="px-1 text-brand-gray-500" aria-hidden="true">·</span><bdi>{{ formattedDate }}</bdi>
             </p>
-            <div class="canva-selection-bar-chips">
+            <div v-show="selectionBarDetailsOpen" class="canva-selection-bar-chips">
               <span
                 v-for="slot in selectedSlotsFull"
                 :key="slot.id"
@@ -4674,8 +4747,9 @@ watch(pilotNoCoach, (off) => {
             </button>
           </div>
         </div>
+        </div>
       </div>
-    </Teleport>
+    </section>
 
     <OwnerLegalFooter />
 
@@ -5076,6 +5150,15 @@ watch(pilotNoCoach, (off) => {
               </h3>
             </div>
             <div v-if="isNewReservation()" class="canva-reserve-head-links">
+              <button
+                v-if="selectedSlotIds.length || slotsForReserve().length > 1"
+                type="button"
+                class="canva-reserve-head-link"
+                @click="returnToGridMultiSelect"
+              >
+                <AppIcon name="add" size="sm" />
+                {{ t('owner.selectionBar.addMoreSlots') }}
+              </button>
               <button type="button" class="canva-reserve-head-link" @click="openBlockFromReserve">
                 <AppIcon name="block" size="sm" />
                 {{ t('owner.blockThisHour') }}
@@ -6292,17 +6375,11 @@ watch(pilotNoCoach, (off) => {
 }
 
 .calendar-page-has-selection {
-  padding-bottom: calc(10rem + var(--sz-tab-bar-height) + var(--sz-safe-bottom));
+  padding-bottom: calc(var(--sz-tab-bar-height) + var(--sz-safe-bottom) + 0.5rem);
 }
 
 .calendar-page-has-selection :deep(.canva-cal-grid-scroll) {
-  padding-bottom: 1.25rem;
-}
-
-@media (min-width: 431px) {
-  .calendar-page-has-selection {
-    padding-bottom: 12rem;
-  }
+  padding-bottom: 0.75rem;
 }
 
 @media (min-width: 1024px) {
@@ -6328,7 +6405,7 @@ watch(pilotNoCoach, (off) => {
   }
 
   .calendar-page-has-selection {
-    padding-bottom: 8rem;
+    padding-bottom: calc(var(--sz-tab-bar-height) + var(--sz-safe-bottom) + 1rem);
   }
 }
 

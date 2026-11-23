@@ -28,3 +28,16 @@ export function blocksFreeSlotWhenBookedSelect(
 ): boolean {
   return bookedSelectMode && String(displayStatus || 'FREE') === 'FREE'
 }
+
+/** Toggle one FREE slot id — multi-court / multi-hour (no court lock). */
+export function toggleFreeSlotIdInSelection(
+  selectedIds: string[],
+  slotId: string,
+  displayStatus: OwnerCalendarDisplayStatus = 'FREE',
+): string[] {
+  if (String(displayStatus || 'FREE') !== 'FREE') return selectedIds
+  if (selectedIds.includes(slotId)) {
+    return selectedIds.filter((id) => id !== slotId)
+  }
+  return [...selectedIds, slotId]
+}
