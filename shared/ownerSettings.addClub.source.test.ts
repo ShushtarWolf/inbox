@@ -14,6 +14,7 @@ describe('owner settings add-club CTA (IB-54)', () => {
   it('links logged-in owners to the authenticated add-club flow, not public signup', () => {
     expect(settingsPage).toContain('useOwnerClubSwitcher')
     expect(settingsPage).toContain(':to="addClubPath"')
+    expect(settingsPage).toContain(':show-add-club="false"')
     expect(settingsPage).not.toContain("localePath('/register/owner')")
     expect(settingsPage).not.toContain('localePath("/register/owner")')
   })

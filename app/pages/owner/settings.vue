@@ -624,7 +624,7 @@ const hourOptions = computed(() => Array.from({ length: 25 }, (_, i) => i))
     </section>
     <h1 class="text-start text-2xl font-bold text-brand-navy max-[430px]:mt-1">{{ t('owner.settings') }}</h1>
     <!-- SoT owner-settings: no subtitle under h1 -->
-    <OwnerActiveClubBar class="mb-2" />
+    <OwnerActiveClubBar class="mb-2" :show-add-club="false" />
     <NuxtLink
       v-if="isOwner"
       :to="addClubPath"
