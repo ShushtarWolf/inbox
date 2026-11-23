@@ -71,6 +71,7 @@
     "check:money-safety": "node scripts/check-money-safety.mjs",
     "test:money-matrix": "vitest run shared/moneyCancelMatrix.test.ts shared/owedCancelRefund.test.ts shared/historicalRefundRepair.test.ts shared/cancelRefund.walletRail.test.ts shared/moneyRepairGuards.test.ts server/utils/historicalCancelRefundRepair.inventory.test.ts server/utils/seriesCancelRefund.residual.test.ts",
     "check:backup-assert": "bash scripts/sql/assert-inbox-postgres-dump.test.sh",
+    "check:resolve-inbox-db-url": "bash scripts/sql/resolve-inbox-db-url.test.sh",
     "check:canva": "node scripts/canva-pixel-compare.mjs",
     "check:html": "node scripts/check-html-screens.mjs",
     "check:db": "node scripts/check-db.mjs",
