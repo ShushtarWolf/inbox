@@ -33,7 +33,6 @@ const gender = ref<'MALE' | 'FEMALE' | ''>('')
 const clubNameFa = ref('')
 const addressFa = ref('')
 const sport = ref<'padel' | 'tennis' | 'both'>('padel')
-const courtCount = ref<1 | 2 | 3>(1)
 const sessionPrice = ref('')
 const experienceYears = ref<2 | 4 | 6>(4)
 const credentialUrls = ref<string[]>([])
@@ -114,12 +113,6 @@ const sportOptions = [
   { value: 'both' as const, labelKey: 'auth.sportBoth' },
 ]
 
-const courtCountOptions = [
-  { value: 1 as const, labelKey: 'auth.courtCount1' },
-  { value: 2 as const, labelKey: 'auth.courtCount2' },
-  { value: 3 as const, labelKey: 'auth.courtCount3Plus' },
-]
-
 const coachExperienceOptions = [
   { value: 2 as const, labelKey: 'auth.coachExperienceUnder3' },
   { value: 4 as const, labelKey: 'auth.coachExperience3to5' },
@@ -190,7 +183,6 @@ function resetForm() {
   clubNameFa.value = ''
   addressFa.value = ''
   sport.value = 'padel'
-  courtCount.value = 1
   sessionPrice.value = ''
   experienceYears.value = 4
   credentialUrls.value = []
@@ -472,7 +464,6 @@ async function registerWithPassword() {
           addressFa: addressFa.value.trim() || undefined,
           city: 'تهران',
           sport: sport.value,
-          courtCount: courtCount.value,
           credentialUrls: credentialUrls.value.length ? credentialUrls.value : undefined,
           returnTo: returnPath,
         },
@@ -586,7 +577,6 @@ async function requestOtp() {
         sport: purpose.value === 'register' && (role.value === 'CLUB_ADMIN' || role.value === 'COACH')
           ? sport.value
           : undefined,
-        courtCount: purpose.value === 'register' && role.value === 'CLUB_ADMIN' ? courtCount.value : undefined,
         sessionPrice: purpose.value === 'register' && role.value === 'COACH' ? parsedSessionPrice() : undefined,
         experienceYears: purpose.value === 'register' && role.value === 'COACH' ? experienceYears.value : undefined,
         credentialUrls: purpose.value === 'register'

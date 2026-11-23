@@ -70,12 +70,6 @@ onMounted(() => {
 
       <div class="flex flex-col gap-2">
         <NuxtLink
-          :to="localePath('/owner/setup')"
-          class="canva-gate-btn-secondary text-center no-underline"
-        >
-          {{ t('owner.pendingSetupCta') }}
-        </NuxtLink>
-        <NuxtLink
           :to="localePath('/owner/settings')"
           class="canva-gate-btn-secondary text-center no-underline"
         >

@@ -17,6 +17,31 @@ export function parseCourtBulkCount(raw: unknown): number {
   return n
 }
 
+function latinDigitsFromFa(s: string): string {
+  return s.replace(/[۰-۹]/g, (ch) => {
+    const i = FA_DIGITS.indexOf(ch)
+    return i >= 0 ? String(i) : ch
+  })
+}
+
+/** When a bulk base name ends in a number, return prefix + starting index (ASCII or Persian digits). */
+export function parseTrailingCourtIndex(base: string): { prefix: string, start: number } | null {
+  const trimmed = base.trim()
+  if (!trimmed) return null
+  const match = trimmed.match(/^(.*?)(?:\s+)?([۰-۹\d]+)$/u)
+  if (!match) return null
+  const prefix = match[1].trimEnd()
+  const start = parseInt(latinDigitsFromFa(match[2]), 10)
+  if (!Number.isFinite(start)) return null
+  return { prefix, start }
+}
+
+function bulkCourtLabel(prefix: string, index: number, trailingStart: number | null, useFaDigits: boolean): string {
+  const n = trailingStart != null ? trailingStart + index - 1 : index
+  const num = useFaDigits ? toFaDigits(n) : String(n)
+  return `${prefix} ${num}`
+}
+
 export function numberedCourtNames(input: {
   nameFa?: string | null
   nameEn?: string | null
@@ -31,10 +56,13 @@ export function numberedCourtNames(input: {
       nameEn: baseEn || 'New court',
     }
   }
-  const nFa = toFaDigits(input.index)
+  const trailFa = baseFa ? parseTrailingCourtIndex(baseFa) : null
+  const trailEn = baseEn ? parseTrailingCourtIndex(baseEn) : null
+  const prefixFa = trailFa?.prefix || baseFa || 'زمین'
+  const prefixEn = trailEn?.prefix || baseEn || 'Court'
   return {
-    nameFa: `${baseFa || 'زمین'} ${nFa}`,
-    nameEn: `${baseEn || 'Court'} ${input.index}`,
+    nameFa: bulkCourtLabel(prefixFa, input.index, trailFa?.start ?? null, true),
+    nameEn: bulkCourtLabel(prefixEn, input.index, trailEn?.start ?? null, false),
   }
 }
 

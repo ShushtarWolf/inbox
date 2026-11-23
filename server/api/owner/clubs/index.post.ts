@@ -4,11 +4,6 @@ import { notifyAdminClubApplication } from '../../../utils/adminNotify'
 import { requireUser } from '../../../utils/auth'
 import { resolveUserDisplayName } from '../../../utils/userNameRecord'
 import { createOwnerClubForUser } from '../../../utils/ownerClubCreate'
-import {
-  normalizeOwnerCourtCount,
-  normalizeOwnerSport,
-} from '../../../utils/ownerOnboarding'
-
 export default defineEventHandler(async (event) => {
   const user = await requireUser(event)
   if (!hasRole(user, 'CLUB_ADMIN')) {
@@ -41,9 +36,6 @@ export default defineEventHandler(async (event) => {
   if (!clubNameFa) {
     throw createError({ statusCode: 400, statusMessage: 'Invalid input' })
   }
-
-  const sportKey = normalizeOwnerSport(body.sport)
-  normalizeOwnerCourtCount(body.courtCount, sportKey)
 
   const dbUser = await prisma.user.findUnique({
     where: { id: user.id },
