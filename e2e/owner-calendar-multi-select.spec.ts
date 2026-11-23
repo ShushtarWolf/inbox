@@ -38,4 +38,16 @@ test.describe('owner calendar multi-select', () => {
     const pressed = page.locator('button.canva-cal-grid-cell[aria-pressed="true"]')
     await expect(pressed).toHaveCount(2)
   })
+
+  test('selection bar is in document flow (not a fixed overlay on the grid)', async ({ page }) => {
+    const first = page.locator('.canva-cal-grid-cell:has(.canva-cal-grid-check)').first()
+    await first.click()
+    const bar = page.locator('.canva-selection-bar-inflow')
+    await expect(bar).toBeVisible()
+    const position = await bar.evaluate((el) => getComputedStyle(el).position)
+    expect(position).toBe('relative')
+    const gridBottom = await page.locator('.canva-cal-grid').evaluate((el) => el.getBoundingClientRect().bottom)
+    const barTop = await bar.evaluate((el) => el.getBoundingClientRect().top)
+    expect(barTop).toBeGreaterThanOrEqual(gridBottom - 4)
+  })
 })

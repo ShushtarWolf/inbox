@@ -1388,6 +1388,34 @@
     -webkit-transform: translate3d(0, 0, 0);
     padding-bottom: max(0.75rem, var(--sz-safe-bottom));
   }
+  /* IB-56: day calendar bulk select — in-flow below grid (not a viewport overlay). */
+  .owner-cal-page .canva-selection-bar-inflow {
+    position: relative;
+    inset: auto;
+    z-index: 1;
+    transform: none;
+    -webkit-transform: none;
+    margin: 0;
+    box-shadow: none;
+    border-top: 1px solid rgba(44, 44, 42, 0.12);
+    border-radius: 0;
+  }
+  @media (max-width: 430px) {
+    .owner-cal-page .canva-selection-bar-inflow.canva-selection-bar-compact .canva-selection-bar-inner {
+      @apply flex-row flex-wrap items-center gap-2;
+    }
+    .owner-cal-page .canva-selection-bar-inflow.canva-selection-bar-compact .canva-selection-bar-actions {
+      @apply w-auto shrink-0 flex-row flex-nowrap gap-1.5;
+    }
+    .owner-cal-page .canva-selection-bar-inflow.canva-selection-bar-compact .canva-selection-bar-btn-primary,
+    .owner-cal-page .canva-selection-bar-inflow.canva-selection-bar-compact .canva-selection-bar-btn-secondary,
+    .owner-cal-page .canva-selection-bar-inflow.canva-selection-bar-compact .canva-selection-bar-btn-ghost {
+      @apply w-auto min-w-[4.25rem] px-2.5 py-2 text-xs;
+    }
+    .owner-cal-page .canva-selection-bar-inflow.canva-selection-bar-compact .canva-selection-bar-error {
+      @apply w-full basis-full;
+    }
+  }
   .canva-selection-bar-inner {
     @apply mx-auto flex w-full max-w-[var(--sz-phone-width)] flex-col gap-3 min-[431px]:max-w-none lg:flex-row lg:items-start lg:justify-between;
   }
