@@ -92,7 +92,11 @@ export async function createAndSendPhoneOtp(opts: {
     const role = opts.role || 'ATHLETE'
     const eligible = await findUserForAdditionalRole(phone, role)
     if (!eligible) {
-      throw createError({ statusCode: 409, statusMessage: 'Phone already registered' })
+      throw createError({
+        statusCode: 409,
+        statusMessage: 'ALREADY_REGISTERED_USE_LOGIN',
+        data: { code: 'ALREADY_REGISTERED_USE_LOGIN' },
+      })
     }
   }
 

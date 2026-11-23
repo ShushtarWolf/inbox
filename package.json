@@ -28,6 +28,7 @@
     "db:backfill-contacts": "node --import tsx scripts/backfill-contacts-from-bookings.ts",
     "db:backfill-competition-settlements": "node --import tsx scripts/backfill-competition-settlements.ts",
     "db:backfill-booking-guest-family": "node --import tsx scripts/backfill-booking-guest-family.ts",
+    "db:backfill-manual-booking-athletes": "node --import tsx scripts/backfill-manual-booking-athletes.ts",
     "db:audit-money": "node scripts/audit-money-bugs.mjs",
     "db:correct-cash-settlements": "node scripts/correct-cash-settlements.mjs",
     "db:correct-phantom-wallet-credits": "node scripts/correct-phantom-wallet-credits.mjs",

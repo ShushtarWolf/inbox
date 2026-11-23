@@ -29,6 +29,7 @@ describe('fetchErrorMessage settings PATCH', () => {
   it('maps profile phone conflicts', () => {
     expect(fetchErrorMessage(err('Invalid phone'), 'مشکلی پیش آمد', t)).toBe('i18n:auth.invalidPhone')
     expect(fetchErrorMessage(err('Phone already registered'), 'مشکلی پیش آمد', t)).toBe('i18n:auth.phoneTaken')
+    expect(fetchErrorMessage(err('ALREADY_REGISTERED_USE_LOGIN'), 'مشکلی پیش آمد', t)).toBe('i18n:auth.alreadyRegisteredUseLogin')
   })
 })
 

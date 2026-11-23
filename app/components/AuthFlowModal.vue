@@ -75,6 +75,8 @@ const pending = ref(false)
 const error = ref('')
 /** Login OTP: phone has no account — show register CTA (IB-43). */
 const loginNeedsRegister = ref(false)
+/** Register OTP: phone already has an account — show login CTA. */
+const registerNeedsLogin = ref(false)
 const debugCode = ref('')
 const maskedPhone = ref('')
 const selectedRole = ref<AuthFlowRole>('ATHLETE')
@@ -203,6 +205,7 @@ function resetForm() {
   selectedRole.value = 'ATHLETE'
   phoneLocked.value = false
   loginNeedsRegister.value = false
+  registerNeedsLogin.value = false
 }
 
 /** Prefill identity from the logged-in session so "نقش جدید" merges onto the same account. */
@@ -274,6 +277,14 @@ function goRegisterFromLogin() {
   selectedRole.value = 'ATHLETE'
   channel.value = 'otp'
   step.value = 'register'
+}
+
+function goLoginFromRegister() {
+  error.value = ''
+  registerNeedsLogin.value = false
+  purpose.value = 'login'
+  channel.value = 'otp'
+  step.value = 'login'
 }
 
 function goRole() {
@@ -527,6 +538,7 @@ function phoneValidationError(): string {
 async function requestOtp() {
   error.value = ''
   loginNeedsRegister.value = false
+  registerNeedsLogin.value = false
   if (!phoneLocked.value) {
     const phoneError = phoneValidationError()
     if (phoneError) {
@@ -610,6 +622,14 @@ async function requestOtp() {
       error.value = t('auth.phoneNotRegisteredLogin')
     }
     else if (status === 404) error.value = t('auth.phoneNotFound')
+    else if (status === 409 && /ALREADY_REGISTERED_USE_LOGIN/i.test(message)) {
+      registerNeedsLogin.value = purpose.value === 'register'
+      error.value = t('auth.alreadyRegisteredUseLogin')
+    }
+    else if (status === 409 && purpose.value === 'register') {
+      registerNeedsLogin.value = true
+      error.value = t('auth.alreadyRegisteredUseLogin')
+    }
     else if (status === 409) error.value = t('auth.phoneTaken')
     else if (status === 400 && /gender/i.test(message)) error.value = t('auth.genderRequired')
     else if (status === 400) error.value = t('auth.invalidPhone')
@@ -1062,6 +1082,14 @@ onMounted(() => {
             </AppFormField>
           </template>
           <p v-if="error" role="alert" aria-live="assertive" class="venus-alert-error text-start">{{ error }}</p>
+          <button
+            v-if="registerNeedsLogin"
+            type="button"
+            class="canva-gate-btn-primary"
+            @click="goLoginFromRegister"
+          >
+            {{ t('auth.goToLoginWithPhone') }}
+          </button>
           <button type="submit" class="canva-gate-btn-primary" :disabled="pending || licenseUploading">
             {{ pending ? t('common.loading') : t('auth.continueConfirm') }}
           </button>

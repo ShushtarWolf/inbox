@@ -2041,6 +2041,8 @@
     "phoneNotRegisteredLogin": "با این شماره ثبت‌نام نکردی، اول ثبت‌نام کن",
     "goToRegisterWithPhone": "ثبت‌نام با همین شماره",
     "phoneTaken": "این شماره قبلاً ثبت شده است. وارد شوید.",
+    "alreadyRegisteredUseLogin": "شما قبلاً ثبت‌نام شده‌اید، لطفاً از بخش ورود اقدام کنید",
+    "goToLoginWithPhone": "ورود با همین شماره",
     "resendOtp": "ارسال دوباره کد",
     "otpResendWait": "ارسال مجدد تا {seconds} ثانیه دیگر",
     "otpResendCooldown": "برای جلوگیری از انقضای کدها، {seconds} ثانیه صبر کنید و دوباره «ارسال دوباره کد» را بزنید.",
