@@ -159,7 +159,7 @@ function saveGuestAndLogin() {
         <li v-for="(opt, idx) in currentQuestion?.options || []" :key="`${step}-${idx}`">
           <button
             type="button"
-            class="w-full border p-3 text-start transition-colors"
+            class="w-full border p-3 text-start transition-[transform,colors] active:scale-[0.99]"
             :class="choices[step] === idx
               ? 'border-brand-primary bg-brand-primary-soft'
               : 'border-brand-gray-200 bg-white hover:border-brand-gray-300'"

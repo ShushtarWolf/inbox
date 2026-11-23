@@ -10,7 +10,10 @@ import {
   skillAssessmentSportTitle,
 } from '#shared/skillAssessmentSeo.ts'
 
-definePageMeta({ layout: 'default' })
+definePageMeta({
+  layout: 'default',
+  pageTransition: { name: 'page', mode: 'default' },
+})
 
 const route = useRoute()
 const { t } = useI18n()
@@ -37,10 +40,16 @@ const otherSports = computed(() =>
   PUBLIC_SKILL_ASSESSMENT_SLUGS.filter((s) => s !== sportSlug.value),
 )
 
-const { data: sportCatalog } = await useFetch<Array<{ id: string, slug: string, nameFa: string }>>(
+/** Non-blocking: wizard uses static questionnaires; catalog only for logged-in save. */
+const { data: sportCatalog } = useFetch<Array<{ id: string, slug: string, nameFa: string }>>(
   '/api/sports',
-  { lazy: true },
+  { lazy: true, server: false },
 )
+
+function warmSportRoute(slug: string) {
+  if (!import.meta.client) return
+  void preloadRouteComponents(localePath(`/skill-assessment/${slug}`))
+}
 
 const sportId = computed(() => sportCatalog.value?.find((s) => s.slug === sportSlug.value)?.id || null)
 
@@ -118,7 +127,10 @@ onMounted(() => {
         <li v-for="slug in otherSports" :key="slug">
           <NuxtLink
             :to="localePath(`/skill-assessment/${slug}`)"
-            class="inline-block border border-brand-gray-200 bg-white px-3 py-1.5 text-xs font-bold text-brand-navy hover:border-brand-primary"
+            prefetch
+            class="inline-block border border-brand-gray-200 bg-white px-3 py-1.5 text-xs font-bold text-brand-navy transition-transform hover:border-brand-primary active:scale-[0.99]"
+            @pointerenter="warmSportRoute(slug)"
+            @touchstart.passive="warmSportRoute(slug)"
           >
             {{ publicSkillNameFa(slug) }}
           </NuxtLink>
