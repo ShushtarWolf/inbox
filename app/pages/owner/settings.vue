@@ -102,6 +102,7 @@ const { fetch: fetchAuth } = useAuth()
 const { data, pending, error, refresh } = await useAuthedFetch<OwnerSettingsResponse>('/api/owner/settings')
 const { data: courtsData, pending: courtsPending, refresh: refreshCourts } = await useAuthedFetch<OwnerCourtListItem[]>('/api/owner/courts')
 useOwnerClubRefresh(() => { refresh(); refreshCourts() })
+const { addClubPath } = useOwnerClubSwitcher()
 
 const isOwner = computed(() => data.value?.membership?.role === 'OWNER')
 const { data: staffData, refresh: refreshStaff } = await useAuthedFetch<OwnerStaffResponse>('/api/owner/staff', {
@@ -623,10 +624,10 @@ const hourOptions = computed(() => Array.from({ length: 25 }, (_, i) => i))
     </section>
     <h1 class="text-start text-2xl font-bold text-brand-navy max-[430px]:mt-1">{{ t('owner.settings') }}</h1>
     <!-- SoT owner-settings: no subtitle under h1 -->
-    <OwnerActiveClubBar class="mb-2" />
+    <OwnerActiveClubBar class="mb-2" :show-add-club="false" />
     <NuxtLink
       v-if="isOwner"
-      :to="localePath('/register/owner')"
+      :to="addClubPath"
       class="canva-owner-secondary-cta mb-3 flex items-center justify-center gap-2"
     >
       <span aria-hidden="true">+</span>

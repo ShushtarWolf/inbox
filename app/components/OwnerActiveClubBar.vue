@@ -1,5 +1,11 @@
 <script setup lang="ts">
 /** Design rclubcard — active club context on owner subpages (CRM, settings, …). */
+const props = withDefaults(defineProps<{
+  showAddClub?: boolean
+}>(), {
+  showAddClub: true,
+})
+
 const { t } = useI18n()
 const { localizedField } = useLocalizedField()
 const {
@@ -45,6 +51,7 @@ const clubName = computed(() =>
     </div>
     <AppIcon v-if="showSwitcher" name="expand_more" size="sm" class="owner-rclubcard-chevron shrink-0 text-brand-gray-600" aria-hidden="true" />
     <NuxtLink
+      v-if="props.showAddClub"
       :to="addClubPath"
       class="owner-rclubcard-add ms-auto text-[10px] font-bold text-brand-primary no-underline"
     >
