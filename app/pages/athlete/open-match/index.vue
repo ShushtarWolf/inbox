@@ -93,10 +93,18 @@ async function onAssessDone() {
   await Promise.all([refreshSkills(), refresh()])
   showAssess.value = false
 }
+
+const { flushPendingGuestAssessment } = usePendingGuestAssessment()
+
+onMounted(async () => {
+  const saved = await flushPendingGuestAssessment()
+  if (saved) await refreshSkills()
+})
 </script>
 
 <template>
   <div class="space-y-4">
+    <GuestSkillAssessmentNotice />
     <div class="flex flex-wrap items-center justify-between gap-2">
       <h1 class="text-lg font-bold text-brand-navy">
         {{ t('openMatch.title') }}

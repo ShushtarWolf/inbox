@@ -33,6 +33,17 @@ export const SKILL_ASSESSMENT_SPORT_KEYS = [
   'general',
 ] as const
 
+/** SEO / public funnel — tailored sports only (no `general`). */
+export const PUBLIC_SKILL_ASSESSMENT_SLUGS = SKILL_ASSESSMENT_SPORT_KEYS.filter(
+  (key): key is Exclude<SkillAssessmentSportKey, 'general'> => key !== 'general',
+)
+
+export function isPublicSkillAssessmentSlug(
+  slug: string,
+): slug is Exclude<SkillAssessmentSportKey, 'general'> {
+  return (PUBLIC_SKILL_ASSESSMENT_SLUGS as readonly string[]).includes(slug.trim().toLowerCase())
+}
+
 export type SkillAssessmentSportKey = (typeof SKILL_ASSESSMENT_SPORT_KEYS)[number]
 
 export function resolveAssessmentSportKey(slug: string): SkillAssessmentSportKey {

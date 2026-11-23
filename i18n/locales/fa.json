@@ -69,7 +69,8 @@
     "profile": "پروفایل",
     "overview": "خلاصه",
     "wallet": "کیف پول",
-    "openMatch": "هم‌بازی"
+    "openMatch": "هم‌بازی",
+    "skillAssessmentFree": "تعیین سطح رایگان"
   },
   "openMatch": {
     "nav": "هم‌بازی",
@@ -149,7 +150,12 @@
     "yourLevel": "سطح شما",
     "confidenceNote": "اطمینان اولیه — بعد از چند بازی واقعی و امتیاز هم‌بازی‌ها دقیق‌تر می‌شود.",
     "backToOpenMatch": "بازگشت به هم‌بازی",
-    "pickSport": "ورزش را برای ارزیابی انتخاب کنید"
+    "pickSport": "ورزش را برای ارزیابی انتخاب کنید",
+    "guestSaveCta": "ذخیرهٔ سطح مهارت در پروفایل و پیدا کردن هم‌بازی هم‌سطح",
+    "pendingSaved": "سطح شما از ارزیابی مهمان در پروفایل ذخیره شد.",
+    "retake": "ارزیابی مجدد",
+    "goAthlete": "رفتن به پنل ورزشکار",
+    "sportNotFound": "ورزش در فهرست یافت نشد؛ دوباره ارزیابی کنید."
   },
   "home": {
     "title": "اینباکس | رزرو آنلاین زمین پدل و تنیس — inboxs.ir",
@@ -180,6 +186,9 @@
     "heroSearchTodAfternoon": "عصر",
     "heroSearchTodEvening": "شب",
     "searchWithFilters": "جستجوی زمین خالی",
+    "skillAssessmentTitle": "تعیین سطح ورزشی رایگان",
+    "skillAssessmentBody": "۶ سوال کوتاه برای پدل، تنیس و ۸ رشته دیگر — نتیجه ۱ تا ۷، ذخیره در پروفایل و پیدا کردن هم‌بازی هم‌سطح.",
+    "skillAssessmentCta": "شروع تعیین سطح",
     "sportsTitle": "ورزش",
     "sportsSubtitle": "فیلترهای سریع برای پیدا کردن گزینه مناسب",
     "bookingsTileTitle": "رزروهای من",

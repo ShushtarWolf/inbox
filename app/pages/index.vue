@@ -303,6 +303,22 @@ function clubImageAlt(club: { nameFa?: string; nameEn?: string }) {
       </div>
     </section>
 
+    <section class="border border-brand-gray-200 bg-brand-gold-soft p-4 text-start">
+      <h2 class="text-base font-bold text-brand-navy">
+        {{ t('home.skillAssessmentTitle') }}
+      </h2>
+      <p class="mt-1 text-sm leading-relaxed text-brand-gray-500">
+        {{ t('home.skillAssessmentBody') }}
+      </p>
+      <NuxtLink
+        :to="localePath('/skill-assessment')"
+        class="mt-3 inline-flex items-center gap-1.5 bg-brand-primary px-4 py-2 text-sm font-bold text-white"
+      >
+        {{ t('home.skillAssessmentCta') }}
+        <AppIcon name="chevron_left" size="sm" />
+      </NuxtLink>
+    </section>
+
     <AppModal
       :open="showDatePicker"
       sheet

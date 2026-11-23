@@ -159,10 +159,18 @@ const menu = computed(() => [
 async function handleLogout() {
   await logout()
 }
+
+const { flushPendingGuestAssessment } = usePendingGuestAssessment()
+
+onMounted(async () => {
+  const saved = await flushPendingGuestAssessment()
+  if (saved) await refreshSkillProfile()
+})
 </script>
 
 <template>
   <div class="venus-page-stack">
+    <GuestSkillAssessmentNotice class="mb-3" />
     <div class="canva-athlete-hub ath-hub-sot">
     <header class="ath-hub-head hidden md:block">
       <h2 class="ath-hub-title">{{ t('nav.profile') }}</h2>
