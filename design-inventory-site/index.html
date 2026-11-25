@@ -1,0 +1,977 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Inbox design inventory</title>
+<style>
+:root { --sidebar: 280px; --bg: #f4efe9; --ink: #2c2c2a; --accent: #c41e1e; }
+* { box-sizing: border-box; }
+body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); color: var(--ink); }
+.layout { display: grid; grid-template-columns: var(--sidebar) 1fr; min-height: 100vh; }
+aside { position: sticky; top: 0; height: 100vh; overflow: auto; padding: 1rem; background: #fff; border-inline-end: 1px solid #ddd; }
+main { padding: 1rem 1.5rem 3rem; max-width: 1400px; }
+.toolbar { display: flex; gap: .5rem; flex-wrap: wrap; margin-bottom: 1rem; }
+.toolbar button { padding: .4rem .75rem; border: 1px solid #ccc; background: #fff; cursor: pointer; border-radius: 4px; }
+.toolbar button.active { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+nav.toc a { display: block; font-size: 12px; padding: 2px 0; color: #444; text-decoration: none; }
+nav.toc h4 { margin: 1rem 0 .25rem; font-size: 13px; }
+.card { background: #fff; border: 1px solid #e5e2dc; padding: 1rem; margin-bottom: 1rem; border-radius: 8px; }
+.meta { font-size: 12px; color: #666; margin: .25rem 0 0; }
+.shots { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.shots.compact img { max-height: 120px; object-fit: contain; }
+figure { margin: 0; }
+figure img { width: 100%; height: auto; border: 1px solid #eee; background: #fafafa; }
+figcaption { font-size: 11px; color: #666; margin-bottom: .25rem; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+td, th { border: 1px solid #eee; padding: 6px 8px; text-align: start; }
+.swatch { display: inline-block; width: 14px; height: 14px; border: 1px solid #ccc; margin-inline-end: 6px; vertical-align: middle; }
+body[data-view="desktop"] figure[data-v="mobile"], body[data-view="mobile"] figure[data-v="desktop"] { display: none; }
+body[data-view="desktop"] .shots, body[data-view="mobile"] .shots { grid-template-columns: 1fr; }
+@media (max-width: 900px) { .layout { grid-template-columns: 1fr; } aside { position: static; height: auto; } .shots { grid-template-columns: 1fr; } }
+.comp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: .75rem; }
+h2 { margin-top: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .25rem; }
+</style>
+</head>
+<body data-view="side">
+<div class="layout">
+<aside>
+<h1>Inbox inventory</h1>
+<p style="font-size:12px;color:#666">Captured 2026-10-21T15:16:58.684Z · shareable static site</p>
+<div class="toolbar">
+<button type="button" data-view="desktop">Desktop</button>
+<button type="button" data-view="mobile">Mobile</button>
+<button type="button" data-view="side" class="active">Side-by-side</button>
+</div>
+<nav class="toc">
+<h4>Design tokens</h4><a href="#tokens">Tokens</a>
+<h4>Pages (104)</h4><a href="#modal-auth-gate">modal-auth-gate</a><a href="#modal-login-otp">modal-login-otp</a><a href="#page-about">page-about</a><a href="#page-admin">page-admin</a><a href="#page-admin-applications">page-admin-applications</a><a href="#page-admin-bookings">page-admin-bookings</a><a href="#page-admin-calendar">page-admin-calendar</a><a href="#page-admin-calendar-sources">page-admin-calendar-sources</a><a href="#page-admin-clubs">page-admin-clubs</a><a href="#page-admin-clubs-cmvi2xpkl000bjstmvuh4inqf">page-admin-clubs-cmvi2xpkl000bjstmvuh4inqf</a><a href="#page-admin-coach-applications">page-admin-coach-applications</a><a href="#page-admin-provision">page-admin-provision</a><a href="#page-admin-sentry">page-admin-sentry</a><a href="#page-admin-sms">page-admin-sms</a><a href="#page-admin-tickets">page-admin-tickets</a><a href="#page-admin-users">page-admin-users</a><a href="#page-admin-withdrawals">page-admin-withdrawals</a><a href="#page-athlete">page-athlete</a><a href="#page-athlete-bookings">page-athlete-bookings</a><a href="#page-athlete-bookings-[id]">page-athlete-bookings-[id]</a><a href="#page-athlete-bookings-cmvi2xpo900aojstmqnr7ug6p">page-athlete-bookings-cmvi2xpo900aojstmqnr7ug6p</a><a href="#page-athlete-bookings-coach-[id]">page-athlete-bookings-coach-[id]</a><a href="#page-athlete-bookings-coach-cmvi2xpot00cejstmhytv3z2s">page-athlete-bookings-coach-cmvi2xpot00cejstmhytv3z2s</a><a href="#page-athlete-competitions">page-athlete-competitions</a><a href="#page-athlete-favorites">page-athlete-favorites</a><a href="#page-athlete-home">page-athlete-home</a><a href="#page-athlete-notifications">page-athlete-notifications</a><a href="#page-athlete-payments">page-athlete-payments</a><a href="#page-athlete-profile">page-athlete-profile</a><a href="#page-athlete-support">page-athlete-support</a><a href="#page-athlete-wallet">page-athlete-wallet</a><a href="#page-book-coach-[id]">page-book-coach-[id]</a><a href="#page-book-coach-cmvi2xpob00aujstmy0lfp3vi">page-book-coach-cmvi2xpob00aujstmy0lfp3vi</a><a href="#page-book-court-[slug]">page-book-court-[slug]</a><a href="#page-book-court-padel-zone-tehran">page-book-court-padel-zone-tehran</a><a href="#page-book-package-[id]">page-book-package-[id]</a><a href="#page-book-package-cmvi2xppb00djjstmhhh081wd">page-book-package-cmvi2xppb00djjstmhhh081wd</a><a href="#page-cancellation">page-cancellation</a><a href="#page-choose-role">page-choose-role</a><a href="#page-clubs">page-clubs</a><a href="#page-clubs-%D8%AA%D9%87%D8%B1%D8%A7%D9%86-padel">page-clubs-%D8%AA%D9%87%D8%B1%D8%A7%D9%86-padel</a><a href="#page-clubs-[slug]">page-clubs-[slug]</a><a href="#page-clubs-apply">page-clubs-apply</a><a href="#page-clubs-mashhad-tennis-center">page-clubs-mashhad-tennis-center</a><a href="#page-clubs-padel-zone-tehran">page-clubs-padel-zone-tehran</a><a href="#page-coach">page-coach</a><a href="#page-coach-book">page-coach-book</a><a href="#page-coach-clients">page-coach-clients</a><a href="#page-coach-packages">page-coach-packages</a><a href="#page-coach-pending">page-coach-pending</a><a href="#page-coach-profile">page-coach-profile</a><a href="#page-coach-schedule">page-coach-schedule</a><a href="#page-coach-settings">page-coach-settings</a><a href="#page-coaches">page-coaches</a><a href="#page-coaches-[id]">page-coaches-[id]</a><a href="#page-coaches-cmvi2xpob00aujstmy0lfp3vi">page-coaches-cmvi2xpob00aujstmy0lfp3vi</a><a href="#page-competitions">page-competitions</a><a href="#page-competitions-[id]">page-competitions-[id]</a><a href="#page-complaints">page-complaints</a><a href="#page-contact">page-contact</a><a href="#page-forgot-password">page-forgot-password</a><a href="#page-home">page-home</a><a href="#page-login">page-login</a><a href="#page-offline">page-offline</a><a href="#page-owner">page-owner</a><a href="#page-owner-calendar">page-owner-calendar</a><a href="#page-owner-calendar-sources">page-owner-calendar-sources</a><a href="#page-owner-coaches">page-owner-coaches</a><a href="#page-owner-competitions">page-owner-competitions</a><a href="#page-owner-competitions-[id]">page-owner-competitions-[id]</a><a href="#page-owner-crm">page-owner-crm</a><a href="#page-owner-crm-[id]">page-owner-crm-[id]</a><a href="#page-owner-crm-cmvi2xpp300d3jstmj81absn6">page-owner-crm-cmvi2xpp300d3jstmj81absn6</a><a href="#page-owner-discounts">page-owner-discounts</a><a href="#page-owner-equipments">page-owner-equipments</a><a href="#page-owner-finance">page-owner-finance</a><a href="#page-owner-finance-report">page-owner-finance-report</a><a href="#page-owner-notifications">page-owner-notifications</a><a href="#page-owner-packages">page-owner-packages</a><a href="#page-owner-pending">page-owner-pending</a><a href="#page-owner-reserve-package">page-owner-reserve-package</a><a href="#page-owner-reserve-season">page-owner-reserve-season</a><a href="#page-owner-settings">page-owner-settings</a><a href="#page-owner-setup">page-owner-setup</a><a href="#page-owner-support">page-owner-support</a><a href="#page-owner-workers">page-owner-workers</a><a href="#page-p-[pin]">page-p-[pin]</a><a href="#page-payments-test-gateway">page-payments-test-gateway</a><a href="#page-pricing">page-pricing</a><a href="#page-privacy">page-privacy</a><a href="#page-r-[token]">page-r-[token]</a><a href="#page-register">page-register</a><a href="#page-register-coach">page-register-coach</a><a href="#page-register-owner">page-register-owner</a><a href="#page-reset-password">page-reset-password</a><a href="#page-terms">page-terms</a><a href="#sheet-club-booking-confirm">sheet-club-booking-confirm</a><a href="#sheet-owner-account-drawer">sheet-owner-account-drawer</a><a href="#sheet-owner-more">sheet-owner-more</a><a href="#sheet-owner-reserve">sheet-owner-reserve</a><a href="#state-admin-gate">state-admin-gate</a><a href="#state-login-loading">state-login-loading</a><a href="#ui-athlete-bottom-nav">ui-athlete-bottom-nav</a><a href="#ui-mobile-side-menu">ui-mobile-side-menu</a>
+<h4>Components</h4><a href="#comp-badges">badges</a><a href="#comp-buttons">buttons</a><a href="#comp-cards">cards</a><a href="#comp-inputs">inputs</a><a href="#comp-tables">tables</a>
+</nav>
+</aside>
+<main>
+<section id="tokens"><h2>Design tokens</h2>
+<p>Sources: app/assets/css/tokens.css, app/assets/css/main.css, tailwind.config.ts, server/utils/palette.ts</p>
+<ul><li>sm: 640px</li><li>md: 768px</li><li>lg: 1024px</li><li>xl: 1280px</li><li>2xl: 1536px</li></ul>
+<p>Material Symbols Rounded · Outfit Variable · Vazirmatn Variable</p>
+<table><thead><tr><th>Token</th><th>Value</th></tr></thead><tbody><tr><td><code>--sz-bg</code></td><td><span class="swatch" style="background:#f4efe9"></span>#f4efe9</td></tr><tr><td><code>--sz-bg-elevated</code></td><td><span class="swatch" style="background:rgba(255, 255, 255, 0.78)"></span>rgba(255, 255, 255, 0.78)</td></tr><tr><td><code>--sz-bg-glass</code></td><td><span class="swatch" style="background:rgba(255, 255, 255, 0.7)"></span>rgba(255, 255, 255, 0.7)</td></tr><tr><td><code>--sz-border</code></td><td><span class="swatch" style="background:rgba(44, 44, 42, 0.08)"></span>rgba(44, 44, 42, 0.08)</td></tr><tr><td><code>--sz-text</code></td><td><span class="swatch" style="background:#2c2c2a"></span>#2c2c2a</td></tr><tr><td><code>--sz-text-secondary</code></td><td><span class="swatch" style="background:#6b6b67"></span>#6b6b67</td></tr><tr><td><code>--sz-accent</code></td><td><span class="swatch" style="background:#c41e1e"></span>#c41e1e</td></tr><tr><td><code>--sz-accent-dark</code></td><td><span class="swatch" style="background:#4a1420"></span>#4a1420</td></tr><tr><td><code>--sz-accent-light</code></td><td><span class="swatch" style="background:#d63a3a"></span>#d63a3a</td></tr><tr><td><code>--sz-accent-soft</code></td><td><span class="swatch" style="background:rgba(196, 30, 30, 0.10)"></span>rgba(196, 30, 30, 0.10)</td></tr><tr><td><code>--sz-gold</code></td><td><span class="swatch" style="background:#b68a3b"></span>#b68a3b</td></tr><tr><td><code>--sz-gold-dark</code></td><td><span class="swatch" style="background:#9a7530"></span>#9a7530</td></tr><tr><td><code>--sz-gold-soft</code></td><td><span class="swatch" style="background:rgba(182, 138, 59, 0.14)"></span>rgba(182, 138, 59, 0.14)</td></tr><tr><td><code>--sz-navy</code></td><td><span class="swatch" style="background:#2c2c2a"></span>#2c2c2a</td></tr><tr><td><code>--sz-secondary</code></td><td><span class="swatch" style="background:#6b6b67"></span>#6b6b67</td></tr><tr><td><code>--sz-card-shadow</code></td><td><span class="swatch" style="background:0 4px 24px rgba(44, 44, 42, 0.08)"></span>0 4px 24px rgba(44, 44, 42, 0.08)</td></tr><tr><td><code>--sz-card-radius</code></td><td><span class="swatch" style="background:0.75rem"></span>0.75rem</td></tr><tr><td><code>--sz-input-radius</code></td><td><span class="swatch" style="background:0.5rem"></span>0.5rem</td></tr><tr><td><code>--sz-safe-bottom</code></td><td><span class="swatch" style="background:env(safe-area-inset-bottom, 0px)"></span>env(safe-area-inset-bottom, 0px)</td></tr><tr><td><code>--sz-tab-bar-height</code></td><td><span class="swatch" style="background:5.25rem"></span>5.25rem</td></tr><tr><td><code>--sz-side-nav-width</code></td><td><span class="swatch" style="background:290px"></span>290px</td></tr><tr><td><code>--sz-phone-width</code></td><td><span class="swatch" style="background:375px"></span>375px</td></tr><tr><td><code>--sz-canva-radius</code></td><td><span class="swatch" style="background:0"></span>0</td></tr><tr><td><code>--sz-canva-radius-max</code></td><td><span class="swatch" style="background:2px"></span>2px</td></tr><tr><td><code>--sz-slot-free</code></td><td><span class="swatch" style="background:#e8e6e2"></span>#e8e6e2</td></tr><tr><td><code>--sz-slot-reserved</code></td><td><span class="swatch" style="background:#c41e1e"></span>#c41e1e</td></tr><tr><td><code>--sz-slot-reserved-ipg</code></td><td><span class="swatch" style="background:#d4dce8"></span>#d4dce8</td></tr><tr><td><code>--sz-slot-reserved-ipg-bar</code></td><td><span class="swatch" style="background:#4a1420"></span>#4a1420</td></tr><tr><td><code>--sz-slot-public</code></td><td><span class="swatch" style="background:#b68a3b"></span>#b68a3b</td></tr><tr><td><code>--sz-slot-team</code></td><td><span class="swatch" style="background:#6b1f28"></span>#6b1f28</td></tr><tr><td><code>--sz-slot-pending</code></td><td><span class="swatch" style="background:#4a1420"></span>#4a1420</td></tr><tr><td><code>--sz-slot-cancel</code></td><td><span class="swatch" style="background:#a3a39f"></span>#a3a39f</td></tr><tr><td><code>--sz-slot-closed</code></td><td><span class="swatch" style="background:#52524f"></span>#52524f</td></tr><tr><td><code>--sz-slot-blocked</code></td><td><span class="swatch" style="background:#a3a39f"></span>#a3a39f</td></tr><tr><td><code>--sz-cal-grid-free</code></td><td><span class="swatch" style="background:#eceae6"></span>#eceae6</td></tr><tr><td><code>--sz-cal-grid-reserved-paid</code></td><td><span class="swatch" style="background:#f3d4d4"></span>#f3d4d4</td></tr><tr><td><code>--sz-cal-grid-reserved-unpaid</code></td><td><span class="swatch" style="background:#fcd9a8"></span>#fcd9a8</td></tr><tr><td><code>--sz-cal-grid-reserved-ipg</code></td><td><span class="swatch" style="background:#d4dce8"></span>#d4dce8</td></tr><tr><td><code>--sz-cal-grid-reserved-recurring</code></td><td><span class="swatch" style="background:#ddd4e8"></span>#ddd4e8</td></tr><tr><td><code>--sz-cal-grid-reserved-coach</code></td><td><span class="swatch" style="background:#f0c4b8"></span>#f0c4b8</td></tr><tr><td><code>--sz-cal-grid-pending</code></td><td><span class="swatch" style="background:#e8d4a8"></span>#e8d4a8</td></tr><tr><td><code>--sz-cal-grid-blocked</code></td><td><span class="swatch" style="background:#d4d2ce"></span>#d4d2ce</td></tr><tr><td>palette.primary</td><td><span class="swatch" style="background:#C41E1E"></span>#C41E1E</td></tr><tr><td>palette.primaryDark</td><td><span class="swatch" style="background:#4A1420"></span>#4A1420</td></tr><tr><td>palette.primaryLight</td><td><span class="swatch" style="background:#D63A3A"></span>#D63A3A</td></tr><tr><td>palette.primarySoft</td><td><span class="swatch" style="background:#C41E1E1A"></span>#C41E1E1A</td></tr><tr><td>palette.gold</td><td><span class="swatch" style="background:#B68A3B"></span>#B68A3B</td></tr><tr><td>palette.goldDark</td><td><span class="swatch" style="background:#9A7530"></span>#9A7530</td></tr><tr><td>palette.goldSoft</td><td><span class="swatch" style="background:#B68A3B24"></span>#B68A3B24</td></tr><tr><td>palette.cream</td><td><span class="swatch" style="background:#F4EFE9"></span>#F4EFE9</td></tr><tr><td>palette.accent</td><td><span class="swatch" style="background:#B68A3B"></span>#B68A3B</td></tr><tr><td>palette.accentDark</td><td><span class="swatch" style="background:#9A7530"></span>#9A7530</td></tr><tr><td>palette.accentSoft</td><td><span class="swatch" style="background:#B68A3B24"></span>#B68A3B24</td></tr><tr><td>palette.lavender</td><td><span class="swatch" style="background:#E8E6E2"></span>#E8E6E2</td></tr><tr><td>palette.mint</td><td><span class="swatch" style="background:#6B1F28"></span>#6B1F28</td></tr><tr><td>palette.sky</td><td><span class="swatch" style="background:#B68A3B"></span>#B68A3B</td></tr><tr><td>palette.white</td><td><span class="swatch" style="background:#FFFFFF"></span>#FFFFFF</td></tr><tr><td>palette.navy</td><td><span class="swatch" style="background:#2C2C2A"></span>#2C2C2A</td></tr><tr><td>palette.50</td><td><span class="swatch" style="background:#F4EFE9"></span>#F4EFE9</td></tr><tr><td>palette.100</td><td><span class="swatch" style="background:#E8E6E2"></span>#E8E6E2</td></tr><tr><td>palette.200</td><td><span class="swatch" style="background:#D4D2CE"></span>#D4D2CE</td></tr><tr><td>palette.300</td><td><span class="swatch" style="background:#C0BEBA"></span>#C0BEBA</td></tr><tr><td>palette.400</td><td><span class="swatch" style="background:#A3A39F"></span>#A3A39F</td></tr><tr><td>palette.500</td><td><span class="swatch" style="background:#6B6B67"></span>#6B6B67</td></tr><tr><td>palette.600</td><td><span class="swatch" style="background:#52524F"></span>#52524F</td></tr><tr><td>palette.700</td><td><span class="swatch" style="background:#3D3D3A"></span>#3D3D3A</td></tr><tr><td>palette.800</td><td><span class="swatch" style="background:#2C2C2A"></span>#2C2C2A</td></tr><tr><td>palette.900</td><td><span class="swatch" style="background:#1A1A18"></span>#1A1A18</td></tr><tr><td>palette.success</td><td><span class="swatch" style="background:#2E7D4F"></span>#2E7D4F</td></tr><tr><td>palette.danger</td><td><span class="swatch" style="background:#C41E1E"></span>#C41E1E</td></tr><tr><td>palette.warning</td><td><span class="swatch" style="background:#B68A3B"></span>#B68A3B</td></tr><tr><td>palette.info</td><td><span class="swatch" style="background:#6B1F28"></span>#6B1F28</td></tr><tr><td>palette.platformBooking</td><td><span class="swatch" style="background:#C41E1E"></span>#C41E1E</td></tr><tr><td>palette.clubBooking</td><td><span class="swatch" style="background:#4A1420"></span>#4A1420</td></tr><tr><td>palette.openSlot</td><td><span class="swatch" style="background:#E8E6E2"></span>#E8E6E2</td></tr><tr><td>palette.class</td><td><span class="swatch" style="background:#B68A3B"></span>#B68A3B</td></tr><tr><td>palette.blocked</td><td><span class="swatch" style="background:#A3A39F"></span>#A3A39F</td></tr><tr><td>palette.match</td><td><span class="swatch" style="background:#6B1F28"></span>#6B1F28</td></tr><tr><td>palette.tournament</td><td><span class="swatch" style="background:#B68A3B"></span>#B68A3B</td></tr><tr><td>palette.session</td><td><span class="swatch" style="background:#D63A3A"></span>#D63A3A</td></tr><tr><td>palette.FREE</td><td><span class="swatch" style="background:#E8E6E2"></span>#E8E6E2</td></tr><tr><td>palette.RESERVED</td><td><span class="swatch" style="background:#C41E1E"></span>#C41E1E</td></tr><tr><td>palette.PUBLIC</td><td><span class="swatch" style="background:#C41E1E"></span>#C41E1E</td></tr><tr><td>palette.TEAM</td><td><span class="swatch" style="background:#C41E1E"></span>#C41E1E</td></tr><tr><td>palette.PENDING</td><td><span class="swatch" style="background:#E8B84A"></span>#E8B84A</td></tr><tr><td>palette.CANCELLED</td><td><span class="swatch" style="background:#A3A39F"></span>#A3A39F</td></tr><tr><td>palette.CLOSED</td><td><span class="swatch" style="background:#1A1A18"></span>#1A1A18</td></tr><tr><td>palette.BLOCKED</td><td><span class="swatch" style="background:#A3A39F"></span>#A3A39F</td></tr><tr><td>palette.FREE</td><td><span class="swatch" style="background:#ECEAE6"></span>#ECEAE6</td></tr><tr><td>palette.RESERVED_PAID</td><td><span class="swatch" style="background:#F3D4D4"></span>#F3D4D4</td></tr><tr><td>palette.RESERVED_UNPAID</td><td><span class="swatch" style="background:#FCD9A8"></span>#FCD9A8</td></tr><tr><td>palette.RESERVED_IPG</td><td><span class="swatch" style="background:#D4DCE8"></span>#D4DCE8</td></tr><tr><td>palette.RESERVED_RECURRING</td><td><span class="swatch" style="background:#DDD4E8"></span>#DDD4E8</td></tr><tr><td>palette.RESERVED_RECURRING_BAR</td><td><span class="swatch" style="background:#6B4C9A"></span>#6B4C9A</td></tr><tr><td>palette.RESERVED_COACH</td><td><span class="swatch" style="background:#F0C4B8"></span>#F0C4B8</td></tr><tr><td>palette.PENDING</td><td><span class="swatch" style="background:#E8D4A8"></span>#E8D4A8</td></tr><tr><td>palette.BLOCKED</td><td><span class="swatch" style="background:#D4D2CE"></span>#D4D2CE</td></tr></tbody></table>
+</section>
+<section id="pages"><h2>Pages</h2><article class="card" id="modal-auth-gate">
+<header><h3>modal-auth-gate</h3><p class="meta">/login → / (AuthFlowModal) · app/components/AuthFlowModal.vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/modal-auth-gate.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/modal-auth-gate.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="modal-login-otp">
+<header><h3>modal-login-otp</h3><p class="meta">/login → OTP step · app/components/AuthFlowModal.vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/modal-login-otp.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/modal-login-otp.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-about">
+<header><h3>page-about</h3><p class="meta">/about · app/pages/about.vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-about.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-about.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-admin">
+<header><h3>page-admin</h3><p class="meta">/admin · app/pages/admin/index.vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-admin.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-admin.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-admin-applications">
+<header><h3>page-admin-applications</h3><p class="meta">/admin/applications · app/pages/admin/applications.vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-admin-applications.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-admin-applications.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-admin-bookings">
+<header><h3>page-admin-bookings</h3><p class="meta">/admin/bookings · app/pages/admin/bookings/index.vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-admin-bookings.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-admin-bookings.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-admin-calendar">
+<header><h3>page-admin-calendar</h3><p class="meta">/admin/calendar · app/pages/admin/calendar.vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-admin-calendar.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-admin-calendar.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-admin-calendar-sources">
+<header><h3>page-admin-calendar-sources</h3><p class="meta">/admin/calendar-sources · modules/inbox-external-calendar/runtime/pages/admin/calendar-sources.vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-admin-calendar-sources.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-admin-calendar-sources.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-admin-clubs">
+<header><h3>page-admin-clubs</h3><p class="meta">/admin/clubs · app/pages/admin/clubs/index.vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-admin-clubs.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-admin-clubs.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-admin-clubs-cmvi2xpkl000bjstmvuh4inqf">
+<header><h3>page-admin-clubs-cmvi2xpkl000bjstmvuh4inqf</h3><p class="meta">/admin/clubs/cmvi2xpkl000bjstmvuh4inqf · app/pages/admin/clubs/[id].vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-admin-clubs-cmvi2xpkl000bjstmvuh4inqf.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-admin-clubs-cmvi2xpkl000bjstmvuh4inqf.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-admin-coach-applications">
+<header><h3>page-admin-coach-applications</h3><p class="meta">/admin/coach-applications · app/pages/admin/coach-applications.vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-admin-coach-applications.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-admin-coach-applications.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-admin-provision">
+<header><h3>page-admin-provision</h3><p class="meta">/admin/provision · app/pages/admin/provision.vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-admin-provision.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-admin-provision.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-admin-sentry">
+<header><h3>page-admin-sentry</h3><p class="meta">/admin/sentry · app/pages/admin/sentry.vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-admin-sentry.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-admin-sentry.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-admin-sms">
+<header><h3>page-admin-sms</h3><p class="meta">/admin/sms · app/pages/admin/sms.vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-admin-sms.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-admin-sms.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-admin-tickets">
+<header><h3>page-admin-tickets</h3><p class="meta">/admin/tickets · app/pages/admin/tickets/index.vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-admin-tickets.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-admin-tickets.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-admin-users">
+<header><h3>page-admin-users</h3><p class="meta">/admin/users · app/pages/admin/users/index.vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-admin-users.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-admin-users.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-admin-withdrawals">
+<header><h3>page-admin-withdrawals</h3><p class="meta">/admin/withdrawals · app/pages/admin/withdrawals/index.vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-admin-withdrawals.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-admin-withdrawals.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-athlete">
+<header><h3>page-athlete</h3><p class="meta">/athlete · app/pages/athlete/index.vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-athlete.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-athlete.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-athlete-bookings">
+<header><h3>page-athlete-bookings</h3><p class="meta">/athlete/bookings · app/pages/athlete/bookings/index.vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-athlete-bookings.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-athlete-bookings.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-athlete-bookings-[id]">
+<header><h3>page-athlete-bookings-[id]</h3><p class="meta">/athlete/bookings/[id] · app/pages/athlete/bookings/[id].vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-athlete-bookings-[id].png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-athlete-bookings-[id].png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-athlete-bookings-cmvi2xpo900aojstmqnr7ug6p">
+<header><h3>page-athlete-bookings-cmvi2xpo900aojstmqnr7ug6p</h3><p class="meta">/athlete/bookings/cmvi2xpo900aojstmqnr7ug6p · app/pages/athlete/bookings/[id].vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-athlete-bookings-cmvi2xpo900aojstmqnr7ug6p.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-athlete-bookings-cmvi2xpo900aojstmqnr7ug6p.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-athlete-bookings-coach-[id]">
+<header><h3>page-athlete-bookings-coach-[id]</h3><p class="meta">/athlete/bookings/coach/[id] · app/pages/athlete/bookings/coach/[id].vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-athlete-bookings-coach-[id].png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-athlete-bookings-coach-[id].png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-athlete-bookings-coach-cmvi2xpot00cejstmhytv3z2s">
+<header><h3>page-athlete-bookings-coach-cmvi2xpot00cejstmhytv3z2s</h3><p class="meta">/athlete/bookings/coach/cmvi2xpot00cejstmhytv3z2s · app/pages/athlete/bookings/coach/[id].vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-athlete-bookings-coach-cmvi2xpot00cejstmhytv3z2s.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-athlete-bookings-coach-cmvi2xpot00cejstmhytv3z2s.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-athlete-competitions">
+<header><h3>page-athlete-competitions</h3><p class="meta">/athlete/competitions · app/pages/athlete/competitions.vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-athlete-competitions.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-athlete-competitions.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-athlete-favorites">
+<header><h3>page-athlete-favorites</h3><p class="meta">/athlete/favorites · app/pages/athlete/favorites.vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-athlete-favorites.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-athlete-favorites.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-athlete-home">
+<header><h3>page-athlete-home</h3><p class="meta">/athlete/home · app/pages/athlete/home.vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-athlete-home.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-athlete-home.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-athlete-notifications">
+<header><h3>page-athlete-notifications</h3><p class="meta">/athlete/notifications · app/pages/athlete/notifications.vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-athlete-notifications.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-athlete-notifications.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-athlete-payments">
+<header><h3>page-athlete-payments</h3><p class="meta">/athlete/payments · app/pages/athlete/payments.vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-athlete-payments.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-athlete-payments.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-athlete-profile">
+<header><h3>page-athlete-profile</h3><p class="meta">/athlete/profile · app/pages/athlete/profile.vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-athlete-profile.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-athlete-profile.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-athlete-support">
+<header><h3>page-athlete-support</h3><p class="meta">/athlete/support · app/pages/athlete/support.vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-athlete-support.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-athlete-support.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-athlete-wallet">
+<header><h3>page-athlete-wallet</h3><p class="meta">/athlete/wallet · app/pages/athlete/wallet.vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-athlete-wallet.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-athlete-wallet.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-book-coach-[id]">
+<header><h3>page-book-coach-[id]</h3><p class="meta">/book/coach/[id] · app/pages/book/coach/[id].vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-book-coach-[id].png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-book-coach-[id].png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-book-coach-cmvi2xpob00aujstmy0lfp3vi">
+<header><h3>page-book-coach-cmvi2xpob00aujstmy0lfp3vi</h3><p class="meta">/book/coach/cmvi2xpob00aujstmy0lfp3vi · app/pages/book/coach/[id].vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-book-coach-cmvi2xpob00aujstmy0lfp3vi.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-book-coach-cmvi2xpob00aujstmy0lfp3vi.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-book-court-[slug]">
+<header><h3>page-book-court-[slug]</h3><p class="meta">/book/court/[slug] · app/pages/book/court/[slug].vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-book-court-[slug].png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-book-court-[slug].png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-book-court-padel-zone-tehran">
+<header><h3>page-book-court-padel-zone-tehran</h3><p class="meta">/book/court/padel-zone-tehran · app/pages/book/court/[slug].vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-book-court-padel-zone-tehran.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-book-court-padel-zone-tehran.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-book-package-[id]">
+<header><h3>page-book-package-[id]</h3><p class="meta">/book/package/[id] · app/pages/book/package/[id].vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-book-package-[id].png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-book-package-[id].png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-book-package-cmvi2xppb00djjstmhhh081wd">
+<header><h3>page-book-package-cmvi2xppb00djjstmhhh081wd</h3><p class="meta">/book/package/cmvi2xppb00djjstmhhh081wd · app/pages/book/package/[id].vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-book-package-cmvi2xppb00djjstmhhh081wd.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-book-package-cmvi2xppb00djjstmhhh081wd.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-cancellation">
+<header><h3>page-cancellation</h3><p class="meta">/cancellation · app/pages/cancellation.vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-cancellation.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-cancellation.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-choose-role">
+<header><h3>page-choose-role</h3><p class="meta">/choose-role · app/pages/choose-role.vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-choose-role.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-choose-role.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-clubs">
+<header><h3>page-clubs</h3><p class="meta">/clubs · app/pages/clubs/index.vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-clubs.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-clubs.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-clubs-%D8%AA%D9%87%D8%B1%D8%A7%D9%86-padel">
+<header><h3>page-clubs-%D8%AA%D9%87%D8%B1%D8%A7%D9%86-padel</h3><p class="meta">/clubs/%D8%AA%D9%87%D8%B1%D8%A7%D9%86/padel · app/pages/clubs/[city]/[sport].vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-clubs-%D8%AA%D9%87%D8%B1%D8%A7%D9%86-padel.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-clubs-%D8%AA%D9%87%D8%B1%D8%A7%D9%86-padel.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-clubs-[slug]">
+<header><h3>page-clubs-[slug]</h3><p class="meta">/clubs/[slug] · app/pages/clubs/[slug].vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-clubs-[slug].png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-clubs-[slug].png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-clubs-apply">
+<header><h3>page-clubs-apply</h3><p class="meta">/clubs/apply · app/pages/clubs/apply.vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-clubs-apply.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-clubs-apply.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-clubs-mashhad-tennis-center">
+<header><h3>page-clubs-mashhad-tennis-center</h3><p class="meta">/clubs/mashhad-tennis-center · app/pages/clubs/[slug].vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-clubs-mashhad-tennis-center.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-clubs-mashhad-tennis-center.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-clubs-padel-zone-tehran">
+<header><h3>page-clubs-padel-zone-tehran</h3><p class="meta">/clubs/padel-zone-tehran · app/pages/clubs/[slug].vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-clubs-padel-zone-tehran.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-clubs-padel-zone-tehran.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-coach">
+<header><h3>page-coach</h3><p class="meta">/coach · app/pages/coach/index.vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-coach.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-coach.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-coach-book">
+<header><h3>page-coach-book</h3><p class="meta">/coach/book · app/pages/coach/book.vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-coach-book.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-coach-book.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-coach-clients">
+<header><h3>page-coach-clients</h3><p class="meta">/coach/clients · app/pages/coach/clients.vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-coach-clients.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-coach-clients.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-coach-packages">
+<header><h3>page-coach-packages</h3><p class="meta">/coach/packages · app/pages/coach/packages.vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-coach-packages.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-coach-packages.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-coach-pending">
+<header><h3>page-coach-pending</h3><p class="meta">/coach/pending · app/pages/coach/pending.vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-coach-pending.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-coach-pending.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-coach-profile">
+<header><h3>page-coach-profile</h3><p class="meta">/coach/profile · app/pages/coach/profile.vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-coach-profile.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-coach-profile.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-coach-schedule">
+<header><h3>page-coach-schedule</h3><p class="meta">/coach/schedule · app/pages/coach/schedule.vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-coach-schedule.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-coach-schedule.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-coach-settings">
+<header><h3>page-coach-settings</h3><p class="meta">/coach/settings · app/pages/coach/settings.vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-coach-settings.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-coach-settings.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-coaches">
+<header><h3>page-coaches</h3><p class="meta">/coaches · app/pages/coaches/index.vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-coaches.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-coaches.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-coaches-[id]">
+<header><h3>page-coaches-[id]</h3><p class="meta">/coaches/[id] · app/pages/coaches/[id].vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-coaches-[id].png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-coaches-[id].png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-coaches-cmvi2xpob00aujstmy0lfp3vi">
+<header><h3>page-coaches-cmvi2xpob00aujstmy0lfp3vi</h3><p class="meta">/coaches/cmvi2xpob00aujstmy0lfp3vi · app/pages/coaches/[id].vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-coaches-cmvi2xpob00aujstmy0lfp3vi.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-coaches-cmvi2xpob00aujstmy0lfp3vi.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-competitions">
+<header><h3>page-competitions</h3><p class="meta">/competitions · app/pages/competitions/index.vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-competitions.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-competitions.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-competitions-[id]">
+<header><h3>page-competitions-[id]</h3><p class="meta">/competitions/[id] · app/pages/competitions/[id].vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-competitions-[id].png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-competitions-[id].png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-complaints">
+<header><h3>page-complaints</h3><p class="meta">/complaints · app/pages/complaints.vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-complaints.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-complaints.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-contact">
+<header><h3>page-contact</h3><p class="meta">/contact · app/pages/contact.vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-contact.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-contact.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-forgot-password">
+<header><h3>page-forgot-password</h3><p class="meta">/forgot-password · app/pages/forgot-password.vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-forgot-password.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-forgot-password.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-home">
+<header><h3>page-home</h3><p class="meta">/ · app/pages/index.vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-home.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-home.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-login">
+<header><h3>page-login</h3><p class="meta">/login · app/pages/login.vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-login.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-login.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-offline">
+<header><h3>page-offline</h3><p class="meta">/offline · app/pages/offline.vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-offline.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-offline.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-owner">
+<header><h3>page-owner</h3><p class="meta">/owner · app/pages/owner/index.vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-owner.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-owner.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-owner-calendar">
+<header><h3>page-owner-calendar</h3><p class="meta">/owner/calendar · app/pages/owner/calendar.vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-owner-calendar.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-owner-calendar.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-owner-calendar-sources">
+<header><h3>page-owner-calendar-sources</h3><p class="meta">/owner/calendar-sources · modules/inbox-external-calendar/runtime/pages/owner/calendar-sources.vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-owner-calendar-sources.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-owner-calendar-sources.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-owner-coaches">
+<header><h3>page-owner-coaches</h3><p class="meta">/owner/coaches · app/pages/owner/coaches.vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-owner-coaches.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-owner-coaches.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-owner-competitions">
+<header><h3>page-owner-competitions</h3><p class="meta">/owner/competitions · app/pages/owner/competitions/index.vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-owner-competitions.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-owner-competitions.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-owner-competitions-[id]">
+<header><h3>page-owner-competitions-[id]</h3><p class="meta">/owner/competitions/[id] · app/pages/owner/competitions/[id].vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-owner-competitions-[id].png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-owner-competitions-[id].png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-owner-crm">
+<header><h3>page-owner-crm</h3><p class="meta">/owner/crm · app/pages/owner/crm.vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-owner-crm.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-owner-crm.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-owner-crm-[id]">
+<header><h3>page-owner-crm-[id]</h3><p class="meta">/owner/crm/[id] · app/pages/owner/crm/[id].vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-owner-crm-[id].png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-owner-crm-[id].png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-owner-crm-cmvi2xpp300d3jstmj81absn6">
+<header><h3>page-owner-crm-cmvi2xpp300d3jstmj81absn6</h3><p class="meta">/owner/crm/cmvi2xpp300d3jstmj81absn6 · app/pages/owner/crm/[id].vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-owner-crm-cmvi2xpp300d3jstmj81absn6.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-owner-crm-cmvi2xpp300d3jstmj81absn6.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-owner-discounts">
+<header><h3>page-owner-discounts</h3><p class="meta">/owner/discounts · app/pages/owner/discounts.vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-owner-discounts.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-owner-discounts.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-owner-equipments">
+<header><h3>page-owner-equipments</h3><p class="meta">/owner/equipments · app/pages/owner/equipments.vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-owner-equipments.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-owner-equipments.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-owner-finance">
+<header><h3>page-owner-finance</h3><p class="meta">/owner/finance · app/pages/owner/finance/index.vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-owner-finance.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-owner-finance.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-owner-finance-report">
+<header><h3>page-owner-finance-report</h3><p class="meta">/owner/finance/report · app/pages/owner/finance/report.vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-owner-finance-report.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-owner-finance-report.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-owner-notifications">
+<header><h3>page-owner-notifications</h3><p class="meta">/owner/notifications · app/pages/owner/notifications.vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-owner-notifications.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-owner-notifications.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-owner-packages">
+<header><h3>page-owner-packages</h3><p class="meta">/owner/packages · app/pages/owner/packages.vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-owner-packages.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-owner-packages.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-owner-pending">
+<header><h3>page-owner-pending</h3><p class="meta">/owner/pending · app/pages/owner/pending.vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-owner-pending.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-owner-pending.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-owner-reserve-package">
+<header><h3>page-owner-reserve-package</h3><p class="meta">/owner/reserve/package · app/pages/owner/reserve/package.vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-owner-reserve-package.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-owner-reserve-package.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-owner-reserve-season">
+<header><h3>page-owner-reserve-season</h3><p class="meta">/owner/reserve/season · app/pages/owner/reserve/season.vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-owner-reserve-season.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-owner-reserve-season.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-owner-settings">
+<header><h3>page-owner-settings</h3><p class="meta">/owner/settings · app/pages/owner/settings.vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-owner-settings.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-owner-settings.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-owner-setup">
+<header><h3>page-owner-setup</h3><p class="meta">/owner/setup · app/pages/owner/setup.vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-owner-setup.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-owner-setup.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-owner-support">
+<header><h3>page-owner-support</h3><p class="meta">/owner/support · app/pages/owner/support.vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-owner-support.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-owner-support.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-owner-workers">
+<header><h3>page-owner-workers</h3><p class="meta">/owner/workers · app/pages/owner/workers.vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-owner-workers.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-owner-workers.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-p-[pin]">
+<header><h3>page-p-[pin]</h3><p class="meta">/p/[pin] · app/pages/p/[pin].vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-p-[pin].png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-p-[pin].png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-payments-test-gateway">
+<header><h3>page-payments-test-gateway</h3><p class="meta">/payments/test-gateway · app/pages/payments/test-gateway.vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-payments-test-gateway.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-payments-test-gateway.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-pricing">
+<header><h3>page-pricing</h3><p class="meta">/pricing · app/pages/pricing.vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-pricing.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-pricing.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-privacy">
+<header><h3>page-privacy</h3><p class="meta">/privacy · app/pages/privacy.vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-privacy.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-privacy.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-r-[token]">
+<header><h3>page-r-[token]</h3><p class="meta">/r/[token] · app/pages/r/[token].vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-r-[token].png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-r-[token].png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-register">
+<header><h3>page-register</h3><p class="meta">/register · app/pages/register/index.vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-register.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-register.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-register-coach">
+<header><h3>page-register-coach</h3><p class="meta">/register/coach · app/pages/register/coach.vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-register-coach.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-register-coach.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-register-owner">
+<header><h3>page-register-owner</h3><p class="meta">/register/owner · app/pages/register/owner.vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-register-owner.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-register-owner.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-reset-password">
+<header><h3>page-reset-password</h3><p class="meta">/reset-password · app/pages/reset-password.vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-reset-password.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-reset-password.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="page-terms">
+<header><h3>page-terms</h3><p class="meta">/terms · app/pages/terms.vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/page-terms.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/page-terms.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="sheet-club-booking-confirm">
+<header><h3>sheet-club-booking-confirm</h3><p class="meta">/clubs/padel-zone-tehran · app/components/CourtBookingConfirmSheet.vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/sheet-sheet-club-booking-confirm.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/sheet-sheet-club-booking-confirm.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="sheet-owner-account-drawer">
+<header><h3>sheet-owner-account-drawer</h3><p class="meta">/owner/calendar · app/components/OwnerAccountDrawer.vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><p class="meta">—</p></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/drawer-sheet-owner-account-drawer.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="sheet-owner-more">
+<header><h3>sheet-owner-more</h3><p class="meta">/owner/calendar?more=1 · app/components/OwnerMoreSheet.vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/sheet-sheet-owner-more.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/sheet-sheet-owner-more.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="sheet-owner-reserve">
+<header><h3>sheet-owner-reserve</h3><p class="meta">/owner/calendar · app/pages/owner/calendar.vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/sheet-sheet-owner-reserve.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/sheet-sheet-owner-reserve.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="state-admin-gate">
+<header><h3>state-admin-gate</h3><p class="meta">/admin · app/layouts/dashboard-admin.vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/empty-state-admin-gate.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/empty-state-admin-gate.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="state-login-loading">
+<header><h3>state-login-loading</h3><p class="meta">/login · app/pages/login.vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><img src="desktop/loading-state-login-loading.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/loading-state-login-loading.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="ui-athlete-bottom-nav">
+<header><h3>ui-athlete-bottom-nav</h3><p class="meta">/athlete/home · app/components/AppBottomNav.vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><p class="meta">—</p></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/nav-ui-athlete-bottom-nav.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card" id="ui-mobile-side-menu">
+<header><h3>ui-mobile-side-menu</h3><p class="meta">/owner/calendar · app/components/DashboardShell.vue</p></header>
+<div class="shots">
+<figure data-v="desktop"><figcaption>Desktop 1440×900</figcaption><p class="meta">—</p></figure>
+<figure data-v="mobile"><figcaption>Mobile 390×844 @2x</figcaption><img src="mobile/menu-ui-mobile-side-menu.png" alt="" loading="lazy"/></figure>
+</div></article></section>
+<section id="components"><h2>Components</h2><section class="comp-group" id="comp-badges"><h3>badges</h3><div class="comp-grid"><article class="card comp" id="component-canva-competition-card-badge-default">
+<header><h4>canva-competition-card-badge</h4><p class="meta">app/assets/css/main.css</p></header>
+<div class="shots compact">
+<figure data-v="desktop"><img src="desktop/component-canva-competition-card-badge-default.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><img src="mobile/component-canva-competition-card-badge-default.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card comp" id="component-canva-date-pill-default">
+<header><h4>canva-date-pill</h4><p class="meta">app/assets/css/main.css</p></header>
+<div class="shots compact">
+<figure data-v="desktop"><img src="desktop/component-canva-date-pill-default.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><img src="mobile/component-canva-date-pill-default.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card comp" id="component-canva-history-badge-default">
+<header><h4>canva-history-badge</h4><p class="meta">app/assets/css/main.css</p></header>
+<div class="shots compact">
+<figure data-v="desktop"><img src="desktop/component-canva-history-badge-default.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><img src="mobile/component-canva-history-badge-default.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card comp" id="component-canva-history-badge-paid-default">
+<header><h4>canva-history-badge-paid</h4><p class="meta">app/assets/css/main.css</p></header>
+<div class="shots compact">
+<figure data-v="desktop"><img src="desktop/component-canva-history-badge-paid-default.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><img src="mobile/component-canva-history-badge-paid-default.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card comp" id="component-neo-badge-default">
+<header><h4>neo-badge</h4><p class="meta">app/assets/css/main.css</p></header>
+<div class="shots compact">
+<figure data-v="desktop"><img src="desktop/component-neo-badge-default.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><img src="mobile/component-neo-badge-default.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card comp" id="component-neo-pill-default">
+<header><h4>neo-pill</h4><p class="meta">app/assets/css/main.css</p></header>
+<div class="shots compact">
+<figure data-v="desktop"><img src="desktop/component-neo-pill-default.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><img src="mobile/component-neo-pill-default.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card comp" id="component-tail-badge-danger-default">
+<header><h4>tail-badge-danger</h4><p class="meta">app/assets/css/main.css</p></header>
+<div class="shots compact">
+<figure data-v="desktop"><img src="desktop/component-tail-badge-danger-default.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><img src="mobile/component-tail-badge-danger-default.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card comp" id="component-tail-badge-default">
+<header><h4>tail-badge</h4><p class="meta">app/assets/css/main.css</p></header>
+<div class="shots compact">
+<figure data-v="desktop"><img src="desktop/component-tail-badge-default.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><img src="mobile/component-tail-badge-default.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card comp" id="component-tail-badge-gray-default">
+<header><h4>tail-badge-gray</h4><p class="meta">app/assets/css/main.css</p></header>
+<div class="shots compact">
+<figure data-v="desktop"><img src="desktop/component-tail-badge-gray-default.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><img src="mobile/component-tail-badge-gray-default.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card comp" id="component-tail-badge-success-default">
+<header><h4>tail-badge-success</h4><p class="meta">app/assets/css/main.css</p></header>
+<div class="shots compact">
+<figure data-v="desktop"><img src="desktop/component-tail-badge-success-default.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><img src="mobile/component-tail-badge-success-default.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card comp" id="component-tail-badge-warning-default">
+<header><h4>tail-badge-warning</h4><p class="meta">app/assets/css/main.css</p></header>
+<div class="shots compact">
+<figure data-v="desktop"><img src="desktop/component-tail-badge-warning-default.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><img src="mobile/component-tail-badge-warning-default.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card comp" id="component-tail-pill-default">
+<header><h4>tail-pill</h4><p class="meta">app/assets/css/main.css</p></header>
+<div class="shots compact">
+<figure data-v="desktop"><img src="desktop/component-tail-pill-default.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><img src="mobile/component-tail-pill-default.png" alt="" loading="lazy"/></figure>
+</div></article></div></section><section class="comp-group" id="comp-buttons"><h3>buttons</h3><div class="comp-grid"><article class="card comp" id="component-btn-canva-login-active">
+<header><h4>btn-canva-login (active)</h4><p class="meta">app/assets/css/main.css</p></header>
+<div class="shots compact">
+<figure data-v="desktop"><img src="desktop/component-btn-canva-login-active.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><img src="mobile/component-btn-canva-login-active.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card comp" id="component-btn-canva-login-default">
+<header><h4>btn-canva-login (default)</h4><p class="meta">app/assets/css/main.css</p></header>
+<div class="shots compact">
+<figure data-v="desktop"><img src="desktop/component-btn-canva-login-default.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><img src="mobile/component-btn-canva-login-default.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card comp" id="component-btn-canva-login-disabled">
+<header><h4>btn-canva-login (disabled)</h4><p class="meta">app/assets/css/main.css</p></header>
+<div class="shots compact">
+<figure data-v="desktop"><img src="desktop/component-btn-canva-login-disabled.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><img src="mobile/component-btn-canva-login-disabled.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card comp" id="component-btn-canva-login-focus">
+<header><h4>btn-canva-login (focus)</h4><p class="meta">app/assets/css/main.css</p></header>
+<div class="shots compact">
+<figure data-v="desktop"><img src="desktop/component-btn-canva-login-focus.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><img src="mobile/component-btn-canva-login-focus.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card comp" id="component-btn-canva-login-hover">
+<header><h4>btn-canva-login (hover)</h4><p class="meta">app/assets/css/main.css</p></header>
+<div class="shots compact">
+<figure data-v="desktop"><img src="desktop/component-btn-canva-login-hover.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><img src="mobile/component-btn-canva-login-hover.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card comp" id="component-btn-coral-active">
+<header><h4>btn-coral (active)</h4><p class="meta">app/assets/css/main.css</p></header>
+<div class="shots compact">
+<figure data-v="desktop"><img src="desktop/component-btn-coral-active.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><img src="mobile/component-btn-coral-active.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card comp" id="component-btn-coral-default">
+<header><h4>btn-coral (default)</h4><p class="meta">app/assets/css/main.css</p></header>
+<div class="shots compact">
+<figure data-v="desktop"><img src="desktop/component-btn-coral-default.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><img src="mobile/component-btn-coral-default.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card comp" id="component-btn-coral-disabled">
+<header><h4>btn-coral (disabled)</h4><p class="meta">app/assets/css/main.css</p></header>
+<div class="shots compact">
+<figure data-v="desktop"><img src="desktop/component-btn-coral-disabled.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><img src="mobile/component-btn-coral-disabled.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card comp" id="component-btn-coral-focus">
+<header><h4>btn-coral (focus)</h4><p class="meta">app/assets/css/main.css</p></header>
+<div class="shots compact">
+<figure data-v="desktop"><img src="desktop/component-btn-coral-focus.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><img src="mobile/component-btn-coral-focus.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card comp" id="component-btn-coral-hover">
+<header><h4>btn-coral (hover)</h4><p class="meta">app/assets/css/main.css</p></header>
+<div class="shots compact">
+<figure data-v="desktop"><img src="desktop/component-btn-coral-hover.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><img src="mobile/component-btn-coral-hover.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card comp" id="component-btn-danger-active">
+<header><h4>btn-danger (active)</h4><p class="meta">app/assets/css/main.css</p></header>
+<div class="shots compact">
+<figure data-v="desktop"><img src="desktop/component-btn-danger-active.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><img src="mobile/component-btn-danger-active.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card comp" id="component-btn-danger-default">
+<header><h4>btn-danger (default)</h4><p class="meta">app/assets/css/main.css</p></header>
+<div class="shots compact">
+<figure data-v="desktop"><img src="desktop/component-btn-danger-default.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><img src="mobile/component-btn-danger-default.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card comp" id="component-btn-danger-disabled">
+<header><h4>btn-danger (disabled)</h4><p class="meta">app/assets/css/main.css</p></header>
+<div class="shots compact">
+<figure data-v="desktop"><img src="desktop/component-btn-danger-disabled.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><img src="mobile/component-btn-danger-disabled.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card comp" id="component-btn-danger-focus">
+<header><h4>btn-danger (focus)</h4><p class="meta">app/assets/css/main.css</p></header>
+<div class="shots compact">
+<figure data-v="desktop"><img src="desktop/component-btn-danger-focus.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><img src="mobile/component-btn-danger-focus.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card comp" id="component-btn-danger-hover">
+<header><h4>btn-danger (hover)</h4><p class="meta">app/assets/css/main.css</p></header>
+<div class="shots compact">
+<figure data-v="desktop"><img src="desktop/component-btn-danger-hover.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><img src="mobile/component-btn-danger-hover.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card comp" id="component-btn-ghost-active">
+<header><h4>btn-ghost (active)</h4><p class="meta">app/assets/css/main.css</p></header>
+<div class="shots compact">
+<figure data-v="desktop"><img src="desktop/component-btn-ghost-active.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><img src="mobile/component-btn-ghost-active.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card comp" id="component-btn-ghost-default">
+<header><h4>btn-ghost (default)</h4><p class="meta">app/assets/css/main.css</p></header>
+<div class="shots compact">
+<figure data-v="desktop"><img src="desktop/component-btn-ghost-default.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><img src="mobile/component-btn-ghost-default.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card comp" id="component-btn-ghost-disabled">
+<header><h4>btn-ghost (disabled)</h4><p class="meta">app/assets/css/main.css</p></header>
+<div class="shots compact">
+<figure data-v="desktop"><img src="desktop/component-btn-ghost-disabled.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><img src="mobile/component-btn-ghost-disabled.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card comp" id="component-btn-ghost-focus">
+<header><h4>btn-ghost (focus)</h4><p class="meta">app/assets/css/main.css</p></header>
+<div class="shots compact">
+<figure data-v="desktop"><img src="desktop/component-btn-ghost-focus.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><img src="mobile/component-btn-ghost-focus.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card comp" id="component-btn-ghost-hover">
+<header><h4>btn-ghost (hover)</h4><p class="meta">app/assets/css/main.css</p></header>
+<div class="shots compact">
+<figure data-v="desktop"><img src="desktop/component-btn-ghost-hover.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><img src="mobile/component-btn-ghost-hover.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card comp" id="component-btn-google-active">
+<header><h4>btn-google (active)</h4><p class="meta">app/assets/css/main.css</p></header>
+<div class="shots compact">
+<figure data-v="desktop"><img src="desktop/component-btn-google-active.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><img src="mobile/component-btn-google-active.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card comp" id="component-btn-google-default">
+<header><h4>btn-google (default)</h4><p class="meta">app/assets/css/main.css</p></header>
+<div class="shots compact">
+<figure data-v="desktop"><img src="desktop/component-btn-google-default.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><img src="mobile/component-btn-google-default.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card comp" id="component-btn-google-disabled">
+<header><h4>btn-google (disabled)</h4><p class="meta">app/assets/css/main.css</p></header>
+<div class="shots compact">
+<figure data-v="desktop"><img src="desktop/component-btn-google-disabled.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><img src="mobile/component-btn-google-disabled.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card comp" id="component-btn-google-focus">
+<header><h4>btn-google (focus)</h4><p class="meta">app/assets/css/main.css</p></header>
+<div class="shots compact">
+<figure data-v="desktop"><img src="desktop/component-btn-google-focus.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><img src="mobile/component-btn-google-focus.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card comp" id="component-btn-google-hover">
+<header><h4>btn-google (hover)</h4><p class="meta">app/assets/css/main.css</p></header>
+<div class="shots compact">
+<figure data-v="desktop"><img src="desktop/component-btn-google-hover.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><img src="mobile/component-btn-google-hover.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card comp" id="component-btn-google-icon-active">
+<header><h4>btn-google-icon (active)</h4><p class="meta">app/assets/css/main.css</p></header>
+<div class="shots compact">
+<figure data-v="desktop"><img src="desktop/component-btn-google-icon-active.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><img src="mobile/component-btn-google-icon-active.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card comp" id="component-btn-google-icon-default">
+<header><h4>btn-google-icon (default)</h4><p class="meta">app/assets/css/main.css</p></header>
+<div class="shots compact">
+<figure data-v="desktop"><img src="desktop/component-btn-google-icon-default.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><img src="mobile/component-btn-google-icon-default.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card comp" id="component-btn-google-icon-disabled">
+<header><h4>btn-google-icon (disabled)</h4><p class="meta">app/assets/css/main.css</p></header>
+<div class="shots compact">
+<figure data-v="desktop"><img src="desktop/component-btn-google-icon-disabled.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><img src="mobile/component-btn-google-icon-disabled.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card comp" id="component-btn-google-icon-focus">
+<header><h4>btn-google-icon (focus)</h4><p class="meta">app/assets/css/main.css</p></header>
+<div class="shots compact">
+<figure data-v="desktop"><img src="desktop/component-btn-google-icon-focus.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><img src="mobile/component-btn-google-icon-focus.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card comp" id="component-btn-google-icon-hover">
+<header><h4>btn-google-icon (hover)</h4><p class="meta">app/assets/css/main.css</p></header>
+<div class="shots compact">
+<figure data-v="desktop"><img src="desktop/component-btn-google-icon-hover.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><img src="mobile/component-btn-google-icon-hover.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card comp" id="component-btn-google-label-active">
+<header><h4>btn-google-label (active)</h4><p class="meta">app/assets/css/main.css</p></header>
+<div class="shots compact">
+<figure data-v="desktop"><img src="desktop/component-btn-google-label-active.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><img src="mobile/component-btn-google-label-active.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card comp" id="component-btn-google-label-default">
+<header><h4>btn-google-label (default)</h4><p class="meta">app/assets/css/main.css</p></header>
+<div class="shots compact">
+<figure data-v="desktop"><img src="desktop/component-btn-google-label-default.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><img src="mobile/component-btn-google-label-default.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card comp" id="component-btn-google-label-disabled">
+<header><h4>btn-google-label (disabled)</h4><p class="meta">app/assets/css/main.css</p></header>
+<div class="shots compact">
+<figure data-v="desktop"><img src="desktop/component-btn-google-label-disabled.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><img src="mobile/component-btn-google-label-disabled.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card comp" id="component-btn-google-label-focus">
+<header><h4>btn-google-label (focus)</h4><p class="meta">app/assets/css/main.css</p></header>
+<div class="shots compact">
+<figure data-v="desktop"><img src="desktop/component-btn-google-label-focus.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><img src="mobile/component-btn-google-label-focus.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card comp" id="component-btn-google-label-hover">
+<header><h4>btn-google-label (hover)</h4><p class="meta">app/assets/css/main.css</p></header>
+<div class="shots compact">
+<figure data-v="desktop"><img src="desktop/component-btn-google-label-hover.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><img src="mobile/component-btn-google-label-hover.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card comp" id="component-btn-outline-active">
+<header><h4>btn-outline (active)</h4><p class="meta">app/assets/css/main.css</p></header>
+<div class="shots compact">
+<figure data-v="desktop"><img src="desktop/component-btn-outline-active.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><img src="mobile/component-btn-outline-active.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card comp" id="component-btn-outline-default">
+<header><h4>btn-outline (default)</h4><p class="meta">app/assets/css/main.css</p></header>
+<div class="shots compact">
+<figure data-v="desktop"><img src="desktop/component-btn-outline-default.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><img src="mobile/component-btn-outline-default.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card comp" id="component-btn-outline-disabled">
+<header><h4>btn-outline (disabled)</h4><p class="meta">app/assets/css/main.css</p></header>
+<div class="shots compact">
+<figure data-v="desktop"><img src="desktop/component-btn-outline-disabled.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><img src="mobile/component-btn-outline-disabled.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card comp" id="component-btn-outline-focus">
+<header><h4>btn-outline (focus)</h4><p class="meta">app/assets/css/main.css</p></header>
+<div class="shots compact">
+<figure data-v="desktop"><img src="desktop/component-btn-outline-focus.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><img src="mobile/component-btn-outline-focus.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card comp" id="component-btn-outline-hover">
+<header><h4>btn-outline (hover)</h4><p class="meta">app/assets/css/main.css</p></header>
+<div class="shots compact">
+<figure data-v="desktop"><img src="desktop/component-btn-outline-hover.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><img src="mobile/component-btn-outline-hover.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card comp" id="component-btn-primary-active">
+<header><h4>btn-primary (active)</h4><p class="meta">app/assets/css/main.css</p></header>
+<div class="shots compact">
+<figure data-v="desktop"><img src="desktop/component-btn-primary-active.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><img src="mobile/component-btn-primary-active.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card comp" id="component-btn-primary-default">
+<header><h4>btn-primary (default)</h4><p class="meta">app/assets/css/main.css</p></header>
+<div class="shots compact">
+<figure data-v="desktop"><img src="desktop/component-btn-primary-default.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><img src="mobile/component-btn-primary-default.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card comp" id="component-btn-primary-disabled">
+<header><h4>btn-primary (disabled)</h4><p class="meta">app/assets/css/main.css</p></header>
+<div class="shots compact">
+<figure data-v="desktop"><img src="desktop/component-btn-primary-disabled.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><img src="mobile/component-btn-primary-disabled.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card comp" id="component-btn-primary-focus">
+<header><h4>btn-primary (focus)</h4><p class="meta">app/assets/css/main.css</p></header>
+<div class="shots compact">
+<figure data-v="desktop"><img src="desktop/component-btn-primary-focus.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><img src="mobile/component-btn-primary-focus.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card comp" id="component-btn-primary-hover">
+<header><h4>btn-primary (hover)</h4><p class="meta">app/assets/css/main.css</p></header>
+<div class="shots compact">
+<figure data-v="desktop"><img src="desktop/component-btn-primary-hover.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><img src="mobile/component-btn-primary-hover.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card comp" id="component-btn-secondary-active">
+<header><h4>btn-secondary (active)</h4><p class="meta">app/assets/css/main.css</p></header>
+<div class="shots compact">
+<figure data-v="desktop"><img src="desktop/component-btn-secondary-active.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><img src="mobile/component-btn-secondary-active.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card comp" id="component-btn-secondary-default">
+<header><h4>btn-secondary (default)</h4><p class="meta">app/assets/css/main.css</p></header>
+<div class="shots compact">
+<figure data-v="desktop"><img src="desktop/component-btn-secondary-default.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><img src="mobile/component-btn-secondary-default.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card comp" id="component-btn-secondary-disabled">
+<header><h4>btn-secondary (disabled)</h4><p class="meta">app/assets/css/main.css</p></header>
+<div class="shots compact">
+<figure data-v="desktop"><img src="desktop/component-btn-secondary-disabled.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><img src="mobile/component-btn-secondary-disabled.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card comp" id="component-btn-secondary-focus">
+<header><h4>btn-secondary (focus)</h4><p class="meta">app/assets/css/main.css</p></header>
+<div class="shots compact">
+<figure data-v="desktop"><img src="desktop/component-btn-secondary-focus.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><img src="mobile/component-btn-secondary-focus.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card comp" id="component-btn-secondary-hover">
+<header><h4>btn-secondary (hover)</h4><p class="meta">app/assets/css/main.css</p></header>
+<div class="shots compact">
+<figure data-v="desktop"><img src="desktop/component-btn-secondary-hover.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><img src="mobile/component-btn-secondary-hover.png" alt="" loading="lazy"/></figure>
+</div></article></div></section><section class="comp-group" id="comp-cards"><h3>cards</h3><div class="comp-grid"><article class="card comp" id="component-ios-card-default">
+<header><h4>ios-card</h4><p class="meta">app/assets/css/main.css</p></header>
+<div class="shots compact">
+<figure data-v="desktop"><img src="desktop/component-ios-card-default.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><img src="mobile/component-ios-card-default.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card comp" id="component-neo-card-default">
+<header><h4>neo-card</h4><p class="meta">app/assets/css/main.css</p></header>
+<div class="shots compact">
+<figure data-v="desktop"><img src="desktop/component-neo-card-default.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><img src="mobile/component-neo-card-default.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card comp" id="component-tail-card-default">
+<header><h4>tail-card</h4><p class="meta">app/assets/css/main.css</p></header>
+<div class="shots compact">
+<figure data-v="desktop"><img src="desktop/component-tail-card-default.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><img src="mobile/component-tail-card-default.png" alt="" loading="lazy"/></figure>
+</div></article></div></section><section class="comp-group" id="comp-inputs"><h3>inputs</h3><div class="comp-grid"><article class="card comp" id="component-neo-input-default">
+<header><h4>neo-input (default)</h4><p class="meta">app/assets/css/main.css</p></header>
+<div class="shots compact">
+<figure data-v="desktop"><img src="desktop/component-neo-input-default.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><img src="mobile/component-neo-input-default.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card comp" id="component-neo-input-error">
+<header><h4>neo-input (error)</h4><p class="meta">app/assets/css/main.css</p></header>
+<div class="shots compact">
+<figure data-v="desktop"><img src="desktop/component-neo-input-error.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><img src="mobile/component-neo-input-error.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card comp" id="component-neo-input-focus">
+<header><h4>neo-input (focus)</h4><p class="meta">app/assets/css/main.css</p></header>
+<div class="shots compact">
+<figure data-v="desktop"><img src="desktop/component-neo-input-focus.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><img src="mobile/component-neo-input-focus.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card comp" id="component-neo-textarea-default">
+<header><h4>neo-textarea (default)</h4><p class="meta">app/assets/css/main.css</p></header>
+<div class="shots compact">
+<figure data-v="desktop"><img src="desktop/component-neo-textarea-default.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><img src="mobile/component-neo-textarea-default.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card comp" id="component-neo-textarea-error">
+<header><h4>neo-textarea (error)</h4><p class="meta">app/assets/css/main.css</p></header>
+<div class="shots compact">
+<figure data-v="desktop"><img src="desktop/component-neo-textarea-error.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><img src="mobile/component-neo-textarea-error.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card comp" id="component-neo-textarea-focus">
+<header><h4>neo-textarea (focus)</h4><p class="meta">app/assets/css/main.css</p></header>
+<div class="shots compact">
+<figure data-v="desktop"><img src="desktop/component-neo-textarea-focus.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><img src="mobile/component-neo-textarea-focus.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card comp" id="component-tail-input-default">
+<header><h4>tail-input (default)</h4><p class="meta">app/assets/css/main.css</p></header>
+<div class="shots compact">
+<figure data-v="desktop"><img src="desktop/component-tail-input-default.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><img src="mobile/component-tail-input-default.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card comp" id="component-tail-input-error">
+<header><h4>tail-input (error)</h4><p class="meta">app/assets/css/main.css</p></header>
+<div class="shots compact">
+<figure data-v="desktop"><img src="desktop/component-tail-input-error.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><img src="mobile/component-tail-input-error.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card comp" id="component-tail-input-focus">
+<header><h4>tail-input (focus)</h4><p class="meta">app/assets/css/main.css</p></header>
+<div class="shots compact">
+<figure data-v="desktop"><img src="desktop/component-tail-input-focus.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><img src="mobile/component-tail-input-focus.png" alt="" loading="lazy"/></figure>
+</div></article></div></section><section class="comp-group" id="comp-tables"><h3>tables</h3><div class="comp-grid"><article class="card comp" id="component-canva-finance-table-wrap-default">
+<header><h4>canva-finance-table-wrap</h4><p class="meta">app/assets/css/main.css</p></header>
+<div class="shots compact">
+<figure data-v="desktop"><img src="desktop/component-canva-finance-table-wrap-default.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><img src="mobile/component-canva-finance-table-wrap-default.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card comp" id="component-tail-table-default">
+<header><h4>tail-table</h4><p class="meta">app/assets/css/main.css</p></header>
+<div class="shots compact">
+<figure data-v="desktop"><img src="desktop/component-tail-table-default.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><img src="mobile/component-tail-table-default.png" alt="" loading="lazy"/></figure>
+</div></article><article class="card comp" id="component-tail-table-wrap-default">
+<header><h4>tail-table-wrap</h4><p class="meta">app/assets/css/main.css</p></header>
+<div class="shots compact">
+<figure data-v="desktop"><img src="desktop/component-tail-table-wrap-default.png" alt="" loading="lazy"/></figure>
+<figure data-v="mobile"><img src="mobile/component-tail-table-wrap-default.png" alt="" loading="lazy"/></figure>
+</div></article></div></section></section>
+</main>
+</div>
+<script>
+document.querySelectorAll('.toolbar button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.body.dataset.view = btn.dataset.view;
+    document.querySelectorAll('.toolbar button').forEach(b => b.classList.toggle('active', b === btn));
+  });
+});
+</script>
+</body>
+</html>
