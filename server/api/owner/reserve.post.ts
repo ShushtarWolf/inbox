@@ -112,7 +112,10 @@ export default defineEventHandler(async (event) => {
       if (!coach) throw createError({ statusCode: 400, statusMessage: 'Invalid coach' })
       resolvedCoachId = coach.id
       coachSessionPrice = coach.sessionPrice || 0
-      await assertCoachTimeAvailable(coach.id, slot.date, slot.startTime)
+      // Re-saving a booking that already carries this coach must not conflict with itself.
+      if (existing?.coachId !== coach.id) {
+        await assertCoachTimeAvailable(coach.id, slot.date, slot.startTime)
+      }
     }
   } else if (existing?.coachId) {
     const coach = await prisma.coach.findFirst({

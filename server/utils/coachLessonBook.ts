@@ -124,16 +124,6 @@ export async function bookCoachLessonsAtomic(input: {
           },
         })
 
-        if (price.charge > 0) {
-          const settled = await creditOwnerForPaidPayment(courtPayment.id, undefined, tx)
-          if (!settled.credited && settled.reason !== 'already_settled') {
-            throw createError({
-              statusCode: 500,
-              statusMessage: 'Coach court settlement failed',
-            })
-          }
-        }
-
         const endTime = slot.endTime || addOneHour(slot.startTime)
         const session = await tx.coachSession.create({
           data: {
@@ -150,6 +140,18 @@ export async function bookCoachLessonsAtomic(input: {
         await tx.payment.create({
           data: { coachSessionId: session.id, ...lessonPayment.payment },
         })
+
+        // Settle after the CoachSession row exists: creditOwnerForPaidPayment only applies the
+        // lower coach-court commission when a linked CoachSession proves the server path.
+        if (price.charge > 0) {
+          const settled = await creditOwnerForPaidPayment(courtPayment.id, undefined, tx)
+          if (!settled.credited && settled.reason !== 'already_settled') {
+            throw createError({
+              statusCode: 500,
+              statusMessage: 'Coach court settlement failed',
+            })
+          }
+        }
 
         await tx.reservationEvent.create({
           data: {
