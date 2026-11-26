@@ -4,7 +4,7 @@ import { isValidSheba } from '#shared/settlement.ts'
 
 definePageMeta({ layout: 'dashboard-athlete', middleware: ['auth', 'role'], role: 'ATHLETE', ssr: false })
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const localePath = useLocalePath()
 const route = useRoute()
 const router = useRouter()
@@ -34,6 +34,11 @@ const { data, pending, error, refresh } = await useAuthedFetch<{
   availableBalance?: number
   lockedBalance?: number
   withdrawableBalance?: number
+  athleteCashOutHold?: {
+    heldAmount: number
+    unlockAt: string
+    items?: Array<{ amount: number; unlockAt: string }>
+  } | null
   pendingClassBalance?: number
   canBankWithdraw?: boolean
   bankWithdrawKind?: 'coach' | 'athlete' | null
@@ -102,6 +107,41 @@ const topUpAmount = computed(() => {
 })
 
 const withdrawableBalance = computed(() => Number(data.value?.withdrawableBalance || 0))
+const athleteCashOutHold = computed(() => data.value?.athleteCashOutHold ?? null)
+
+function formatTehranCalendarDate(iso: string) {
+  const options: Intl.DateTimeFormatOptions = {
+    timeZone: 'Asia/Tehran',
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  }
+  if (locale.value === 'fa') {
+    options.calendar = 'persian'
+    options.numberingSystem = 'arabext'
+  }
+  return new Intl.DateTimeFormat(locale.value === 'fa' ? 'fa-IR' : 'en-US', options).format(new Date(iso))
+}
+
+function formatTehranClockTime(iso: string) {
+  const clock = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Tehran',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(new Date(iso))
+  return formatTimeLabel(clock)
+}
+
+const cashOutHoldNotice = computed(() => {
+  const hold = athleteCashOutHold.value
+  if (!hold?.heldAmount || !hold.unlockAt) return ''
+  return t('athlete.walletCashOutHoldNotice', {
+    amount: formatCurrency(hold.heldAmount),
+    time: formatTehranClockTime(hold.unlockAt),
+    date: formatTehranCalendarDate(hold.unlockAt),
+  })
+})
 const withdrawMin = computed(() => data.value?.bankWithdrawKind === 'athlete' ? Number(data.value?.athleteWithdrawMin || 0) : 0)
 const withdrawBelowMin = computed(() => withdrawMin.value > 0 && withdrawableBalance.value < withdrawMin.value)
 const pendingClassBalance = computed(() => Number(data.value?.pendingClassBalance || 0))
@@ -309,6 +349,7 @@ watch(
           <div class="fin-lab">{{ t('athlete.walletBankTransferable') }}</div>
           <div class="v tabular-nums">{{ formatCurrency(data?.canBankWithdraw ? withdrawableBalance : 0) }}</div>
           <p class="fin-note">{{ data?.canBankWithdraw ? t('athlete.walletBankTransferableHint') : t('athlete.walletClosedLoopHint') }}</p>
+          <p v-if="data?.canBankWithdraw && cashOutHoldNotice" class="fin-note">{{ cashOutHoldNotice }}</p>
           <p v-if="data?.canBankWithdraw && withdrawBelowMin" class="fin-note">
             {{ t('athlete.withdrawBelowMin', { min: formatCurrency(withdrawMin) }) }}
           </p>

@@ -4,6 +4,7 @@ import { totalUserWithdrawable } from '#shared/walletWithdrawRail.ts'
 import { ATHLETE_WITHDRAW_MIN_TOMAN } from '#shared/athleteCashOut.ts'
 import {
   getAthleteCashOutBalance,
+  getAthleteCashOutHold,
   getWalletBalances,
   getWalletPendingClassBalance,
   getWalletWithdrawableBalance,
@@ -15,10 +16,11 @@ import { resolveShebaRequestUiStatus } from '#shared/shebaApproval.ts'
 export default defineEventHandler(async (event) => {
   const user = await requireUser(event)
   await unlockEligibleWalletSettlements(user.id)
-  const [balances, coachWithdrawable, athleteCashOut, pendingClassBalance, coach] = await Promise.all([
+  const [balances, coachWithdrawable, athleteCashOut, athleteCashOutHold, pendingClassBalance, coach] = await Promise.all([
     getWalletBalances(user.id),
     getWalletWithdrawableBalance(user.id),
     getAthleteCashOutBalance(user.id),
+    getAthleteCashOutHold(user.id),
     getWalletPendingClassBalance(user.id),
     prisma.coach.findFirst({ where: { userId: user.id }, select: { id: true } }),
   ])
@@ -180,6 +182,7 @@ export default defineEventHandler(async (event) => {
     withdrawableBalance: canBankWithdraw ? withdrawableBalance : 0,
     coachWithdrawableBalance: isCoach ? coachWithdrawable : 0,
     athleteCashOutBalance: athleteCashOut,
+    athleteCashOutHold,
     athleteWithdrawMin: ATHLETE_WITHDRAW_MIN_TOMAN,
     pendingClassBalance,
     canBankWithdraw,

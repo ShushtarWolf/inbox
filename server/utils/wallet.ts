@@ -1,5 +1,9 @@
 import { Prisma, type WalletTransactionType } from '@prisma/client'
-import { athleteCashOutFromTxs } from '#shared/athleteCashOut.ts'
+import {
+  athleteCashOutFromTxs,
+  athleteCashOutHoldFromTxs,
+  type AthleteCashOutHoldSummary,
+} from '#shared/athleteCashOut.ts'
 import { isSettlementCashoutEligible } from '#shared/settlement.ts'
 import {
   applyDebtAwareWithdrawCeiling,
@@ -40,13 +44,8 @@ export async function getWalletBalances(userId: string) {
   }
 }
 
-/**
- * Athlete SHEBA cash-out: top-up + refund nets, capped by available,
- * minus prior withdraw holds/paid so mixed coach+top-up wallets cannot drain settlement.
- * Fresh TOPUP_CREDIT rows are excluded until ATHLETE_TOPUP_CASHOUT_HOLD_HOURS.
- */
-export async function getAthleteCashOutBalance(userId: string, db: DbClient = prisma) {
-  const wallet = await db.wallet.findUnique({
+async function loadAthleteCashOutLedger(userId: string, db: DbClient = prisma) {
+  return db.wallet.findUnique({
     where: { userId },
     select: {
       id: true,
@@ -54,10 +53,28 @@ export async function getAthleteCashOutBalance(userId: string, db: DbClient = pr
       balance: true,
       transactions: {
         where: { type: { in: ['TOPUP_CREDIT', 'REFUND_CREDIT', 'PAYMENT_DEBIT'] } },
-        select: { amount: true, type: true, createdAt: true },
+        select: { amount: true, type: true, createdAt: true, paymentId: true },
       },
     },
   })
+}
+
+/**
+ * Athlete SHEBA cash-out: top-up + refund nets, capped by available,
+ * minus prior withdraw holds/paid so mixed coach+top-up wallets cannot drain settlement.
+ * Only IPG cancel REFUND_CREDIT rows are held for ATHLETE_TOPUP_CASHOUT_HOLD_HOURS.
+ */
+export async function getAthleteCashOutHold(
+  userId: string,
+  db: DbClient = prisma,
+): Promise<AthleteCashOutHoldSummary | null> {
+  const wallet = await loadAthleteCashOutLedger(userId, db)
+  if (!wallet) return null
+  return athleteCashOutHoldFromTxs(wallet.transactions)
+}
+
+export async function getAthleteCashOutBalance(userId: string, db: DbClient = prisma) {
+  const wallet = await loadAthleteCashOutLedger(userId, db)
   const available = wallet?.availableBalance ?? wallet?.balance ?? 0
   const balance = wallet?.balance ?? 0
   if (!wallet || available <= 0) return 0
