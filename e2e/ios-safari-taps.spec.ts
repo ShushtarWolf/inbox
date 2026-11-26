@@ -229,6 +229,22 @@ test.describe('iOS Safari tap guard', () => {
     await expect(page.locator('[data-app-modal-overlay]')).toBeVisible({ timeout: 10_000 })
   })
 
+  test('owner account drawer club row opens settings without spurious dismiss', async ({ page }) => {
+    await loginOwnerPassword(page)
+    await page.goto('/owner/calendar')
+    await expect(page.locator('.canva-owner-avatar').first()).toBeVisible({ timeout: 15_000 })
+
+    await page.locator('.canva-owner-avatar').first().click()
+    await expect(page.locator('[data-account-drawer-overlay]')).toBeVisible({ timeout: 10_000 })
+    await page.waitForTimeout(450)
+
+    const clubRow = page.locator('[data-account-drawer-club]')
+    await expect(clubRow).toBeVisible({ timeout: 5_000 })
+    await clubRow.click()
+    await page.waitForURL(/\/owner\/settings/, { timeout: 15_000 })
+    await expect(page.locator('[data-account-drawer-overlay]')).toHaveCount(0, { timeout: 10_000 })
+  })
+
   test('owner account drawer logout clears session (IB-59)', async ({ page }) => {
     await loginOwnerPassword(page)
     await page.goto('/owner/calendar')

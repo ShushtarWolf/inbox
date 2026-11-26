@@ -3009,6 +3009,9 @@
   .canva-account-drawer-clubs {
     @apply block min-w-0 text-start;
   }
+  .canva-account-drawer-club-link {
+    @apply -mx-1 rounded-[var(--sz-canva-radius)] px-1 py-1;
+  }
   .canva-account-menu {
     display: flex;
     flex-direction: column;

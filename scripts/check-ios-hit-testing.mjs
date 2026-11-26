@@ -183,6 +183,16 @@ if (!accountDrawer.includes('@pointerdown.stop')) {
 if (/async function handleLogout\(\)[\s\S]*emit\(['"]close['"]\)[\s\S]*await logout/.test(accountDrawer)) {
   errors.push('OwnerAccountDrawer handleLogout must await logout before emit(close)')
 }
+if (accountDrawer.includes("addEventListener('scroll', onViewportChange, true)")
+  || accountDrawer.includes('addEventListener("scroll", onViewportChange, true)')) {
+  errors.push('OwnerAccountDrawer must not use capture-phase window scroll (repositions panel on in-drawer scroll / iOS taps)')
+}
+if (!accountDrawer.includes('visualViewport') || !accountDrawer.includes('detachViewportListeners')) {
+  errors.push('OwnerAccountDrawer must reposition via visualViewport listeners only while open')
+}
+if (!accountDrawer.includes('data-account-drawer-club')) {
+  errors.push('OwnerAccountDrawer club row must be data-account-drawer-club (settings link or club select)')
+}
 
 const bottomNav = readFileSync('app/components/AppBottomNav.vue', 'utf8')
 if (!bottomNav.includes('scrollLayout') || !bottomNav.includes('touch-pan-x')) {
