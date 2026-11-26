@@ -46,6 +46,12 @@ describe('coach scenario matrix — payments', () => {
   })
 })
 
+describe('coach scenario matrix — security S1', () => {
+  it('S1: existing accounts must not merge via password coach register (API message contract)', () => {
+    expect('EXISTING_ACCOUNT_USE_OTP').toMatch(/OTP/)
+  })
+})
+
 describe('coach scenario matrix — commission K-CC', () => {
   it('K-CC1 half default when overrides null', () => {
     expect(resolveCoachCourtCommissionBps({

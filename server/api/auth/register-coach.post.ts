@@ -1,12 +1,11 @@
-import { assignAddedRole, canAddRole } from '#shared/roles.ts'
+import { canAddRole } from '#shared/roles.ts'
 import { parseGender } from '#shared/gender.ts'
 import { toSessionUser, touchLastLogin } from '../../utils/auth'
 import { resolveUserDisplayName, userNameFieldsFromParts } from '../../utils/userNameRecord'
 
 /**
- * Coach password registration. Existing phone/email users get COACH as an added
- * platform role (up to 3) instead of a second account. Public listing stays PENDING
- * until admin approval.
+ * Coach password registration (new accounts only). Existing users must use OTP coach
+ * registration (`/api/auth/otp/*`) so phone ownership is proven (BUG_TRIAGE S1).
  */
 export default defineEventHandler(async (event) => {
   assertCoachProductEnabled(event)
@@ -69,6 +68,11 @@ export default defineEventHandler(async (event) => {
     if (coachExists) {
       throw createError({ statusCode: 409, statusMessage: 'Coach profile already exists' })
     }
+    // S1: password signup cannot merge into an existing login — use OTP coach registration (proves phone).
+    throw createError({
+      statusCode: 403,
+      statusMessage: 'EXISTING_ACCOUNT_USE_OTP',
+    })
   }
 
   const court = club
@@ -83,18 +87,7 @@ export default defineEventHandler(async (event) => {
     : 0
 
   const result = await prisma.$transaction(async (tx) => {
-    const user = existingUser
-      ? await tx.user.update({
-          where: { id: existingUser.id },
-          data: {
-            ...assignAddedRole(existingUser, 'COACH')!,
-            passwordHash: hashSecret(password),
-            ...(phone && !existingUser.phone ? { phone } : {}),
-            ...(!existingUser.gender ? { gender } : {}),
-            avatarUrl: body.avatarUrl?.trim() || existingUser.avatarUrl,
-          },
-        })
-      : await tx.user.create({
+    const user = await tx.user.create({
           data: {
             name: nameParts.name,
             nameFamily: nameParts.nameFamily,

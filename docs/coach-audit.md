@@ -61,14 +61,14 @@ Full matrix from audit (Nov 2026). **Legend:** OK / Missing / Bug.
 | B1–B3 | Single / lesson+court / coach series | OK |
 | B4 | Owner seasonal/recurring + coach | N/A (recurring frozen) |
 | B5–B6 | Group package capacity | Missing until `PACKAGES_ENABLED` |
-| B7 | Marketplace time vs court double commitment | Bug/gap (product) |
+| B7 | Marketplace time vs court double commitment | **OK** (`coachTimeConflict.ts`) |
 
 ### Cancellation & refund-once
 
 | ID | Scenario | Status |
 |----|----------|--------|
 | C1–C4 | Athlete/coach/owner cancel + linked court unwind | OK (`cancellations.ts`) |
-| C5–C6 | Owner/admin cancel session-only | Missing |
+| C5–C6 | Owner/admin cancel session-only | **OK** (`owner/coach-sessions/[id]/cancel`, `admin/coach-sessions/[id]/cancel`) |
 | C7 | Idempotent refund/clawback | OK |
 | C8–C9 | Unpaid / cash paths | OK |
 
@@ -76,7 +76,7 @@ Full matrix from audit (Nov 2026). **Legend:** OK / Missing / Bug.
 
 | Area | Status | Key paths |
 |------|--------|-----------|
-| No-show | Missing (schema only) | `CoachSession.noShowAt` |
+| No-show | **OK** (CRM only, no money) | `coachSessionNoShow.ts`, `*/no-show.patch` |
 | Multi-club coach | OK book; finance attribution gap | `coachClubLinks.ts`, `owner/finance.get.ts` |
 | Reject/suspend coach | OK new books; no mass cancel | `admin/coaches/*` |
 | Price after book | OK snapshot on session | `CoachSession.price` |
@@ -104,7 +104,7 @@ Full matrix from audit (Nov 2026). **Legend:** OK / Missing / Bug.
 | Step | Effort | Description |
 |------|--------|-------------|
 | 1 | S | Ops: `PILOT_NO_COACH=false` + `COACH_V1_GO_NO_GO` |
-| 2 | S | Fix register-coach takeover (BUG_TRIAGE S1) |
+| 2 | **Done** | register-coach takeover — password path blocks existing accounts (S1) |
 | 3 | **Done** | Coach court commission + settlement in txn |
 | 4 | **Done** | Atomic athlete coach book; coach transfer guard |
 | 5 | M | No-show / check-in APIs (if product requires) |

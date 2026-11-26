@@ -10,6 +10,7 @@ import { isUniqueConstraintError } from '../../utils/prismaErrors'
 import { requireOnlinePaymentsForAthlete } from '../../utils/requireOnlinePayments'
 import { assertAthleteDidNotConfirmCash } from '../../utils/assertAthleteNoCashConfirm'
 import { addOneHour, canManageReservation, assertSlotBookable } from '../../utils/reservations'
+import { assertCoachTimeAvailable } from '../../utils/coachTimeConflict'
 
 export default defineEventHandler(async (event) => {
   assertCoachProductEnabled(event)
@@ -43,12 +44,7 @@ export default defineEventHandler(async (event) => {
   if (!canManageReservation(body.date, body.startTime, coach.club?.rescheduleWindowHours ?? 24)) {
     throw createError({ statusCode: 409, statusMessage: 'BOOKING_TOO_SOON' })
   }
-  const existing = await prisma.coachSession.findFirst({
-    where: { coachId: coach.id, date: body.date, startTime: body.startTime, status: { not: 'CANCELLED' } },
-  })
-  if (existing) {
-    throw createError({ statusCode: 409, statusMessage: 'This session time is already booked' })
-  }
+  await assertCoachTimeAvailable(coach.id, body.date, body.startTime)
 
   const paymentFields = initialPlatformPaymentFields(coach.sessionPrice)
   let session

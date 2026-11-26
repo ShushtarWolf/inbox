@@ -20,7 +20,7 @@
 - لغو عادی **کارت را ریورس نمی‌کند**؛ سهم بازپرداخت → `REFUND_CREDIT` کیف ورزشکار + `SETTLEMENT_CLAWBACK` باشگاه/مربی (`server/utils/refunds.ts`).
 - نقد میز → بازپرداخت ورزشکار ندارد؛ `deskCashReturn=owed` تا تأیید مالک (`POST /api/owner/payments/:id/ack-cash-return`).
 - مهمان لینک پرداخت بدون `userId` → `manualBankRefund=owed` تا ادمین (`POST /api/admin/payments/:id/ack-manual-refund`).
-- **عدم حضور (`noShowAt`)** فقط CRM/آمار است؛ در کد فعلی **جابه‌جایی پول خودکار ندارد** (`server/api/owner/finance.get.ts`).
+- **عدم حضور (`noShowAt`)** فقط CRM/آمار است؛ در کد فعلی **جابه‌جایی پول خودکار ندارد** (`server/api/owner/finance.get.ts`). ثبت: `PATCH /api/coach-sessions/:id/no-show` (مربی/شاگرد)، `PATCH /api/owner/coach-sessions/:id/no-show`، `PATCH /api/admin/coach-sessions/:id/no-show` — جدول `ReservationEvent` نوع `NO_SHOW`.
 - **تقویم خارجی (AloPlay / …)** فقط مانع رزرو است؛ پول فقط بعد از رزرو موفق اینباکس (`server/utils/externalBookingGuard.ts`).
 
 ---

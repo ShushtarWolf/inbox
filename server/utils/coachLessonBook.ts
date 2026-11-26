@@ -7,6 +7,7 @@ import { isUniqueConstraintError } from './prismaErrors'
 import { addOneHour } from './reservations'
 import { deleteStaleCancelledBooking } from './staleBooking'
 import { creditOwnerForPaidPayment } from './settlement'
+import { assertCoachTimeAvailable } from './coachTimeConflict'
 
 export type CoachLessonBookSlot = {
   id: string
@@ -70,6 +71,7 @@ export async function bookCoachLessonsAtomic(input: {
       }> = []
 
       for (const slot of input.slots) {
+        await assertCoachTimeAvailable(input.coachId, slot.date, slot.startTime, tx)
         const price = computeCoachCourtCharge({
           courtPrice: slot.courtPrice,
           startTime: slot.startTime,

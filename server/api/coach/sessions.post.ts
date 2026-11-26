@@ -5,6 +5,7 @@ import { coachHourIsOpen, padCoachTime } from '../../utils/coachCalendarLesson'
 import { requireApprovedCoach } from '../../utils/coachClubLinks'
 import { isUniqueConstraintError } from '../../utils/prismaErrors'
 import { addOneHour } from '../../utils/reservations'
+import { findCoachTimeConflict } from '../../utils/coachTimeConflict'
 
 /**
  * Put a student on the coach calendar for an hour they already picked.
@@ -58,16 +59,9 @@ export default defineEventHandler(async (event) => {
   let sessionId: string
   try {
     sessionId = await prisma.$transaction(async (tx) => {
-      const conflicting = await tx.coachSession.findFirst({
-        where: {
-          coachId: profile.id,
-          date,
-          status: { not: 'CANCELLED' },
-          OR: [{ startTime }, { startTime: `${startTime}:00` }],
-        },
-      })
-      if (conflicting) {
-        throw createError({ statusCode: 409, statusMessage: 'This session time is already booked' })
+      const conflict = await findCoachTimeConflict(profile.id, date, startTime, tx)
+      if (conflict) {
+        throw createError({ statusCode: 409, statusMessage: 'Coach is already committed at this time' })
       }
 
       const session = await tx.coachSession.create({

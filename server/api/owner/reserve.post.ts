@@ -23,6 +23,7 @@ import { rethrowSlotConflict, SlotNotAvailableError } from '../../utils/prismaEr
 import { assignBookingPayPin } from '../../utils/payPin'
 import { payUrlForPin } from '../../utils/receipt'
 import { activeSlotBooking } from '../../utils/reservations'
+import { assertCoachTimeAvailable } from '../../utils/coachTimeConflict'
 import { releaseExpiredOnlinePaymentHolds } from '../../utils/onlinePaymentHold'
 import { clawbackOwnerForPayment, creditOwnerForPaidPayment } from '../../utils/settlement'
 import { resolveDeskCharge } from '#shared/deskCharge.ts'
@@ -111,6 +112,7 @@ export default defineEventHandler(async (event) => {
       if (!coach) throw createError({ statusCode: 400, statusMessage: 'Invalid coach' })
       resolvedCoachId = coach.id
       coachSessionPrice = coach.sessionPrice || 0
+      await assertCoachTimeAvailable(coach.id, slot.date, slot.startTime)
     }
   } else if (existing?.coachId) {
     const coach = await prisma.coach.findFirst({

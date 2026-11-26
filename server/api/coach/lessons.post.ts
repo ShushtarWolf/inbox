@@ -5,6 +5,7 @@ import { requireActiveClub, requireApprovedCoach } from '../../utils/coachClubLi
 import { bookCoachLessonsAtomic, ensureCoachStudent } from '../../utils/coachLessonBook'
 import { syncClubContactForBooking } from '../../utils/contactSync'
 import { addOneHour } from '../../utils/reservations'
+import { assertCoachTimeAvailable } from '../../utils/coachTimeConflict'
 import { getWalletBalance } from '../../utils/wallet'
 import { assertExternalBookingAllowedIfEnabled } from '../../utils/externalBookingGuard'
 
@@ -57,12 +58,7 @@ export default defineEventHandler(async (event) => {
     }],
   })
 
-  const conflicting = await prisma.coachSession.findFirst({
-    where: { coachId: coach.id, date: slot.date, startTime: slot.startTime, status: { not: 'CANCELLED' } },
-  })
-  if (conflicting) {
-    throw createError({ statusCode: 409, statusMessage: 'This session time is already booked' })
-  }
+  await assertCoachTimeAvailable(coach.id, slot.date, slot.startTime)
 
   const student = await ensureCoachStudent({
     coachUserId: user.id,
