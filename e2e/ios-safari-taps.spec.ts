@@ -252,7 +252,7 @@ test.describe('iOS Safari tap guard', () => {
     // Seed owner has two clubs: club row is a <select>, tap must not close the drawer.
     await clubRow.click()
     await expect(overlay).toBeVisible({ timeout: 5_000 })
-    await page.getByRole('link', { name: 'تنظیمات' }).click()
+    await overlay.getByRole('link', { name: 'تنظیمات' }).click()
     await page.waitForURL(/\/owner\/settings/, { timeout: 15_000 })
   })
 
