@@ -51,8 +51,15 @@ const links = computed(() => [
   { to: localePath('/owner/support'), label: t('owner.support'), icon: 'headset_mic' },
 ])
 
+const settingsPath = computed(() => localePath('/owner/settings'))
+
 function onNavigate() {
   emit('close')
+}
+
+/** Club picker taps must not arm the backdrop dismiss path (iOS Safari). */
+function onClubControlPointerDown() {
+  backdropGestureActive.value = false
 }
 
 function clearDismissArmTimer() {
@@ -218,6 +225,18 @@ function onViewportChange() {
   if (props.open) positionPanel()
 }
 
+function attachViewportListeners() {
+  window.addEventListener('resize', onViewportChange)
+  window.visualViewport?.addEventListener('resize', onViewportChange)
+  window.visualViewport?.addEventListener('scroll', onViewportChange)
+}
+
+function detachViewportListeners() {
+  window.removeEventListener('resize', onViewportChange)
+  window.visualViewport?.removeEventListener('resize', onViewportChange)
+  window.visualViewport?.removeEventListener('scroll', onViewportChange)
+}
+
 function acquireLock() {
   if (holdsBodyLock.value) return
   acquireModalBodyLock()
@@ -245,6 +264,7 @@ watch(() => props.open, async (isOpen) => {
     acquireLock()
     restoreFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null
     scheduleDismissArm()
+    attachViewportListeners()
     await nextTick()
     attachPanelObserver()
     positionPanel()
@@ -259,6 +279,7 @@ watch(() => props.open, async (isOpen) => {
   else {
     clearDismissArmTimer()
     clearOpenGestureListeners()
+    detachViewportListeners()
     dismissArmed.value = false
     backdropGestureActive.value = false
     loggingOut.value = false
@@ -277,17 +298,14 @@ watch(() => props.anchor, () => {
 onMounted(() => {
   if (!import.meta.client) return
   document.addEventListener('keydown', onKeydown)
-  window.addEventListener('resize', onViewportChange)
-  window.addEventListener('scroll', onViewportChange, true)
 })
 
 onUnmounted(() => {
   if (!import.meta.client) return
   clearDismissArmTimer()
   clearOpenGestureListeners()
+  detachViewportListeners()
   document.removeEventListener('keydown', onKeydown)
-  window.removeEventListener('resize', onViewportChange)
-  window.removeEventListener('scroll', onViewportChange, true)
   resizeObserver?.disconnect()
   releaseLock()
 })
@@ -340,20 +358,37 @@ onUnmounted(() => {
             </button>
           </div>
 
-          <label v-if="memberships.length > 1" class="canva-account-drawer-clubs">
+          <label
+            v-if="memberships.length > 1"
+            class="canva-account-drawer-clubs"
+            data-account-drawer-club
+            @pointerdown.stop="onClubControlPointerDown"
+          >
             <span class="text-[11px] font-bold text-brand-gray-500">{{ t('owner.account.myClubs') }}</span>
-            <select v-model="selectedClubId" class="canva-cal-club-select mt-1">
+            <select
+              v-model="selectedClubId"
+              class="canva-cal-club-select mt-1"
+              @pointerdown.stop="onClubControlPointerDown"
+              @mousedown="onClubControlPointerDown"
+              @touchstart.stop="onClubControlPointerDown"
+            >
               <option v-for="item in memberships" :key="item.club.id" :value="item.club.id">
                 {{ localizedField(item.club, 'nameFa', 'nameEn') }}
               </option>
             </select>
           </label>
-          <p v-else class="canva-account-drawer-clubs text-start text-sm font-bold text-brand-navy">
+          <NuxtLink
+            v-else
+            :to="settingsPath"
+            class="canva-account-drawer-clubs canva-account-drawer-club-link block text-start text-sm font-bold text-brand-navy transition hover:bg-brand-primary-soft"
+            data-account-drawer-club
+            @click="onNavigate"
+          >
             {{ t('owner.account.myClubs') }}
             <span class="mt-1 block text-xs font-bold text-brand-gray-500">
               {{ activeMembership?.club ? localizedField(activeMembership.club, 'nameFa', 'nameEn') : '—' }}
             </span>
-          </p>
+          </NuxtLink>
 
           <nav class="canva-account-menu">
             <NuxtLink

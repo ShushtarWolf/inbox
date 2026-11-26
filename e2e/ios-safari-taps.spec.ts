@@ -229,6 +229,33 @@ test.describe('iOS Safari tap guard', () => {
     await expect(page.locator('[data-app-modal-overlay]')).toBeVisible({ timeout: 10_000 })
   })
 
+  test('owner account drawer club row does not spuriously dismiss', async ({ page }) => {
+    await loginOwnerPassword(page)
+    await page.goto('/owner/calendar')
+    const openDrawer = page.getByRole('button', { name: 'حساب باشگاه' })
+    await expect(openDrawer).toBeVisible({ timeout: 15_000 })
+
+    await openDrawer.click()
+    const overlay = page.locator('[data-account-drawer-overlay]')
+    await expect(overlay).toBeVisible({ timeout: 10_000 })
+    await page.waitForTimeout(450)
+
+    const clubRow = page.locator('[data-account-drawer-club]')
+    await expect(clubRow).toBeVisible({ timeout: 5_000 })
+    const clubSettingsLink = page.locator('[data-account-drawer-club].canva-account-drawer-club-link')
+    if (await clubSettingsLink.count()) {
+      await clubSettingsLink.click()
+      await page.waitForURL(/\/owner\/settings/, { timeout: 15_000 })
+      await expect(overlay).toHaveCount(0, { timeout: 10_000 })
+      return
+    }
+    // Seed owner has two clubs: club row is a <select>, tap must not close the drawer.
+    await clubRow.click()
+    await expect(overlay).toBeVisible({ timeout: 5_000 })
+    await overlay.getByRole('link', { name: 'تنظیمات' }).click()
+    await page.waitForURL(/\/owner\/settings/, { timeout: 15_000 })
+  })
+
   test('owner account drawer logout clears session (IB-59)', async ({ page }) => {
     await loginOwnerPassword(page)
     await page.goto('/owner/calendar')
