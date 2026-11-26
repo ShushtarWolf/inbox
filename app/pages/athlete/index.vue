@@ -116,6 +116,8 @@ async function handleLogout() {
       <h2 class="ath-hub-title">{{ t('nav.profile') }}</h2>
       <p class="ath-hub-sub">{{ t('athlete.hubSubtitle') }}</p>
     </header>
+    <AthleteStudentVerificationStatus class="mb-1" />
+
     <section class="canva-dash-hero">
       <div class="flex items-center gap-4">
         <div class="ath-hub-avatar flex h-16 w-16 items-center justify-center overflow-hidden rounded-full border-2 border-white/40 bg-white/15 text-lg font-bold">

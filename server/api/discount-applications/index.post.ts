@@ -117,7 +117,12 @@ export default defineEventHandler(async (event) => {
       type: 'DISCOUNT_APPLICATION',
       title: isStudent ? 'درخواست احراز دانشجویی' : 'درخواست تخفیف جدید',
       body: `${detail} برای «${program.titleFa}» مدرک فرستاد.`,
-      metadata: { clubId: program.clubId, applicationId: row.id, programId },
+      metadata: {
+        clubId: program.clubId,
+        applicationId: row.id,
+        programId,
+        href: '/owner/discounts?tab=requests',
+      },
     }).catch(() => null)
   }
 

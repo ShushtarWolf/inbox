@@ -1,6 +1,7 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN', ssr: false })
 
+const localePath = useLocalePath()
 const { t } = useI18n()
 const { formatDateTime } = useFormatters()
 const { data, pending, error, refresh } = await useAuthedFetch<{
@@ -11,6 +12,7 @@ const { data, pending, error, refresh } = await useAuthedFetch<{
     body: string
     readAt: string | null
     createdAt: string
+    href: string | null
   }>
   unreadCount: number
 }>('/api/notifications')
@@ -78,15 +80,24 @@ async function markAllRead() {
                 {{ formatDateTime(item.createdAt) }}
               </p>
             </div>
-            <button
-              v-if="!item.readAt"
-              type="button"
-              class="canva-cta shrink-0 px-3 py-1.5 text-[11px]"
-              :disabled="marking === item.id"
-              @click="markRead(item.id)"
-            >
-              {{ t('notifications.markRead') }}
-            </button>
+            <div class="flex shrink-0 flex-col items-end gap-2">
+              <NuxtLink
+                v-if="item.href"
+                :to="localePath(item.href)"
+                class="canva-cta px-3 py-1.5 text-[11px] font-bold"
+              >
+                {{ t('notifications.openLink') }}
+              </NuxtLink>
+              <button
+                v-if="!item.readAt"
+                type="button"
+                class="canva-gate-btn-secondary px-3 py-1.5 text-[11px] font-bold"
+                :disabled="marking === item.id"
+                @click="markRead(item.id)"
+              >
+                {{ t('notifications.markRead') }}
+              </button>
+            </div>
           </div>
         </li>
       </ul>

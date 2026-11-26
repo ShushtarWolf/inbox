@@ -143,6 +143,8 @@ async function save() {
       </p>
     </section>
 
+    <AthleteStudentVerificationStatus />
+
     <div class="canva-panel canva-sot-form space-y-3">
       <AppImageUpload crop :model-value="avatarUrl" :label="t('register.profilePhoto')" @update:model-value="onAvatarChange" />
       <p v-if="savingAvatar" class="text-xs text-brand-gray-600">{{ t('upload.uploading') }}</p>
