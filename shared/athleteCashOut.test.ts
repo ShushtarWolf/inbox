@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   athleteCashOutFromTxs,
+  athleteCashOutHoldFromTxs,
   clampAthleteWithdrawAmount,
   ATHLETE_WITHDRAW_MIN_IRR,
   ATHLETE_WITHDRAW_MIN_TOMAN,
@@ -17,12 +18,12 @@ describe('athleteCashOutFromTxs', () => {
     ], new Date('2026-01-03T00:00:00Z'), 24 * 60 * 60 * 1000)).toBe(1_100_000)
   })
 
-  it('excludes fresh TOPUP_CREDIT during cool-down hold', () => {
+  it('counts fresh TOPUP_CREDIT immediately (hold is IPG cancel refunds only)', () => {
     const now = new Date('2026-01-02T12:00:00Z')
     expect(athleteCashOutFromTxs([
       { type: 'TOPUP_CREDIT', amount: 1_000_000, createdAt: '2026-01-02T00:00:00Z' },
-      { type: 'REFUND_CREDIT', amount: 200_000 },
-    ], now, 24 * 60 * 60 * 1000)).toBe(200_000)
+      { type: 'REFUND_CREDIT', amount: 200_000, createdAt: '2026-01-01T00:00:00Z' },
+    ], now, 24 * 60 * 60 * 1000)).toBe(1_200_000)
   })
 
   it('ignores the IPG booking pair and a card-return row', () => {
@@ -74,12 +75,42 @@ describe('athleteCashOutFromTxs', () => {
 
   it('IPG booking cancel refund stays on hold without PAYMENT_DEBIT', () => {
     const now = new Date('2026-06-01T12:00:00Z')
+    const hold = 24 * 60 * 60 * 1000
+    const refundAt = '2026-06-01T11:00:00Z'
     expect(athleteCashOutFromTxs([
       { type: 'TOPUP_CREDIT', amount: 50_000, createdAt: '2026-01-01T00:00:00Z' },
       { type: 'IPG_BOOKING_CREDIT', amount: 600_000 },
       { type: 'IPG_BOOKING_DEBIT', amount: -600_000 },
-      { type: 'REFUND_CREDIT', amount: 600_000, paymentId: 'ipg-pay', createdAt: '2026-06-01T11:00:00Z' },
-    ], now, 24 * 60 * 60 * 1000)).toBe(50_000)
+      { type: 'REFUND_CREDIT', amount: 600_000, paymentId: 'ipg-pay', createdAt: refundAt },
+    ], now, hold)).toBe(50_000)
+    const holdSummary = athleteCashOutHoldFromTxs([
+      { type: 'REFUND_CREDIT', amount: 600_000, paymentId: 'ipg-pay', createdAt: refundAt },
+    ], now, hold)
+    expect(holdSummary).toEqual({
+      heldAmount: 600_000,
+      unlockAt: new Date(new Date(refundAt).getTime() + hold).toISOString(),
+      items: [{
+        amount: 600_000,
+        unlockAt: new Date(new Date(refundAt).getTime() + hold).toISOString(),
+      }],
+    })
+  })
+
+  it('athleteCashOutHoldFromTxs aggregates IPG holds and earliest unlock', () => {
+    const now = new Date('2026-06-01T12:00:00Z')
+    const hold = 24 * 60 * 60 * 1000
+    const payWallet = 'pay-w'
+    const early = '2026-06-01T10:00:00Z'
+    const late = '2026-06-01T11:30:00Z'
+    const summary = athleteCashOutHoldFromTxs([
+      { type: 'PAYMENT_DEBIT', amount: -5_000, paymentId: payWallet },
+      { type: 'REFUND_CREDIT', amount: 5_000, paymentId: payWallet, createdAt: late },
+      { type: 'REFUND_CREDIT', amount: 12_000, paymentId: 'ipg-a', createdAt: late },
+      { type: 'REFUND_CREDIT', amount: 8_000, paymentId: 'ipg-b', createdAt: early },
+    ], now, hold)
+    expect(summary?.heldAmount).toBe(20_000)
+    expect(summary?.unlockAt).toBe(new Date(new Date(early).getTime() + hold).toISOString())
+    expect(summary?.items).toHaveLength(2)
   })
 })
 
