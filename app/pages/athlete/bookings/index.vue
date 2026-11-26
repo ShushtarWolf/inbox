@@ -2,6 +2,7 @@
 /** Reserve history: status summary, Jalali calendar with status dots, status chips, cards → details sheet. */
 import { athleteListPrice, parseSeriesPaymentMeta } from '#shared/athleteSeason.ts'
 import { filterBookingsByTime } from '#shared/bookingTimeFilter.ts'
+import { sortBookingHistoryItems } from '#shared/bookingHistorySort.ts'
 import { PERSIAN_MONTHS, isoToJalaali, jalaaliDaysInMonth, jalaaliToIso } from '#shared/jalali.ts'
 import { canCancelReservation } from '#shared/cancelPolicy.ts'
 import { athleteCancelConfirmKey, athleteCancelErrorNoticeKey, athleteCancelNoticeKey, isCashPaidBooking } from '#shared/cancelNotice.ts'
@@ -84,6 +85,8 @@ type HistoryItem = {
   address: string
   phone: string
   timeLabel: string
+  startTime: string
+  sessionTieBreaker: string
   price: number
   paymentStatus?: string | null
   /** Cash at the club (active, or cancelled with a desk-cash return) — never a wallet refund. */
@@ -500,6 +503,8 @@ const historyItems = computed((): HistoryItem[] => {
       address: localizedField(b.slot.court.club, 'addressFa', 'addressEn') || '',
       phone: b.slot.court.club.phone || '',
       timeLabel: formatTimeLabel(b.slot.startTime),
+      startTime: b.slot.startTime,
+      sessionTieBreaker: courtName,
       price: athleteListPrice({
         meta: parseSeriesPaymentMeta(b.payment?.metadataJson),
         paymentAmount: b.payment?.amount,
@@ -544,6 +549,8 @@ const historyItems = computed((): HistoryItem[] => {
         address: '',
         phone: '',
         timeLabel: formatTimeLabel(s.startTime),
+        startTime: s.startTime,
+        sessionTieBreaker: localizedField(s.coach, 'nameFa', 'nameEn'),
         price: athleteListPrice({
           meta: parseSeriesPaymentMeta(s.payment?.metadataJson),
           paymentAmount: s.payment?.amount,
@@ -691,8 +698,14 @@ const filteredItems = computed(() => {
   else {
     list = filterBookingsByTime(list, timeFilter.value, today())
   }
-  // Newest first; copy so Vue sees a new array.
-  return [...list].sort((a, b) => b.date.localeCompare(a.date) || b.timeLabel.localeCompare(a.timeLabel))
+  return sortBookingHistoryItems(
+    list.map((item) => ({
+      ...item,
+      tieBreaker: item.sessionTieBreaker,
+    })),
+    timeFilter.value,
+    today(),
+  )
 })
 const panelKey = ref<string | null>(null)
 watch(detailKey, (k) => { if (k) panelKey.value = k })
