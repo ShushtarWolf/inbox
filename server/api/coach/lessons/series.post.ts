@@ -4,7 +4,6 @@ import { requireApprovedCoach } from '../../../utils/coachClubLinks'
 import { bookCoachLessonsAtomic, ensureCoachStudent } from '../../../utils/coachLessonBook'
 import { resolveCoachSeries } from '../../../utils/coachSeriesResolve'
 import { syncClubContactForBooking } from '../../../utils/contactSync'
-import { creditOwnerForPaidPayment } from '../../../utils/settlement'
 import { getWalletBalance } from '../../../utils/wallet'
 
 /**
@@ -71,7 +70,6 @@ export default defineEventHandler(async (event) => {
 
   for (const row of created) {
     await syncClubContactForBooking(row.bookingId)
-    if (row.charge > 0) await creditOwnerForPaidPayment(row.courtPaymentId)
   }
 
   const first = created[0]!

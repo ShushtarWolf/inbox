@@ -170,12 +170,18 @@ export async function cancelCoachSession(options: {
   let courtRefund = null as RefundResult | null
   const paymentsToSync: string[] = []
 
+  let alreadyCancelled = false
   try {
     await prisma.$transaction(async (tx) => {
-      await tx.coachSession.update({
-        where: { id: options.sessionId },
+      // Conditional claim: two concurrent cancels (athlete + owner/admin) must not both refund.
+      const claimed = await tx.coachSession.updateMany({
+        where: { id: options.sessionId, status: { not: 'CANCELLED' } },
         data: { status: 'CANCELLED', cancelledAt: new Date(), cancellationReason: options.reason },
       })
+      if (claimed.count !== 1) {
+        alreadyCancelled = true
+        return
+      }
       await tx.reservationEvent.create({
         data: {
           coachSessionId: options.sessionId,
@@ -229,6 +235,10 @@ export async function cancelCoachSession(options: {
   catch (err) {
     console.error('[cancelCoachSession]', options.sessionId, err)
     throw err
+  }
+
+  if (alreadyCancelled) {
+    return { ok: true as const, refund: null, courtRefund: null }
   }
 
   if (linkedCourt) {

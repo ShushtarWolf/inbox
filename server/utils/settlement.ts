@@ -11,10 +11,11 @@ import {
   isSettlementCashoutEligible,
   resolveClubCommissionBps,
   resolveCoachCommissionBps,
+  resolveCoachCourtCommissionBps,
   splitSettlement,
   sumEligibleSettlementNet,
 } from '#shared/settlement.ts'
-import { loadPlatformCommissionBps } from './platformCommission.ts'
+import { loadPlatformCommissionSettings } from './platformCommission.ts'
 import {
   allocateSessionNets,
   lastSessionDate,
@@ -745,7 +746,7 @@ async function resolveCoachForLessonPayment(
  * Credit payee net-after-commission when a payment becomes PAID.
  * - Coach lesson fees → coach user wallet (COACH_COMMISSION_BPS / platform default 0%).
  * - Club bookings / packages / competition entries / coach-lesson-court → club wallet
- *   (0 bps for court charge).
+ *   (coach lesson-court uses coachCourtCommissionBps / half default).
  * Court/coach class settlements store classDate; cashout opens the Tehran day after.
  * Idempotent on paymentId via SettlementLedgerEntry unique constraint.
  */
@@ -771,7 +772,8 @@ export async function creditOwnerForPaidPayment(
     return { credited: false as const, reason: 'ipg_unverified' as const }
   }
 
-  const platformCommissionBps = await loadPlatformCommissionBps(db)
+  const platformSettings = await loadPlatformCommissionSettings(db)
+  const platformCommissionBps = platformSettings.commissionBps
 
   const existing = await db.settlementLedgerEntry.findUnique({ where: { paymentId } })
   if (existing) {
@@ -832,14 +834,12 @@ export async function creditOwnerForPaidPayment(
     return { credited: false as const, reason: 'no_club' as const }
   }
 
-  // Coach already paid the listed court fee from their wallet — club gets 100%.
-  // Skimming PLATFORM_COMMISSION_BPS would leave a phantom gap (coach −charge, club +90%).
-  // Only honor source=coach-lesson-court when a linked coach session proves the server path
-  // (forged metadata on a normal booking must not zero commission).
+  // Coach lesson-court: coach wallet was debited gross; club settlement uses a lower commission
+  // than athlete court bookings (default half of club rate). Forge guard: linked CoachSession required.
   const metaSource = parsePaymentMetaSource(payment.metadataJson)
   const club = await db.club.findUnique({
     where: { id: resolved.clubId },
-    select: { commissionBps: true },
+    select: { commissionBps: true, coachCourtCommissionBps: true },
   })
   let coachLessonCourt = false
   if (metaSource === 'coach-lesson-court' && payment.bookingId) {
@@ -849,7 +849,14 @@ export async function creditOwnerForPaidPayment(
     })
     coachLessonCourt = Boolean(linked)
   }
-  const bps = coachLessonCourt ? 0 : resolveClubCommissionBps(club?.commissionBps, platformCommissionBps)
+  const bps = coachLessonCourt
+    ? resolveCoachCourtCommissionBps({
+        clubCommissionBps: club?.commissionBps,
+        platformCommissionBps,
+        platformCoachCourtCommissionBps: platformSettings.coachCourtCommissionBps,
+        clubCoachCourtCommissionBps: club?.coachCourtCommissionBps,
+      })
+    : resolveClubCommissionBps(club?.commissionBps, platformCommissionBps)
   const split = splitSettlement(payment.amount, bps)
   const lockUntilClass = Boolean(resolved.classDate)
 

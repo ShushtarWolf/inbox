@@ -10,6 +10,8 @@ const { formatNumber, formatDate } = useFormatters()
 
 type CommissionPayload = {
   commissionBps: number
+  coachCourtCommissionBps: number | null
+  effectiveCoachCourtCommissionBps: number
   source: 'database' | 'env_fallback'
   envBootstrapBps: number
   coachCommissionBps: number
@@ -29,6 +31,8 @@ const data = ref<CommissionPayload | null>(null)
 const pending = ref(false)
 const loadError = ref('')
 const percentInput = ref('')
+const coachCourtPercentInput = ref('')
+const coachCourtUseDefault = ref(true)
 const confirmRefundRisk = ref(false)
 const saveError = ref('')
 const saveOk = ref(false)
@@ -39,7 +43,16 @@ function formatBpsPercent(bps: number) {
 }
 
 watch(data, (value) => {
-  if (value) percentInput.value = String(value.commissionBps / 100)
+  if (value) {
+    percentInput.value = String(value.commissionBps / 100)
+    if (value.coachCourtCommissionBps == null) {
+      coachCourtUseDefault.value = true
+      coachCourtPercentInput.value = ''
+    } else {
+      coachCourtUseDefault.value = false
+      coachCourtPercentInput.value = String(value.coachCourtCommissionBps / 100)
+    }
+  }
 })
 
 async function load() {
@@ -72,6 +85,19 @@ async function save() {
     return
   }
   const commissionBps = Math.round(pct * 100)
+  let coachCourtCommissionBps: number | null = null
+  if (!coachCourtUseDefault.value) {
+    const coachPct = Number(toAsciiDigits(coachCourtPercentInput.value.trim()))
+    if (!Number.isFinite(coachPct) || coachPct < 0 || coachPct > 100) {
+      saveError.value = t('admin.commissionInvalid')
+      return
+    }
+    coachCourtCommissionBps = Math.round(coachPct * 100)
+    if (coachCourtCommissionBps > commissionBps) {
+      saveError.value = t('admin.commissionInvalid')
+      return
+    }
+  }
   if (commissionBps > 0 && !confirmRefundRisk.value) {
     saveError.value = t('admin.platformCommission.confirmRequired')
     return
@@ -82,6 +108,7 @@ async function save() {
       method: 'PATCH',
       body: {
         commissionBps,
+        coachCourtCommissionBps: coachCourtUseDefault.value ? null : coachCourtCommissionBps,
         confirmRefundRisk: commissionBps > 0 ? true : undefined,
       },
     })
@@ -124,6 +151,19 @@ watch(secret, (value) => {
             </span>
           </p>
           <p class="text-sm">
+            {{ t('admin.platformCommission.coachCourtRate') }}:
+            <strong class="tabular-nums">
+              {{
+                data.coachCourtCommissionBps == null
+                  ? t('admin.platformCommission.coachCourtUseHalf')
+                  : formatBpsPercent(data.coachCourtCommissionBps)
+              }}
+            </strong>
+            <span class="ms-2 text-xs text-brand-gray-500 tabular-nums">
+              ({{ t('admin.platformCommission.currentRate') }} {{ formatBpsPercent(data.effectiveCoachCourtCommissionBps) }})
+            </span>
+          </p>
+          <p class="text-sm">
             {{ t('admin.platformCommission.coachRate') }}:
             <strong class="tabular-nums">{{ formatBpsPercent(data.coachCommissionBps) }}</strong>
             <span v-if="data.coachUsesEnvOverride" class="ms-2 text-xs text-brand-gray-500">
@@ -141,7 +181,29 @@ watch(secret, (value) => {
         </div>
 
         <div class="tail-card">
-          <label for="platform-commission-percent" class="text-xs font-bold text-brand-gray-600">
+          <p class="mb-2 text-xs text-brand-gray-600">{{ t('admin.platformCommission.coachCourtRateHint') }}</p>
+          <label class="flex cursor-pointer items-center gap-2 text-sm">
+            <input v-model="coachCourtUseDefault" type="checkbox">
+            <span>{{ t('admin.platformCommission.coachCourtUseHalf') }}</span>
+          </label>
+          <label
+            v-if="!coachCourtUseDefault"
+            for="platform-coach-court-percent"
+            class="mt-2 block text-xs font-bold text-brand-gray-600"
+          >
+            {{ t('admin.platformCommission.coachCourtPercentLabel') }}
+            <input
+              id="platform-coach-court-percent"
+              v-model="coachCourtPercentInput"
+              type="text"
+              inputmode="decimal"
+              dir="ltr"
+              class="mt-1 block w-32 border border-brand-gray-300 px-3 py-2 text-sm tabular-nums"
+              style="border-radius: 0;"
+            >
+          </label>
+
+          <label for="platform-commission-percent" class="mt-4 block text-xs font-bold text-brand-gray-600">
             {{ t('admin.platformCommission.percentLabel') }}
             <input
               id="platform-commission-percent"

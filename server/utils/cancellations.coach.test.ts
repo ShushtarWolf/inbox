@@ -4,6 +4,7 @@ const bookingUpdate = vi.fn()
 const slotUpdate = vi.fn()
 const eventCreate = vi.fn()
 const coachSessionUpdate = vi.fn()
+const coachSessionUpdateMany = vi.fn()
 const coachSessionFindUnique = vi.fn()
 const transaction = vi.fn()
 const refundPaymentForCancellation = vi.fn()
@@ -27,6 +28,7 @@ vi.stubGlobal('prisma', {
   reservationEvent: { create: (...args: unknown[]) => eventCreate(...args) },
   coachSession: {
     update: (...args: unknown[]) => coachSessionUpdate(...args),
+    updateMany: (...args: unknown[]) => coachSessionUpdateMany(...args),
     findUnique: (...args: unknown[]) => coachSessionFindUnique(...args),
   },
   $transaction: (...args: unknown[]) => transaction(...args),
@@ -51,6 +53,7 @@ describe('coach lesson ↔ court cancel unwind', () => {
       amount: 100,
     })
     syncClubContactForBooking.mockResolvedValue(undefined)
+    coachSessionUpdateMany.mockResolvedValue({ count: 1 })
   })
 
   afterEach(() => {
@@ -115,9 +118,9 @@ describe('coach lesson ↔ court cancel unwind', () => {
       userId: 'athlete-1',
     })
 
-    expect(coachSessionUpdate).toHaveBeenCalledWith(
+    expect(coachSessionUpdateMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { id: 'sess-1' },
+        where: { id: 'sess-1', status: { not: 'CANCELLED' } },
         data: expect.objectContaining({ status: 'CANCELLED' }),
       }),
     )
@@ -136,6 +139,34 @@ describe('coach lesson ↔ court cancel unwind', () => {
     expect(refundPaymentForCancellation).toHaveBeenCalledWith(
       expect.objectContaining({ paymentId: 'pay-lesson', userId: 'athlete-1' }),
     )
+  })
+
+  it('cancelCoachSession refunds nothing when a concurrent cancel already claimed the session', async () => {
+    coachSessionFindUnique.mockResolvedValueOnce({
+      id: 'sess-1',
+      status: 'CONFIRMED',
+      courtBooking: {
+        id: 'book-1',
+        slotId: 'slot-1',
+        status: 'CONFIRMED',
+        userId: 'coach-user',
+        payment: { id: 'pay-court' },
+      },
+    })
+    coachSessionUpdateMany.mockResolvedValueOnce({ count: 0 })
+
+    const result = await cancelCoachSession({
+      sessionId: 'sess-1',
+      actorUserId: 'owner',
+      reason: 'owner-cancel-coach-session',
+      paymentId: 'pay-lesson',
+      userId: 'athlete-1',
+    })
+
+    expect(result).toEqual({ ok: true, refund: null, courtRefund: null })
+    expect(refundPaymentForCancellation).not.toHaveBeenCalled()
+    expect(bookingUpdate).not.toHaveBeenCalled()
+    expect(slotUpdate).not.toHaveBeenCalled()
   })
 
   it('skipLinkedCoachSession avoids lesson cancel recursion from court', async () => {

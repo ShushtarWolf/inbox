@@ -23,8 +23,15 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'clubId required' })
   }
 
+  if (body.direction === 'club_to_coach') {
+    throw createError({
+      statusCode: 403,
+      statusMessage: 'Only club owner can transfer from club wallet to coach',
+    })
+  }
+
   const result = await transferClubCoach({
-    direction: body.direction === 'club_to_coach' ? 'club_to_coach' : 'coach_to_club',
+    direction: 'coach_to_club',
     clubId,
     coachId: coach.id,
     amount: Number(body.amount),

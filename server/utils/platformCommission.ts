@@ -2,13 +2,14 @@ import type { Prisma } from '@prisma/client'
 import {
   DEFAULT_PLATFORM_COMMISSION_BPS,
   resolveCoachCommissionBps,
+  resolveCoachCourtCommissionBps,
   resolvePlatformCommissionBps,
 } from '#shared/settlement.ts'
 
 export const PLATFORM_COMMISSION_SETTING_ID = 'default'
 
 const CACHE_MS = 10_000
-let cache: { bps: number; at: number } | null = null
+let cache: { commissionBps: number; coachCourtCommissionBps: number | null; at: number } | null = null
 
 export function invalidatePlatformCommissionCache() {
   cache = null
@@ -21,31 +22,54 @@ function clampStoredBps(raw: number): number {
   return raw
 }
 
+export type PlatformCommissionSettings = {
+  commissionBps: number
+  /** Null = use half of effective athlete court rate at settlement time. */
+  coachCourtCommissionBps: number | null
+}
+
 /**
- * Effective platform default commission for settlement (DB first, env bootstrap if row missing).
+ * Platform default commission settings (DB first, env bootstrap if row missing).
  */
-export async function loadPlatformCommissionBps(db: DbClient = prisma): Promise<number> {
-  if (cache && Date.now() - cache.at < CACHE_MS) return cache.bps
+export async function loadPlatformCommissionSettings(db: DbClient = prisma): Promise<PlatformCommissionSettings> {
+  if (cache && Date.now() - cache.at < CACHE_MS) {
+    return {
+      commissionBps: cache.commissionBps,
+      coachCourtCommissionBps: cache.coachCourtCommissionBps,
+    }
+  }
   try {
     const row = await db.platformCommissionSetting.findUnique({
       where: { id: PLATFORM_COMMISSION_SETTING_ID },
-      select: { commissionBps: true },
+      select: { commissionBps: true, coachCourtCommissionBps: true },
     })
     if (row) {
-      const bps = clampStoredBps(row.commissionBps)
-      cache = { bps, at: Date.now() }
-      return bps
+      const commissionBps = clampStoredBps(row.commissionBps)
+      const coachCourtCommissionBps = row.coachCourtCommissionBps == null
+        ? null
+        : clampStoredBps(row.coachCourtCommissionBps)
+      cache = { commissionBps, coachCourtCommissionBps, at: Date.now() }
+      return { commissionBps, coachCourtCommissionBps }
     }
   } catch {
     // Prisma mock / pre-migrate tests — fall through to env
   }
   const fromEnv = resolvePlatformCommissionBps()
-  cache = { bps: fromEnv, at: Date.now() }
-  return fromEnv
+  cache = { commissionBps: fromEnv, coachCourtCommissionBps: null, at: Date.now() }
+  return { commissionBps: fromEnv, coachCourtCommissionBps: null }
+}
+
+/** Effective platform default commission for settlement (DB first, env bootstrap if row missing). */
+export async function loadPlatformCommissionBps(db: DbClient = prisma): Promise<number> {
+  const settings = await loadPlatformCommissionSettings(db)
+  return settings.commissionBps
 }
 
 export type PlatformCommissionAdminView = {
   commissionBps: number
+  coachCourtCommissionBps: number | null
+  /** When coachCourtCommissionBps is null: half of commissionBps. */
+  effectiveCoachCourtCommissionBps: number
   source: 'database' | 'env_fallback'
   envBootstrapBps: number
   coachCommissionBps: number
@@ -68,7 +92,13 @@ const REFUND_RISK_WARNING = {
 }
 
 export async function buildPlatformCommissionAdminView(): Promise<PlatformCommissionAdminView> {
-  const commissionBps = await loadPlatformCommissionBps()
+  const { commissionBps, coachCourtCommissionBps } = await loadPlatformCommissionSettings()
+  const effectiveCoachCourtCommissionBps = resolveCoachCourtCommissionBps({
+    clubCommissionBps: null,
+    platformCommissionBps: commissionBps,
+    platformCoachCourtCommissionBps: coachCourtCommissionBps,
+    clubCoachCourtCommissionBps: null,
+  })
   let source: PlatformCommissionAdminView['source'] = 'database'
   try {
     const row = await prisma.platformCommissionSetting.findUnique({
@@ -108,6 +138,8 @@ export async function buildPlatformCommissionAdminView(): Promise<PlatformCommis
 
   return {
     commissionBps,
+    coachCourtCommissionBps,
+    effectiveCoachCourtCommissionBps,
     source,
     envBootstrapBps: resolvePlatformCommissionBps(),
     coachCommissionBps,

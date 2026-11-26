@@ -506,6 +506,7 @@ async function registerWithPassword() {
       || (err as { data?: { statusMessage?: string } })?.data?.statusMessage
       || '')
     if (status === 404 && /coach product/i.test(message)) error.value = t('auth.coachDisabledInPilot')
+    else if (status === 403 && /EXISTING_ACCOUNT_USE_OTP/i.test(message)) error.value = t('auth.existingAccountUseOtpCoach')
     else if (status === 409 && /phone/i.test(message)) error.value = t('auth.phoneTaken')
     else if (status === 409) error.value = t('auth.emailTaken')
     else if (status === 400 && /gender/i.test(message)) error.value = t('auth.genderRequired')

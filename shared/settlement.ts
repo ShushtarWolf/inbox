@@ -98,6 +98,30 @@ export function resolveCoachCommissionBps(
   return resolvePlatformBpsFromArg(platformRawOrBps)
 }
 
+function parseOptionalBps(value: number | null | undefined): number | null {
+  if (value == null) return null
+  if (!Number.isInteger(value) || value < 0 || value > 10_000) return null
+  return value
+}
+
+/**
+ * Platform commission on court charges when a coach books a lesson court (coach-lesson-court).
+ * Precedence: club override → platform override → half of effective athlete court rate (floor).
+ */
+export function resolveCoachCourtCommissionBps(opts: {
+  clubCommissionBps?: number | null
+  platformCommissionBps: number
+  platformCoachCourtCommissionBps?: number | null
+  clubCoachCourtCommissionBps?: number | null
+}): number {
+  const athleteBps = resolveClubCommissionBps(opts.clubCommissionBps, opts.platformCommissionBps)
+  const clubCoach = parseOptionalBps(opts.clubCoachCourtCommissionBps)
+  if (clubCoach != null) return Math.min(clubCoach, athleteBps)
+  const platformCoach = parseOptionalBps(opts.platformCoachCourtCommissionBps)
+  if (platformCoach != null) return Math.min(platformCoach, athleteBps)
+  return Math.floor(athleteBps / 2)
+}
+
 /** Split gross payment into platform commission + payee net (floor). */
 export function splitSettlement(gross: number, commissionBps: number = resolvePlatformCommissionBps()): SettlementSplit {
   const safeGross = Number.isFinite(gross) && gross > 0 ? Math.floor(gross) : 0
