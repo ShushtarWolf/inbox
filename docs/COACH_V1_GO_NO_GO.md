@@ -23,7 +23,7 @@ Competitions (if enabled) stay pilot-scoped to `iust-tennis` — independent of 
 ## Money invariants
 
 1. Coach wallet must cover **full listed** court charge; underfunded rejects via atomic `debitWallet` (same txn as slot claim — claim rolls back on shortfall).
-2. Court payment metadata `source: coach-lesson-court` → owner settlement at **0 bps** (club gets full charge; no phantom platform skim). Covered by `server/utils/settlement.coach.test.ts`.
+2. Court payment metadata `source: coach-lesson-court` → club settlement at **coach-court commission** (default **half** of athlete court rate; `Club.coachCourtCommissionBps` / `PlatformCommissionSetting.coachCourtCommissionBps`). Covered by `server/utils/settlement.coach.test.ts` and `shared/coachScenarioMatrix.test.ts`.
 3. Athlete lesson fee PAID → coach user wallet credited **net after** `COACH_COMMISSION_BPS` / platform default (**0%** since 2026-11-02; was 10% before) (`SETTLEMENT_CREDIT`); club is not the lesson payee. Same test file.
 4. Cancel either lesson or court unwinds the sibling: student lesson fee refunded once + coach settlement clawed; coach court fee credited once; slot `FREE`.
 5. Wallet top-up requires `PAYMENTS_MODE=test|live` (production is `live`).

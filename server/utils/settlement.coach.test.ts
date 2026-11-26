@@ -37,6 +37,9 @@ vi.stubGlobal('prisma', {
   walletTransaction: { aggregate: (...args: unknown[]) => userTxAggregate(...args) },
   coach: { findUnique: (...args: unknown[]) => findUniqueCoach(...args) },
   coachSession: { findFirst: (...args: unknown[]) => findFirstCoachSession(...args) },
+  platformCommissionSetting: {
+    findUnique: async () => ({ commissionBps: 1000, coachCourtCommissionBps: null }),
+  },
   club: { findUnique: (...args: unknown[]) => findUniqueClub(...args) },
   clubWallet: {
     upsert: (...args: unknown[]) => clubWalletUpsert(...args),
@@ -71,7 +74,7 @@ describe('coach lesson settlement', () => {
     debitWallet.mockResolvedValue({})
     transaction.mockImplementation(async (fn: (tx: typeof prisma) => unknown) => fn(prisma as never))
     findUniqueLedger.mockResolvedValue(null)
-    findUniqueClub.mockResolvedValue({ commissionBps: null })
+    findUniqueClub.mockResolvedValue({ commissionBps: null, coachCourtCommissionBps: null })
     findFirstCoachSession.mockResolvedValue(null)
     updateManyLedger.mockResolvedValue({ count: 1 })
     clubTxAggregate.mockResolvedValue({ _sum: { amount: null } })
@@ -136,7 +139,7 @@ describe('coach lesson settlement', () => {
     expect(clubWalletUpdate).not.toHaveBeenCalled()
   })
 
-  it('settles coach-lesson-court to club at 0 bps (full charge)', async () => {
+  it('settles coach-lesson-court to club at half athlete commission (default)', async () => {
     findFirstCoachSession.mockResolvedValue({ id: 'sess-linked' })
     findUniquePayment.mockImplementation(async (args: { include?: unknown }) => {
       const base = {
@@ -166,13 +169,47 @@ describe('coach lesson settlement', () => {
           clubId: 'club-1',
           paymentId: 'pay-court',
           gross: 600_000,
-          commissionBps: 0,
-          commission: 0,
-          ownerNet: 600_000,
+          commissionBps: 500,
+          commission: 30_000,
+          ownerNet: 570_000,
         }),
       }),
     )
     expect(creditWallet).not.toHaveBeenCalled()
+  })
+
+  it('uses club coachCourtCommissionBps override when set', async () => {
+    findFirstCoachSession.mockResolvedValue({ id: 'sess-linked' })
+    findUniqueClub.mockResolvedValue({ commissionBps: 1000, coachCourtCommissionBps: 200 })
+    findUniquePayment.mockImplementation(async (args: { include?: unknown }) => {
+      const base = {
+        id: 'pay-court',
+        amount: 600_000,
+        status: 'PAID',
+        purpose: null,
+        metadataJson: JSON.stringify({ source: 'coach-lesson-court' }),
+        coachSessionId: null,
+        bookingId: 'book-1',
+        packageBookingId: null,
+        booking: {
+          id: 'book-1',
+          slot: { date: '2026-09-01', court: { clubId: 'club-1' } },
+        },
+      }
+      return args?.include ? base : { ...base, booking: undefined }
+    })
+
+    await creditOwnerForPaidPayment('pay-court')
+
+    expect(createLedger).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          commissionBps: 200,
+          commission: 12_000,
+          ownerNet: 588_000,
+        }),
+      }),
+    )
   })
 
   it('ignores forged coach-lesson-court source without linked session', async () => {

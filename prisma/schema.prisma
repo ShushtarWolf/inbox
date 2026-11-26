@@ -564,6 +564,11 @@ model Club {
    * Each SettlementLedgerEntry snapshots the rate it used, so changes are not retroactive.
    */
   commissionBps Int?
+  /**
+   * Coach lesson-court platform commission (bps). Null → platform coach-court default (half of athlete rate).
+   * Must be ≤ effective athlete commission for this club.
+   */
+  coachCourtCommissionBps Int?
   rescheduleWindowHours   Int @default(24)
   /** How many calendar days ahead athletes can book, including today (Tehran). */
   bookingHorizonDays Int @default(14)
@@ -1572,6 +1577,8 @@ model WithdrawPaymentDocument {
 model PlatformCommissionSetting {
   id            String   @id @default("default")
   commissionBps Int      @default(0)
+  /** Null → half of platform commissionBps for coach lesson-court settlements. */
+  coachCourtCommissionBps Int?
   updatedAt     DateTime @updatedAt
 }
 

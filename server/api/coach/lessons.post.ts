@@ -5,7 +5,6 @@ import { requireActiveClub, requireApprovedCoach } from '../../utils/coachClubLi
 import { bookCoachLessonsAtomic, ensureCoachStudent } from '../../utils/coachLessonBook'
 import { syncClubContactForBooking } from '../../utils/contactSync'
 import { addOneHour } from '../../utils/reservations'
-import { creditOwnerForPaidPayment } from '../../utils/settlement'
 import { getWalletBalance } from '../../utils/wallet'
 import { assertExternalBookingAllowedIfEnabled } from '../../utils/externalBookingGuard'
 
@@ -105,9 +104,6 @@ export default defineEventHandler(async (event) => {
   if (!created) throw createError({ statusCode: 409, statusMessage: 'Slot not available' })
 
   await syncClubContactForBooking(created.bookingId)
-  if (created.charge > 0) {
-    await creditOwnerForPaidPayment(created.courtPaymentId)
-  }
 
   await notifyBookingConfirmed({
     userId: student.id,

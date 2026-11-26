@@ -6,6 +6,7 @@ import { debitWallet } from './wallet'
 import { isUniqueConstraintError } from './prismaErrors'
 import { addOneHour } from './reservations'
 import { deleteStaleCancelledBooking } from './staleBooking'
+import { creditOwnerForPaidPayment } from './settlement'
 
 export type CoachLessonBookSlot = {
   id: string
@@ -120,6 +121,16 @@ export async function bookCoachLessonsAtomic(input: {
             }),
           },
         })
+
+        if (price.charge > 0) {
+          const settled = await creditOwnerForPaidPayment(courtPayment.id, undefined, tx)
+          if (!settled.credited && settled.reason !== 'already_settled') {
+            throw createError({
+              statusCode: 500,
+              statusMessage: 'Coach court settlement failed',
+            })
+          }
+        }
 
         const endTime = slot.endTime || addOneHour(slot.startTime)
         const session = await tx.coachSession.create({

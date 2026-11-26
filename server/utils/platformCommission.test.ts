@@ -25,7 +25,7 @@ describe('loadPlatformCommissionBps', () => {
   })
 
   it('reads commission from database when row exists', async () => {
-    findUniqueSetting.mockResolvedValue({ commissionBps: 750 })
+    findUniqueSetting.mockResolvedValue({ commissionBps: 750, coachCourtCommissionBps: 200 })
     const { loadPlatformCommissionBps, invalidatePlatformCommissionCache } = await import('./platformCommission.ts')
     invalidatePlatformCommissionCache()
     await expect(loadPlatformCommissionBps()).resolves.toBe(750)

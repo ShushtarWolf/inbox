@@ -5,6 +5,7 @@ import {
   isValidSheba,
   normalizeSheba,
   resolveClubCommissionBps,
+  resolveCoachCourtCommissionBps,
   resolveCoachCommissionBps,
   resolvePlatformCommissionBps,
   splitSettlement,
@@ -71,6 +72,44 @@ describe('splitSettlement', () => {
     const clawback = paid.ownerNet
     expect(clawback).toBe(540_000)
     expect(paid.commission + clawback).toBe(paid.gross)
+  })
+})
+
+describe('resolveCoachCourtCommissionBps', () => {
+  it('defaults to half of effective athlete court rate', () => {
+    expect(resolveCoachCourtCommissionBps({
+      clubCommissionBps: null,
+      platformCommissionBps: 1000,
+      platformCoachCourtCommissionBps: null,
+      clubCoachCourtCommissionBps: null,
+    })).toBe(500)
+    expect(resolveCoachCourtCommissionBps({
+      clubCommissionBps: 800,
+      platformCommissionBps: 1000,
+      platformCoachCourtCommissionBps: null,
+      clubCoachCourtCommissionBps: null,
+    })).toBe(400)
+  })
+
+  it('prefers platform then club override, capped at athlete rate', () => {
+    expect(resolveCoachCourtCommissionBps({
+      clubCommissionBps: null,
+      platformCommissionBps: 1000,
+      platformCoachCourtCommissionBps: 300,
+      clubCoachCourtCommissionBps: null,
+    })).toBe(300)
+    expect(resolveCoachCourtCommissionBps({
+      clubCommissionBps: 800,
+      platformCommissionBps: 1000,
+      platformCoachCourtCommissionBps: 300,
+      clubCoachCourtCommissionBps: 150,
+    })).toBe(150)
+    expect(resolveCoachCourtCommissionBps({
+      clubCommissionBps: 400,
+      platformCommissionBps: 1000,
+      platformCoachCourtCommissionBps: 900,
+      clubCoachCourtCommissionBps: null,
+    })).toBe(400)
   })
 })
 
