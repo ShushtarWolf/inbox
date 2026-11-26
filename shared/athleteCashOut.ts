@@ -47,8 +47,9 @@ export const ATHLETE_WITHDRAW_MAX_IRR = ATHLETE_WITHDRAW_MAX_TOMAN
 export const ATHLETE_WITHDRAW_DAILY_MAX_IRR = ATHLETE_WITHDRAW_DAILY_MAX_TOMAN
 
 /**
- * Hours before a TOPUP_CREDIT or REFUND_CREDIT counts toward SHEBA cash-out (default 24).
- * Refunds share the hold: card → booking → cancel → SHEBA would otherwise skip the top-up cool-down.
+ * Hours before a TOPUP_CREDIT or IPG-only REFUND_CREDIT counts toward SHEBA cash-out (default 24).
+ * REFUND_CREDIT that restores a prior PAYMENT_DEBIT (wallet booking) is not held.
+ * IPG cancel refunds without a wallet debit still share the hold (card → book → cancel → SHEBA).
  */
 export function athleteTopUpCashOutHoldHours(
   raw: string | undefined | null = typeof process !== 'undefined'
@@ -70,6 +71,28 @@ export type AthleteCashOutTx = {
   amount: number
   type: string
   createdAt?: Date | string | null
+  paymentId?: string | null
+}
+
+/** Payment ids where the athlete wallet was debited for checkout (PAID rail). */
+function walletDebitPaymentIds(txs: AthleteCashOutTx[]): Set<string> {
+  const ids = new Set<string>()
+  for (const tx of txs) {
+    if (tx.type === 'PAYMENT_DEBIT' && tx.paymentId) ids.add(tx.paymentId)
+  }
+  return ids
+}
+
+/**
+ * Refund credits that merely restore a prior wallet booking debit must count toward
+ * withdrawable immediately; only IPG-only refunds (no PAYMENT_DEBIT) keep the cool-down.
+ */
+function refundCreditCountsDuringTopUpHold(
+  tx: AthleteCashOutTx,
+  walletDebitPayments: Set<string>,
+): boolean {
+  if (tx.type !== 'REFUND_CREDIT') return false
+  return Boolean(tx.paymentId && walletDebitPayments.has(tx.paymentId))
 }
 
 /** Net toman available for athlete SHEBA cash-out from ledger types. */
@@ -79,10 +102,16 @@ export function athleteCashOutFromTxs(
   topUpHoldMs = athleteTopUpCashOutHoldMs(),
 ): number {
   const nowMs = now.getTime()
+  const walletDebitPayments = walletDebitPaymentIds(txs)
   let net = 0
   for (const tx of txs) {
     if (tx.type === 'TOPUP_CREDIT' || tx.type === 'REFUND_CREDIT') {
-      if (topUpHoldMs > 0 && tx.createdAt != null) {
+      const skipHold = refundCreditCountsDuringTopUpHold(tx, walletDebitPayments)
+      if (
+        !skipHold
+        && topUpHoldMs > 0
+        && tx.createdAt != null
+      ) {
         const createdMs = new Date(tx.createdAt).getTime()
         if (Number.isFinite(createdMs) && nowMs - createdMs < topUpHoldMs) continue
       }

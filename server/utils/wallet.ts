@@ -54,7 +54,7 @@ export async function getAthleteCashOutBalance(userId: string, db: DbClient = pr
       balance: true,
       transactions: {
         where: { type: { in: ['TOPUP_CREDIT', 'REFUND_CREDIT', 'PAYMENT_DEBIT'] } },
-        select: { amount: true, type: true, createdAt: true },
+        select: { amount: true, type: true, createdAt: true, paymentId: true },
       },
     },
   })
