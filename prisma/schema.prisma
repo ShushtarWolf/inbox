@@ -1300,6 +1300,8 @@ model DiscountApplication {
   /** Student verification: normalized digits-only university ID. */
   studentNumber String?
   ownershipConfirmed Boolean      @default(false)
+  /** Set when ownershipConfirmed is true on submit (student flow). */
+  ownershipConfirmedAt DateTime?
   status        ApplicationStatus @default(PENDING)
   rejectReason  String?
   reviewedAt    DateTime?

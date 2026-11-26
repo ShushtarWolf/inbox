@@ -9,7 +9,7 @@ import {
 definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN', ssr: false })
 
 const { t, locale } = useI18n()
-const { formatNumber, formatPhone } = useFormatters()
+const { formatNumber, formatPhone, formatTimeLabel } = useFormatters()
 const { localizedField } = useLocalizedField()
 
 type Tab = 'codes' | 'programs' | 'requests' | 'members'
@@ -50,6 +50,7 @@ interface ApplicationRow {
   fullName: string | null
   studentNumber: string | null
   ownershipConfirmed: boolean
+  ownershipConfirmedAt: string | null
   createdAt: string
   user: { id: string; name: string; phone: string | null }
   program: {
@@ -712,6 +713,15 @@ async function revokeMember(row: MemberRow) {
           | {{ t('owner.discountsPage.percentLabel', { percent: formatNumber(reviewApp.program.percent) }) }}
         </p>
         <p v-if="reviewApp.note" class="text-sm text-brand-navy">{{ reviewApp.note }}</p>
+        <p
+          v-if="reviewApp.ownershipConfirmed && reviewApp.program.verificationKind === 'STUDENT'"
+          class="text-xs text-brand-gray-600"
+        >
+          {{ t('owner.discountsPage.ownershipDeclared') }}
+          <template v-if="reviewApp.ownershipConfirmedAt">
+            — {{ formatTimeLabel(reviewApp.ownershipConfirmedAt) }}
+          </template>
+        </p>
         <div class="flex flex-wrap gap-2">
           <button
             v-for="url in reviewApp.proofUrls"
