@@ -13,7 +13,23 @@ const { formatNumber, formatPhone, formatTimeLabel } = useFormatters()
 const { localizedField } = useLocalizedField()
 
 type Tab = 'codes' | 'programs' | 'requests' | 'members'
-const tab = ref<Tab>('programs')
+const route = useRoute()
+
+function tabFromQuery(raw: unknown): Tab | null {
+  const q = typeof raw === 'string' ? raw : ''
+  if (q === 'codes' || q === 'programs' || q === 'requests' || q === 'members') return q
+  return null
+}
+
+const tab = ref<Tab>(tabFromQuery(route.query.tab) || 'programs')
+
+watch(
+  () => route.query.tab,
+  (value) => {
+    const next = tabFromQuery(value)
+    if (next) tab.value = next
+  },
+)
 
 interface DiscountRow {
   id: string
