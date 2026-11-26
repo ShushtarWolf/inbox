@@ -47,8 +47,8 @@ export const ATHLETE_WITHDRAW_MAX_IRR = ATHLETE_WITHDRAW_MAX_TOMAN
 export const ATHLETE_WITHDRAW_DAILY_MAX_IRR = ATHLETE_WITHDRAW_DAILY_MAX_TOMAN
 
 /**
- * Hours before an IPG-only booking-cancel REFUND_CREDIT counts toward SHEBA cash-out (default 24).
- * TOPUP_CREDIT and wallet-paid cancel refunds are withdrawable immediately.
+ * Hours before standalone TOPUP_CREDIT and IPG-only REFUND_CREDIT count toward SHEBA cash-out (default 24).
+ * Wallet-paid cancel refunds and TOPUP_CREDIT paired with an immediate PAYMENT_DEBIT (same paymentId) are immediate.
  * IPG cancel refunds without a matching PAYMENT_DEBIT keep the hold (card → book → cancel → SHEBA).
  */
 export function athleteTopUpCashOutHoldHours(
@@ -95,6 +95,27 @@ function refundCreditCountsDuringTopUpHold(
   return Boolean(tx.paymentId && walletDebitPayments.has(tx.paymentId))
 }
 
+/** Top-up credits spent immediately on checkout (same paymentId debit) skip the cool-down. */
+function topUpCreditCountsDuringHold(
+  tx: AthleteCashOutTx,
+  walletDebitPayments: Set<string>,
+): boolean {
+  if (tx.type !== 'TOPUP_CREDIT') return false
+  return Boolean(tx.paymentId && walletDebitPayments.has(tx.paymentId))
+}
+
+function topUpCreditStillOnHold(
+  tx: AthleteCashOutTx,
+  walletDebitPayments: Set<string>,
+  nowMs: number,
+  topUpHoldMs: number,
+): boolean {
+  if (tx.type !== 'TOPUP_CREDIT' || topUpHoldMs <= 0 || tx.createdAt == null) return false
+  if (topUpCreditCountsDuringHold(tx, walletDebitPayments)) return false
+  const createdMs = new Date(tx.createdAt).getTime()
+  return Number.isFinite(createdMs) && nowMs - createdMs < topUpHoldMs
+}
+
 function ipgRefundCreditStillOnHold(
   tx: AthleteCashOutTx,
   walletDebitPayments: Set<string>,
@@ -118,7 +139,7 @@ export type AthleteCashOutHoldSummary = {
   items: AthleteCashOutHoldItem[]
 }
 
-/** IPG cancel refunds still inside ATHLETE_TOPUP_CASHOUT_HOLD_HOURS (wallet refunds excluded). */
+/** Standalone top-ups and IPG cancel refunds still inside ATHLETE_TOPUP_CASHOUT_HOLD_HOURS (wallet refunds excluded). */
 export function athleteCashOutHoldFromTxs(
   txs: AthleteCashOutTx[],
   now = new Date(),
@@ -128,7 +149,9 @@ export function athleteCashOutHoldFromTxs(
   const walletDebitPayments = walletDebitPaymentIds(txs)
   const items: AthleteCashOutHoldItem[] = []
   for (const tx of txs) {
-    if (!ipgRefundCreditStillOnHold(tx, walletDebitPayments, nowMs, topUpHoldMs)) continue
+    const onHold = topUpCreditStillOnHold(tx, walletDebitPayments, nowMs, topUpHoldMs)
+      || ipgRefundCreditStillOnHold(tx, walletDebitPayments, nowMs, topUpHoldMs)
+    if (!onHold) continue
     const createdMs = new Date(tx.createdAt!).getTime()
     items.push({
       amount: Math.max(0, tx.amount),
@@ -152,6 +175,7 @@ export function athleteCashOutFromTxs(
   let net = 0
   for (const tx of txs) {
     if (tx.type === 'TOPUP_CREDIT') {
+      if (topUpCreditStillOnHold(tx, walletDebitPayments, nowMs, topUpHoldMs)) continue
       net += Math.max(0, tx.amount)
     }
     else if (tx.type === 'REFUND_CREDIT') {
