@@ -41,7 +41,10 @@ export default defineEventHandler(async (event) => {
       ownershipConfirmed: Boolean(body?.ownershipConfirmed),
     })
     if (!studentVerificationFieldErrorsEmpty(fieldErrors)) {
-      throw createError({ statusCode: 400, statusMessage: 'STUDENT_VERIFICATION_INVALID' })
+      const statusMessage = fieldErrors.ownership
+        ? 'OWNERSHIP_REQUIRED'
+        : 'STUDENT_VERIFICATION_INVALID'
+      throw createError({ statusCode: 400, statusMessage })
     }
     await assertNoApprovedStudentNumberConflict({
       clubId: program.clubId,
@@ -77,6 +80,7 @@ export default defineEventHandler(async (event) => {
   const fullName = isStudent ? normalizeApplicantFullName(body?.fullName || '') : null
   const studentNumber = isStudent ? normalizeStudentNumber(body?.studentNumber || '') : null
   const ownershipConfirmed = isStudent ? Boolean(body?.ownershipConfirmed) : false
+  const ownershipConfirmedAt = ownershipConfirmed ? new Date() : null
 
   const row = existing
     ? await prisma.discountApplication.update({
@@ -87,6 +91,7 @@ export default defineEventHandler(async (event) => {
           fullName,
           studentNumber,
           ownershipConfirmed,
+          ownershipConfirmedAt,
           status: 'PENDING',
           rejectReason: null,
           reviewedAt: null,
@@ -103,6 +108,7 @@ export default defineEventHandler(async (event) => {
           fullName,
           studentNumber,
           ownershipConfirmed,
+          ownershipConfirmedAt,
           status: 'PENDING',
         },
       })

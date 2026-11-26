@@ -64,7 +64,7 @@ async function submit() {
         proofUrls: [proofUrl.value],
         fullName: fullName.value.trim(),
         studentNumber: studentNumber.value.trim(),
-        ownershipConfirmed: true,
+        ownershipConfirmed: ownershipConfirmed.value,
       },
     })
     success.value = true
@@ -80,6 +80,9 @@ async function submit() {
     }
     else if (statusMessage === 'DISCOUNT_APPLICATION_RATE_LIMITED') {
       formError.value = t('studentVerify.errors.rateLimited')
+    }
+    else if (statusMessage === 'OWNERSHIP_REQUIRED') {
+      formError.value = t('studentVerify.errors.ownership')
     }
     else if (statusMessage === 'Application already pending') {
       formError.value = t('studentVerify.status.pending')
@@ -131,17 +134,6 @@ async function submit() {
     </fieldset>
     <p class="text-xs text-brand-gray-600">{{ t('studentVerify.cardImageHint') }}</p>
 
-    <label class="flex items-start gap-2 text-sm text-brand-navy">
-      <input
-        v-model="ownershipConfirmed"
-        type="checkbox"
-        class="mt-1 size-4 shrink-0 accent-brand-primary"
-        :disabled="blocked || submitting"
-      >
-      <span>{{ t('studentVerify.ownershipConfirm') }}</span>
-    </label>
-
-    <p v-if="formError" class="venus-alert-error" role="alert">{{ formError }}</p>
     <div
       v-if="isReviewing"
       class="space-y-2 border border-[rgba(182,138,59,.35)] bg-[#f3e9d3] px-3 py-3 text-start"
@@ -156,6 +148,24 @@ async function submit() {
     <p v-else-if="initialStatus === 'REJECTED'" class="text-sm text-brand-primary" role="status">
       {{ t('studentVerify.status.rejected') }}
     </p>
+
+    <p v-if="formError" class="venus-alert-error" role="alert">{{ formError }}</p>
+
+    <label
+      v-if="!isReviewing"
+      for="student-verify-ownership"
+      class="flex items-start gap-2 text-sm leading-relaxed text-brand-navy"
+    >
+      <input
+        id="student-verify-ownership"
+        v-model="ownershipConfirmed"
+        type="checkbox"
+        class="mt-0.5 size-4 shrink-0 accent-brand-primary"
+        :disabled="blocked || submitting"
+        :aria-invalid="Boolean(formError) && !ownershipConfirmed"
+      >
+      <span>{{ t('studentVerify.ownershipConfirm') }}</span>
+    </label>
 
     <button
       v-if="!isReviewing"

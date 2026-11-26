@@ -211,6 +211,7 @@ export function serializeApplicationForOwner(
     fullName: string | null
     studentNumber: string | null
     ownershipConfirmed: boolean
+    ownershipConfirmedAt: Date | null
     createdAt: Date
     reviewedAt: Date | null
     user: { id: string; name: string; phone: string | null }
@@ -232,6 +233,7 @@ export function serializeApplicationForOwner(
     fullName: app.fullName,
     studentNumber: app.studentNumber,
     ownershipConfirmed: app.ownershipConfirmed,
+    ownershipConfirmedAt: app.ownershipConfirmedAt?.toISOString() || null,
     createdAt: app.createdAt.toISOString(),
     reviewedAt: app.reviewedAt?.toISOString() || null,
     user: {
