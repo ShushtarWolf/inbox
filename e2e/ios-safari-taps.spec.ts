@@ -229,6 +229,27 @@ test.describe('iOS Safari tap guard', () => {
     await expect(page.locator('[data-app-modal-overlay]')).toBeVisible({ timeout: 10_000 })
   })
 
+  test('owner account drawer logout clears session (IB-59)', async ({ page }) => {
+    await loginOwnerPassword(page)
+    await page.goto('/owner/calendar')
+    await expect(page.locator('.canva-owner-avatar').first()).toBeVisible({ timeout: 15_000 })
+
+    await page.locator('.canva-owner-avatar').first().click()
+    await expect(page.locator('[data-account-drawer-overlay]')).toBeVisible({ timeout: 10_000 })
+    // Let backdrop dismiss arm after the opening avatar tap (iOS Safari open-click race).
+    await page.waitForTimeout(450)
+
+    await page.getByRole('button', { name: 'خروج از حساب کاربری' }).click()
+    await page.waitForURL((url) => url.pathname === '/' || url.pathname === '/fa' || url.pathname === '/fa/', {
+      timeout: 15_000,
+    })
+
+    const me = await page.request.get('/api/auth/me')
+    expect(me.ok()).toBeTruthy()
+    const body = (await me.json()) as { user: unknown }
+    expect(body.user).toBeNull()
+  })
+
   test('owner more sheet close restores bottom nav taps', async ({ page }) => {
     await loginOwnerPassword(page)
     await page.goto('/owner/calendar')

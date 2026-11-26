@@ -15,6 +15,13 @@ const panelRef = ref<HTMLElement | null>(null)
 const closeBtnRef = ref<HTMLButtonElement | null>(null)
 const panelStyle = ref<Record<string, string>>({})
 const holdsBodyLock = ref(false)
+const loggingOut = ref(false)
+/** Backdrop dismiss only after the opening avatar tap finishes (AppModal pattern). */
+const dismissArmed = ref(false)
+const backdropGestureActive = ref(false)
+let dismissArmTimer: ReturnType<typeof setTimeout> | null = null
+let removeOpenGestureListeners: (() => void) | null = null
+let ignorePointerReleaseUntil = 0
 let restoreFocus: HTMLElement | null = null
 
 const memberships = computed(() => user.value?.memberships || [])
@@ -48,9 +55,93 @@ function onNavigate() {
   emit('close')
 }
 
-async function handleLogout() {
+function clearDismissArmTimer() {
+  if (dismissArmTimer != null) {
+    clearTimeout(dismissArmTimer)
+    dismissArmTimer = null
+  }
+}
+
+function clearOpenGestureListeners() {
+  removeOpenGestureListeners?.()
+  removeOpenGestureListeners = null
+}
+
+function armDismiss() {
+  if (!props.open) return
+  dismissArmed.value = true
+  backdropGestureActive.value = false
+  clearDismissArmTimer()
+  clearOpenGestureListeners()
+}
+
+function scheduleDismissArm() {
+  clearDismissArmTimer()
+  clearOpenGestureListeners()
+  dismissArmed.value = false
+  backdropGestureActive.value = false
+  ignorePointerReleaseUntil = Date.now() + 50
+
+  let armed = false
+  const tryArm = () => {
+    if (armed || !props.open) return
+    armed = true
+    armDismiss()
+  }
+
+  const onPointerReleased = () => {
+    if (Date.now() < ignorePointerReleaseUntil) return
+    requestAnimationFrame(() => {
+      requestAnimationFrame(tryArm)
+    })
+  }
+
+  window.addEventListener('pointerup', onPointerReleased, true)
+  window.addEventListener('pointercancel', onPointerReleased, true)
+  window.addEventListener('mouseup', onPointerReleased, true)
+  window.addEventListener('touchend', onPointerReleased, true)
+
+  removeOpenGestureListeners = () => {
+    window.removeEventListener('pointerup', onPointerReleased, true)
+    window.removeEventListener('pointercancel', onPointerReleased, true)
+    window.removeEventListener('mouseup', onPointerReleased, true)
+    window.removeEventListener('touchend', onPointerReleased, true)
+  }
+
+  dismissArmTimer = setTimeout(tryArm, 400)
+}
+
+function onBackdropPointerDown(event: PointerEvent) {
+  if (!dismissArmed.value) {
+    backdropGestureActive.value = false
+    return
+  }
+  const panel = panelRef.value
+  if (panel && event.target instanceof Node && panel.contains(event.target)) {
+    backdropGestureActive.value = false
+    return
+  }
+  backdropGestureActive.value = true
+}
+
+function onBackdropClick() {
+  if (loggingOut.value) return
+  if (!dismissArmed.value || !backdropGestureActive.value) {
+    backdropGestureActive.value = false
+    return
+  }
+  backdropGestureActive.value = false
   emit('close')
-  await logout()
+}
+
+async function handleLogout() {
+  if (loggingOut.value) return
+  loggingOut.value = true
+  try {
+    await logout()
+  } catch {
+    loggingOut.value = false
+  }
 }
 
 function onKeydown(event: KeyboardEvent) {
@@ -153,6 +244,7 @@ watch(() => props.open, async (isOpen) => {
   if (isOpen) {
     acquireLock()
     restoreFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    scheduleDismissArm()
     await nextTick()
     attachPanelObserver()
     positionPanel()
@@ -165,13 +257,18 @@ watch(() => props.open, async (isOpen) => {
     })
   }
   else {
+    clearDismissArmTimer()
+    clearOpenGestureListeners()
+    dismissArmed.value = false
+    backdropGestureActive.value = false
+    loggingOut.value = false
     resizeObserver?.disconnect()
     resizeObserver = null
     releaseLock()
     restoreFocus?.focus()
     restoreFocus = null
   }
-})
+}, { flush: 'post' })
 
 watch(() => props.anchor, () => {
   if (props.open) positionPanel()
@@ -186,6 +283,8 @@ onMounted(() => {
 
 onUnmounted(() => {
   if (!import.meta.client) return
+  clearDismissArmTimer()
+  clearOpenGestureListeners()
   document.removeEventListener('keydown', onKeydown)
   window.removeEventListener('resize', onViewportChange)
   window.removeEventListener('scroll', onViewportChange, true)
@@ -206,8 +305,11 @@ onUnmounted(() => {
         class="canva-account-drawer-overlay"
         role="presentation"
         data-account-drawer-overlay
-        @click.self="emit('close')"
+        @pointerdown="onBackdropPointerDown"
+        @click="onBackdropClick"
       >
+        <!-- Dedicated backdrop (decorative). Panel uses separate fixed positioning. -->
+        <div class="pointer-events-none absolute inset-0" aria-hidden="true" />
         <aside
           ref="panelRef"
           class="canva-account-drawer"
@@ -215,6 +317,7 @@ onUnmounted(() => {
           aria-modal="true"
           :aria-label="t('owner.account.title')"
           :style="panelStyle"
+          @pointerdown.stop
           @click.stop
         >
           <div class="canva-account-drawer-head">
@@ -266,7 +369,12 @@ onUnmounted(() => {
               </span>
               <span class="canva-account-menu-label">{{ item.label }}</span>
             </NuxtLink>
-            <button type="button" class="canva-account-menu-item canva-account-menu-logout" @click="handleLogout">
+            <button
+              type="button"
+              class="canva-account-menu-item canva-account-menu-logout"
+              :disabled="loggingOut"
+              @click.stop.prevent="handleLogout"
+            >
               <span class="canva-account-menu-icon">
                 <AppIcon name="logout" size="sm" />
               </span>

@@ -177,6 +177,12 @@ if (!accountDrawer.includes('canva-account-drawer-overlay') || !accountDrawer.in
     errors.push('OwnerAccountDrawer must keep canva-account-drawer-overlay (fixed inset-0)')
   }
 }
+if (!accountDrawer.includes('@pointerdown.stop')) {
+  errors.push('OwnerAccountDrawer panel must @pointerdown.stop so menu presses do not count as backdrop')
+}
+if (/async function handleLogout\(\)[\s\S]*emit\(['"]close['"]\)[\s\S]*await logout/.test(accountDrawer)) {
+  errors.push('OwnerAccountDrawer handleLogout must await logout before emit(close)')
+}
 
 const bottomNav = readFileSync('app/components/AppBottomNav.vue', 'utf8')
 if (!bottomNav.includes('scrollLayout') || !bottomNav.includes('touch-pan-x')) {
