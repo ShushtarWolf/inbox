@@ -16,6 +16,18 @@ describe('SMS templates', () => {
     else process.env.NUXT_PUBLIC_SITE_URL = prev
   })
 
+  it('renders owner student-card submission SMS with review URL', () => {
+    const body = renderSmsTemplate('OWNER_STUDENT_CARD_SUBMITTED', {
+      athleteName: 'علی رضایی',
+      clubName: 'علم و صنعت',
+      programTitle: 'تخفیف دانشجویی تنیس',
+    })
+    expect(body).toContain('علی رضایی')
+    expect(body).toContain('علم و صنعت')
+    expect(body).toContain('کارت دانشجویی برای بررسی ثبت شده')
+    expect(body).toContain('/owner/discounts?tab=requests')
+  })
+
   it('renders booking / reset / club / campaign bodies', () => {
     expect(renderSmsTemplate('BOOKING_CONFIRMED', { date: '1404/01/01', time: '10:00' })).toContain('رزرو تایید شد')
     expect(renderSmsTemplate('PASSWORD_RESET', { resetUrl: 'https://example.com/r' })).toContain('https://example.com/r')

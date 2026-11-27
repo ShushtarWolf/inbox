@@ -9,6 +9,14 @@ export function ownerDailyReservationsCalendarUrl(data?: Record<string, unknown>
   return `${base}/owner/calendar`
 }
 
+/** Owner discounts page — student / discount verification requests tab. */
+export function ownerDiscountRequestsUrl(data?: Record<string, unknown>) {
+  const explicit = String(data?.reviewUrl || '').trim()
+  if (explicit) return explicit
+  const base = (process.env.NUXT_PUBLIC_SITE_URL || 'https://inboxs.ir').replace(/\/$/, '')
+  return `${base}/owner/discounts?tab=requests`
+}
+
 /** Athlete bookings dashboard. Prod: https://inboxs.ir/athlete/bookings */
 export function athleteBookingsDashboardUrl(data?: Record<string, unknown>) {
   const explicit = String(data?.dashboardUrl || '').trim()
@@ -330,6 +338,33 @@ const TEMPLATE_BODIES: Record<NotifyTemplate | 'CAMPAIGN', (data: Record<string,
       '',
       'Inboxs',
     ].join('\n')
+  },
+  /**
+   * Owner alert when an athlete submits a student-card verification request.
+   * Live notify packs the body via Verify Lookup %token10% (KAVENEGAR_TEMPLATE_NOTIFY).
+   */
+  OWNER_STUDENT_CARD_SUBMITTED: (data) => {
+    const athlete = String(data.athleteName || data.guestName || '').trim()
+    const club = String(data.clubName || '').trim()
+    const program = String(data.programTitle || '').trim()
+    const lines = [
+      'Inboxs | کارت دانشجویی',
+      '',
+      athlete ? `ورزشکار: ${athlete}` : '',
+      club ? `باشگاه: «${club}»` : '',
+      'کارت دانشجویی برای بررسی ثبت شده.',
+    ].filter(Boolean)
+    if (program) {
+      lines.push('', `طرح: «${program}»`)
+    }
+    lines.push(
+      '',
+      'بررسی در پنل باشگاه:',
+      ownerDiscountRequestsUrl(data),
+      '',
+      'Inboxs',
+    )
+    return lines.join('\n')
   },
   CLUB_APPROVED: (data) => [
     `باشگاه «${data.clubName || ''}»`,

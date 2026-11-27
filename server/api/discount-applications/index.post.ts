@@ -5,6 +5,7 @@ import {
   validateStudentVerificationFields,
 } from '#shared/studentVerification.ts'
 import { parseProofUrls } from '../../utils/discountMemberships'
+import { notifyOwnerStudentCardSubmitted } from '../../utils/discountApplicationNotify'
 import { createInAppNotification } from '../../utils/notify'
 import { enforceRateLimit } from '../../utils/rateLimit'
 import { assertNoApprovedStudentNumberConflict } from '../../utils/studentVerificationDuplicate'
@@ -130,6 +131,15 @@ export default defineEventHandler(async (event) => {
         href: '/owner/discounts?tab=requests',
       },
     }).catch(() => null)
+    if (isStudent) {
+      const athleteName = (fullName || user.name || '').trim()
+      void notifyOwnerStudentCardSubmitted({
+        clubId: program.clubId,
+        clubName: program.club.nameFa || '',
+        programTitle: program.titleFa,
+        athleteName,
+      }).catch(() => null)
+    }
   }
 
   return {
