@@ -28,6 +28,29 @@ describe('SMS templates', () => {
     expect(body).toContain('/owner/discounts?tab=requests')
   })
 
+  it('renders athlete discount approve/reject SMS with profile URL', () => {
+    const approved = renderSmsTemplate('ATHLETE_DISCOUNT_APPROVED', {
+      clubName: 'علم و صنعت',
+      programTitle: 'تخفیف دانشجویی',
+      discountPercent: 25,
+      verificationKind: 'STUDENT',
+    })
+    expect(approved).toContain('کارت دانشجویی شما تأیید شد')
+    expect(approved).toContain('علم و صنعت')
+    expect(approved).toContain('۲۵٪')
+    expect(approved).toContain('/athlete/profile')
+
+    const rejected = renderSmsTemplate('ATHLETE_DISCOUNT_REJECTED', {
+      clubName: 'بهناز',
+      programTitle: 'طرح پرسنلی',
+      rejectReason: 'مدرک ناقص',
+      verificationKind: 'OTHER',
+    })
+    expect(rejected).toContain('درخواست تخفیف شما تأیید نشد')
+    expect(rejected).toContain('مدرک ناقص')
+    expect(rejected).toContain('/athlete/profile')
+  })
+
   it('renders booking / reset / club / campaign bodies', () => {
     expect(renderSmsTemplate('BOOKING_CONFIRMED', { date: '1404/01/01', time: '10:00' })).toContain('رزرو تایید شد')
     expect(renderSmsTemplate('PASSWORD_RESET', { resetUrl: 'https://example.com/r' })).toContain('https://example.com/r')
