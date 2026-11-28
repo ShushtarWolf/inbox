@@ -2,7 +2,8 @@ import { isPaidPaymentStatus } from './bookingPayment.ts'
 
 /** Terminal payment statuses that must not show as an active paid reservation. */
 export function isAthleteCancelledPayment(paymentStatus?: string | null): boolean {
-  return paymentStatus === 'REFUNDED' || paymentStatus === 'FAILED'
+  // FAILED is payable during the online hold; expiry cancels Booking.status instead.
+  return paymentStatus === 'REFUNDED'
 }
 
 type StatusRow = {

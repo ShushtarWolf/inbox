@@ -1,6 +1,7 @@
 import { confirmPaymentAndSync, markPaymentFailedAndSync } from '../../../utils/paymentSync'
 import { isDefinitivePaymentFailure } from '#shared/paymentFailure.ts'
 import { isPaymentCallbackOk, readPaymentCallbackFields } from '#shared/paymentCallback.ts'
+import { GATEWAY_CALLBACK_ABANDON_FAIL_REASON } from '#shared/onlinePaymentHold.ts'
 
 /** Only bank/IPG providers may confirm via the public browser return URL. */
 const PUBLIC_CALLBACK_PROVIDERS = new Set(['sep'])
@@ -75,7 +76,9 @@ export default defineEventHandler(async (event) => {
   // User cancelled / bank declined — never mark PAID.
   if (!isPaymentCallbackOk(statusRaw)) {
     try {
-      await markPaymentFailedAndSync(providerRef, paymentRow.provider)
+      await markPaymentFailedAndSync(providerRef, paymentRow.provider, {
+        failReason: GATEWAY_CALLBACK_ABANDON_FAIL_REASON,
+      })
     } catch (err) {
       console.error('[payments:callback:fail]', paymentRow.provider, providerRef, err)
     }

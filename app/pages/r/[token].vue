@@ -64,9 +64,18 @@ const paymentOutcome = computed(() => String(route.query.payment || ''))
 
 const paymentNotice = computed(() => {
   const q = paymentOutcome.value
+  const d = data.value
   if (q === 'success') return t('booking.paymentSuccess')
-  if (q === 'cancelled') return t('booking.paymentCancelled')
-  if (q === 'error') return t('booking.paymentError')
+  if (q === 'cancelled') {
+    if (d?.cancelled) return t('booking.receiptCancelled')
+    if (d && d.unpaid) return t('booking.paymentGatewayAbortedRetry')
+    if (pending.value) return ''
+    return t('booking.paymentGatewayAbortedUnknown')
+  }
+  if (q === 'error') {
+    if (d?.cancelled) return t('booking.receiptCancelled')
+    return t('booking.paymentError')
+  }
   return ''
 })
 

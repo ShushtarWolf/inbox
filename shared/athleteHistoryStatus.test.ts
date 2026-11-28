@@ -21,6 +21,21 @@ describe('athleteHistoryStatus', () => {
     ).toBe('cancelled')
   })
 
+  it('keeps live booking payable when IPG callback marked payment FAILED', () => {
+    expect(
+      athleteEffectiveBookingStatus({
+        status: 'PENDING',
+        payment: { status: 'FAILED' },
+      }),
+    ).toBe('PENDING')
+    expect(
+      athleteHistoryDisplayStatus(
+        { status: 'PENDING', payment: { status: 'FAILED' }, date: '2099-01-01' },
+        '2026-01-01',
+      ),
+    ).toBe('unpaid')
+  })
+
   it('prefers booking.status CANCELLED over PAID payment row', () => {
     expect(
       athleteHistoryDisplayStatus(
@@ -50,6 +65,7 @@ describe('athleteHistoryStatus', () => {
 
   it('isAthleteCancelledPayment', () => {
     expect(isAthleteCancelledPayment('REFUNDED')).toBe(true)
+    expect(isAthleteCancelledPayment('FAILED')).toBe(false)
     expect(isAthleteCancelledPayment('PAID')).toBe(false)
   })
 })
