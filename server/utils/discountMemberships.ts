@@ -4,7 +4,12 @@ import {
   pickBestDiscountMembership,
 } from '#shared/discountMembership.ts'
 import { parseClubImageInput } from '#shared/clubImageUrl.ts'
+import {
+  notifyAthleteDiscountApproved,
+  notifyAthleteDiscountRejected,
+} from './discountApplicationNotify'
 import { createInAppNotification } from './notify'
+import { clubNotifyName } from './bookingNotify'
 import { assertNoApprovedStudentNumberConflict } from './studentVerificationDuplicate'
 
 const MAX_PROOF_URLS = 2
@@ -76,6 +81,7 @@ export async function approveDiscountApplication(opts: {
     where: { id: opts.applicationId, clubId: opts.clubId },
     include: {
       program: true,
+      club: { select: { id: true, nameFa: true, nameEn: true } },
       user: { select: { id: true, name: true } },
     },
   })
@@ -144,6 +150,15 @@ export async function approveDiscountApplication(opts: {
     metadata: { clubId: app.clubId, programId: app.programId, percent },
   }).catch(() => null)
 
+  void notifyAthleteDiscountApproved({
+    clubId: app.clubId,
+    clubName: clubNotifyName(app.club),
+    programTitle: app.program.titleFa,
+    discountPercent: percent,
+    verificationKind: app.program.verificationKind,
+    athleteUserId: app.userId,
+  })
+
   return { ok: true as const }
 }
 
@@ -155,7 +170,10 @@ export async function rejectDiscountApplication(opts: {
 }) {
   const app = await prisma.discountApplication.findFirst({
     where: { id: opts.applicationId, clubId: opts.clubId },
-    include: { program: true },
+    include: {
+      program: true,
+      club: { select: { id: true, nameFa: true, nameEn: true } },
+    },
   })
   if (!app) throw createError({ statusCode: 404, statusMessage: 'Application not found' })
   if (app.status !== 'PENDING') {
@@ -182,6 +200,15 @@ export async function rejectDiscountApplication(opts: {
       : `درخواست «${app.program.titleFa}» رد شد.`,
     metadata: { clubId: app.clubId, programId: app.programId, reason },
   }).catch(() => null)
+
+  void notifyAthleteDiscountRejected({
+    clubId: app.clubId,
+    clubName: clubNotifyName(app.club),
+    programTitle: app.program.titleFa,
+    verificationKind: app.program.verificationKind,
+    athleteUserId: app.userId,
+    rejectReason: reason,
+  })
 
   return { ok: true as const }
 }

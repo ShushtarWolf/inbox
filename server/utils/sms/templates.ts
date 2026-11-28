@@ -25,6 +25,14 @@ export function athleteBookingsDashboardUrl(data?: Record<string, unknown>) {
   return `${base}/athlete/bookings`
 }
 
+/** Athlete profile hub — student-card verification status + account. */
+export function athleteProfileUrl(data?: Record<string, unknown>) {
+  const explicit = String(data?.profileUrl || '').trim()
+  if (explicit) return explicit
+  const base = (process.env.NUXT_PUBLIC_SITE_URL || 'https://inboxs.ir').replace(/\/$/, '')
+  return `${base}/athlete/profile`
+}
+
 function clubBit(data: Record<string, unknown>) {
   const name = String(data.clubName || '').trim()
   return name ? ` «${name}»` : ''
@@ -361,6 +369,59 @@ const TEMPLATE_BODIES: Record<NotifyTemplate | 'CAMPAIGN', (data: Record<string,
       '',
       'بررسی در پنل باشگاه:',
       ownerDiscountRequestsUrl(data),
+      '',
+      'Inboxs',
+    )
+    return lines.join('\n')
+  },
+  /**
+   * Athlete alert when the club approves a discount / student-card verification request.
+   * Live notify packs the body via Verify Lookup %token10% (KAVENEGAR_TEMPLATE_NOTIFY) or Path A sms/send.
+   */
+  ATHLETE_DISCOUNT_APPROVED: (data) => {
+    const club = String(data.clubName || '').trim()
+    const program = String(data.programTitle || '').trim()
+    const percentRaw = data.discountPercent
+    const percent =
+      percentRaw !== undefined && percentRaw !== null && String(percentRaw).trim() !== ''
+        ? toPersianDigits(String(percentRaw).trim())
+        : ''
+    const student = data.verificationKind === 'STUDENT'
+    const headline = student
+      ? 'کارت دانشجویی شما تأیید شد.'
+      : 'درخواست تخفیف شما تأیید شد.'
+    const lines = ['Inboxs | تأیید باشگاه', '', headline]
+    if (club) lines.push('', `باشگاه: «${club}»`)
+    if (program) lines.push(`طرح: «${program}»`)
+    if (percent) lines.push(`تخفیف: ${percent}٪`)
+    lines.push(
+      '',
+      'مشاهده در حساب:',
+      athleteProfileUrl(data),
+      '',
+      'Inboxs',
+    )
+    return lines.join('\n')
+  },
+  /**
+   * Athlete alert when the club rejects a discount / student-card verification request.
+   */
+  ATHLETE_DISCOUNT_REJECTED: (data) => {
+    const club = String(data.clubName || '').trim()
+    const program = String(data.programTitle || '').trim()
+    const note = String(data.rejectReason || data.note || '').trim()
+    const student = data.verificationKind === 'STUDENT'
+    const headline = student
+      ? 'کارت دانشجویی شما تأیید نشد.'
+      : 'درخواست تخفیف شما تأیید نشد.'
+    const lines = ['Inboxs | باشگاه', '', headline]
+    if (club) lines.push('', `باشگاه: «${club}»`)
+    if (program) lines.push(`طرح: «${program}»`)
+    if (note) lines.push('', note)
+    lines.push(
+      '',
+      'مشاهده در حساب:',
+      athleteProfileUrl(data),
       '',
       'Inboxs',
     )
