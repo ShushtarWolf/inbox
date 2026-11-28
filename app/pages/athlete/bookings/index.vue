@@ -217,23 +217,51 @@ const highlightBookingId = computed(() => {
   return ''
 })
 
+function paymentFlashForOutcome(
+  outcome: string,
+  bookings: CourtBooking[] | undefined,
+): { tone: 'success' | 'error'; text: string } | null {
+  if (outcome === 'success') {
+    return { tone: 'success', text: t('booking.paymentSuccessRich') }
+  }
+  if (outcome === 'cancelled') {
+    const id = typeof route.query.booking === 'string' ? route.query.booking : ''
+    const row = id && bookings ? bookings.find((b) => b.id === id) : null
+    if (row && athleteEffectiveBookingStatus(row) === 'CANCELLED') {
+      return { tone: 'error', text: t('booking.receiptCancelled') }
+    }
+    return { tone: 'error', text: t('booking.paymentGatewayAbortedRetry') }
+  }
+  if (outcome === 'error') {
+    return { tone: 'error', text: t('booking.paymentError') }
+  }
+  return null
+}
+
 watch(
   () => route.query.payment,
-  (value) => {
-    if (value === 'success') {
-      paymentFlashTone.value = 'success'
-      paymentFlash.value = t('booking.paymentSuccessRich')
-    }
-    else if (value === 'cancelled') {
-      paymentFlashTone.value = 'error'
-      paymentFlash.value = t('booking.paymentCancelled')
-    }
-    else if (value === 'error') {
-      paymentFlashTone.value = 'error'
-      paymentFlash.value = t('booking.paymentError')
+  async (value) => {
+    if (typeof value === 'string' && value) await refresh()
+    const flash = typeof value === 'string' ? paymentFlashForOutcome(value, data.value?.courtBookings) : null
+    if (flash) {
+      paymentFlashTone.value = flash.tone
+      paymentFlash.value = flash.text
     }
   },
   { immediate: true },
+)
+
+watch(
+  () => data.value?.courtBookings,
+  () => {
+    const value = route.query.payment
+    if (typeof value !== 'string' || !value) return
+    const flash = paymentFlashForOutcome(value, data.value?.courtBookings)
+    if (flash) {
+      paymentFlashTone.value = flash.tone
+      paymentFlash.value = flash.text
+    }
+  },
 )
 
 const { data: replacementSlots, refresh: refreshSlots } = await useAuthedFetch<Array<{

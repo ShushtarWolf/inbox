@@ -8,6 +8,9 @@ export const ONLINE_PAYMENT_HOLD_MS = ONLINE_PAYMENT_HOLD_MINUTES * 60 * 1000
 /** Written on Payment.metadataJson when the hold releases the seat (not a bank decline). */
 export const ONLINE_HOLD_EXPIRED_FAIL_REASON = 'online_hold_expired'
 
+/** Browser return from IPG before verify (SEP State Canceled / NOK) — booking stays payable within hold. */
+export const GATEWAY_CALLBACK_ABANDON_FAIL_REASON = 'gateway_callback_abandon'
+
 export function onlinePaymentHoldExpiresAt(createdAt: Date): Date {
   return new Date(createdAt.getTime() + ONLINE_PAYMENT_HOLD_MS)
 }

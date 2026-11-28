@@ -566,8 +566,16 @@ export async function confirmPaymentAndSync(
   return intent
 }
 
+export type MarkPaymentFailedOpts = {
+  failReason?: string
+}
+
 /** Mark payment FAILED (user cancel / bank decline / verify failure). Idempotent. */
-export async function markPaymentFailedAndSync(providerRef: string, providerName?: string) {
+export async function markPaymentFailedAndSync(
+  providerRef: string,
+  providerName?: string,
+  opts?: MarkPaymentFailedOpts,
+) {
   const payment = await prisma.payment.findFirst({
     where: {
       providerRef,
@@ -586,13 +594,26 @@ export async function markPaymentFailedAndSync(providerRef: string, providerName
   }
   // Verify in flight or a bound capture: keep the row payable and keep the wallet share.
   if (shouldPreserveUnsettledCapture(payment)) return toSafeIntent(payment)
+  const meta = parsePaymentMetadata(payment.metadataJson)
+  const failReason = opts?.failReason?.trim()
   const claimed = await prisma.payment.updateMany({
     where: {
       id: payment.id,
       status: { in: ['PENDING_ONLINE', 'PAY_AT_CLUB', 'PENDING_AT_CLUB'] },
       gatewayRef: null,
     },
-    data: { status: 'FAILED' },
+    data: {
+      status: 'FAILED',
+      ...(failReason
+        ? {
+            metadataJson: JSON.stringify({
+              ...meta,
+              failReason,
+              gatewayAbandonedAt: new Date().toISOString(),
+            }),
+          }
+        : {}),
+    },
   })
   if (claimed.count !== 1) {
     const fresh = await prisma.payment.findUnique({ where: { id: payment.id } })
