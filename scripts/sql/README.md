@@ -12,6 +12,7 @@ Curated `psql` scripts for production investigations. Each file is **SELECT-only
 | `ib47-season-residual-shortfall-dry-run.sql` | IB-47 fully-cancelled season IPG residual wallet shortfall |
 | `ib13-cancel-refund-classify-dry-run.sql` | IB-13 cancelled bookings — refund classification (no writes) |
 | `ib14-orphan-payment-classify-dry-run.sql` | IB-14 detached payments — orphan wallet classification |
+| `ib67-owner-student-card-sms.sql` | IB-67 owner SMS on student-card submit/resubmit (Elahe / iust clubs) |
 
 ### `trace-wallet-cancel-lost-refund.sql` section (c)
 

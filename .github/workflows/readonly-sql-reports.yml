@@ -17,6 +17,7 @@ on:
           - ib47-season-residual-shortfall
           - ib13-cancel-refund-classify
           - ib14-orphan-payment-classify
+          - ib67-owner-student-card-sms
 
 concurrency:
   group: readonly-sql-reports
@@ -102,8 +103,9 @@ jobs:
               add_if_on_main ib47-season-residual-shortfall
               add_if_on_main ib13-cancel-refund-classify
               add_if_on_main ib14-orphan-payment-classify
+              add_if_on_main ib67-owner-student-card-sms
               ;;
-            sms-delivery-gap|trace-wallet-cancel-lost-refund|list-suspect-court-time-bands|cancel-wallet-shortfalls|ib47-season-residual-shortfall|ib13-cancel-refund-classify|ib14-orphan-payment-classify)
+            sms-delivery-gap|trace-wallet-cancel-lost-refund|list-suspect-court-time-bands|cancel-wallet-shortfalls|ib47-season-residual-shortfall|ib13-cancel-refund-classify|ib14-orphan-payment-classify|ib67-owner-student-card-sms)
               add_if_on_main "$REPORT"
               ;;
             *)
