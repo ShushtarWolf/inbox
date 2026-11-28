@@ -133,7 +133,7 @@ export default defineEventHandler(async (event) => {
     }).catch(() => null)
     if (isStudent) {
       const athleteName = (fullName || user.name || '').trim()
-      void notifyOwnerStudentCardSubmitted({
+      await notifyOwnerStudentCardSubmitted({
         clubId: program.clubId,
         clubName: program.club.nameFa || '',
         programTitle: program.titleFa,
